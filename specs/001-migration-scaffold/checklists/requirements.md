@@ -1,8 +1,8 @@
-# Specification Quality Checklist: PR Merge Auto Release
+# Specification Quality Checklist: Migration 폴더 기본 구조 구성
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-03-27
-**Feature**: [/Users/choiho/coding/gbgr/bugi/specs/001-auto-release-versioning/spec.md](/Users/choiho/coding/gbgr/bugi/specs/001-auto-release-versioning/spec.md)
+**Created**: 2026-04-13
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
@@ -31,5 +31,6 @@
 
 ## Notes
 
-- Validation pass 1 completed.
-- Existing repository already has tag-based release workflows. This specification covers the missing automation from merge to version decision and release start.
+- FR-002 mentions Bun/Node.js 구체적 도구명이 포함되어 있으나,
+  사용자가 명시적으로 선택한 사항이므로 implementation detail이 아닌
+  requirement로 간주함
