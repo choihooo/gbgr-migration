@@ -3,6 +3,8 @@
 ## Active Technologies
 - TypeScript 5.x, Rust (latest stable via rustup) + Tauri 2, React 19, Vite 6, Tailwind CSS v4, Biome (001-migration-scaffold)
 - N/A (이 스펙은 구조 설정만 다룸) (001-migration-scaffold)
+- TypeScript 5.x + React 19, React Router DOM 7, @tauri-apps/api, @tauri-apps/plugin-deep-link (002-routing-setup)
+- localStorage (accessToken, refreshToken) (002-routing-setup)
 
 ## Recent Changes
 - 001-migration-scaffold: Added TypeScript 5.x, Rust (latest stable via rustup) + Tauri 2, React 19, Vite 6, Tailwind CSS v4, Biome
