@@ -1,5 +1,9 @@
+import { useTranslation } from 'react-i18next'
+
 function OnboardingCompletionPage() {
-  return <div>Onboarding Completion Page</div>
+  const { t } = useTranslation()
+
+  return <div>{t('onboarding.completionPageTitle')}</div>
 }
 
 export default OnboardingCompletionPage

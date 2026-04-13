@@ -9,3 +9,10 @@
 
 # Don't
 - UI 스타일을 절대 바꾸지 않을 것
+
+## Active Technologies
+- TypeScript 5.8, React 19, Rust 2021(Tauri 런타임) + React Router 7, Zustand 5, TanStack Query 5, i18next 26, Tauri 2 플러그인 (003-auth-domain-implementation)
+- 브라우저 `localStorage` 기반 클라이언트 저장소, 백엔드 인증 API, Tauri deep-link 진입 정보 (003-auth-domain-implementation)
+
+## Recent Changes
+- 003-auth-domain-implementation: Added TypeScript 5.8, React 19, Rust 2021(Tauri 런타임) + React Router 7, Zustand 5, TanStack Query 5, i18next 26, Tauri 2 플러그인

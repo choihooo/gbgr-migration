@@ -1,0 +1,257 @@
+openapi: 3.0.3
+info:
+  title: GBGR Migration Auth Contract
+  version: 1.0.0
+  description: >
+    migration 인증 도메인이 레거시 백엔드와 통신할 때 기대하는 HTTP 계약.
+    UI 스타일과 무관한 요청/응답 형태만 정의한다.
+servers:
+  - url: "{baseUrl}"
+    variables:
+      baseUrl:
+        default: https://api.example.com
+paths:
+  /auth/login:
+    post:
+      summary: 이메일/비밀번호 로그인
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: 로그인 결과
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+  /auth/check-email:
+    post:
+      summary: 회원가입 이메일 중복 확인
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailRequest"
+      responses:
+        "200":
+          description: 중복 확인 결과
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckEmailResponse"
+  /auth/sign-up:
+    post:
+      summary: 회원가입 요청
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+      responses:
+        "200":
+          description: 회원가입 결과
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericSuccessResponse"
+  /auth/verify-email:
+    post:
+      summary: 이메일 인증 토큰 검증
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailRequest"
+      responses:
+        "200":
+          description: 이메일 인증 결과
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyEmailResponse"
+  /auth/resend-verification-email:
+    post:
+      summary: 인증 메일 재발송
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResendVerificationRequest"
+      responses:
+        "200":
+          description: 재발송 결과
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericSuccessResponse"
+  /auth/refresh:
+    post:
+      summary: 액세스 토큰 재발급
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: 토큰 재발급 결과
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshResponse"
+  /users/me:
+    get:
+      summary: 현재 사용자 정보 조회
+      responses:
+        "200":
+          description: 사용자 정보
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    EmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    SignupRequest:
+      type: object
+      required: [email, password, name, callbackUrl]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        name:
+          type: string
+        callbackUrl:
+          type: string
+        avatar:
+          type: string
+          nullable: true
+    VerifyEmailRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+    ResendVerificationRequest:
+      type: object
+      required: [email, callbackUrl]
+      properties:
+        email:
+          type: string
+          format: email
+        callbackUrl:
+          type: string
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    LoginResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [accessToken, refreshToken]
+              properties:
+                accessToken:
+                  type: string
+                refreshToken:
+                  type: string
+    CheckEmailResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [isDuplicate]
+              properties:
+                isDuplicate:
+                  type: boolean
+    VerifyEmailResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                userId:
+                  type: string
+    RefreshResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              required: [accessToken, refreshToken]
+              properties:
+                accessToken:
+                  type: string
+                refreshToken:
+                  type: string
+    MeResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseEnvelope"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                userId:
+                  type: string
+                name:
+                  type: string
+    GenericSuccessResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseEnvelope"
+    BaseEnvelope:
+      type: object
+      required: [success]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        success:
+          type: boolean
+        code:
+          type: string
+          description: >
+            레거시 계약에서 사용하는 상태 코드.
+            AUTH-101은 액세스 토큰 만료, AUTH-102는 리프레시 토큰 무효로 해석한다.
+        message:
+          type: string
+          nullable: true

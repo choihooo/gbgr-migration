@@ -1,0 +1,183 @@
+export const defaultLanguage = 'ko' as const
+
+export const supportedLanguages = ['ko', 'en'] as const
+
+export type AppLanguage = (typeof supportedLanguages)[number]
+
+export const resources = {
+  ko: {
+    translation: {
+      auth: {
+        slogan: '세상 모든 거북목들이 기린이 될 때까지',
+        login: {
+          emailPlaceholder: '이메일',
+          passwordPlaceholder: '비밀번호',
+          missingCredentials: '이메일 또는 비밀번호를 입력해주세요.',
+          saveId: '아이디 저장',
+          submit: '로그인',
+          signup: '회원가입',
+          forgotPassword: '비밀번호 찾기',
+        },
+        signup: {
+          title: '회원가입',
+          email: '이메일',
+          emailPlaceholder: '이메일을 입력해주세요.',
+          duplicateCheck: '중복확인',
+          duplicateRequired: '이메일 중복확인을 완료해주세요',
+          duplicateAvailable: '사용 가능한 이메일입니다.',
+          duplicateExists: '이미 가입된 이메일입니다.',
+          password: '비밀번호',
+          passwordGuide:
+            '영문, 숫자, 특수문자를 조합하여 8-16글자로 입력해주세요.',
+          confirmPasswordPlaceholder: '비밀번호를 재입력해주세요.',
+          confirmPasswordMatch: '비밀번호가 일치합니다.',
+          confirmPasswordMismatch: '비밀번호가 일치하지 않습니다.',
+          name: '이름',
+          namePlaceholder: '이름을 입력해주세요.',
+          nameGuide: '최대 10글자 이내로 작성해주세요.',
+          nameAvailable: '사용 가능한 이름입니다.',
+          submit: '완료',
+          resendPrompt: '이메일을 못받으셨나요?',
+          resendAction: '이메일 다시 보내기',
+          verificationTitle: '이메일 인증',
+          verificationHighlightFallback: '입력한 이메일',
+          verificationLine1Prefix: '본인 인증 메일을 귀하의',
+          verificationLine1Suffix: '로 보냈습니다.',
+          verificationLine2Prefix:
+            '받은 메일함에서 인증 메일을 열고',
+          verificationLine2Highlight: '본인인증',
+          verificationLine2Suffix:
+            '을 클릭하면 회원가입이 완료됩니다.',
+          verificationResent: '{{email}}로 인증 메일을 다시 보냈습니다.',
+          resendSentTitle: '인증 링크를 메일로 전송했습니다',
+          resendSentLine1: '이메일로 전송 받은 인증 링크를 확인해주세요.',
+          resendSentLine2:
+            '링크는 발송 시점으로부터 24시간 동안 유효합니다.',
+          resendSentToast: '인증 링크를 다시 전송했습니다.',
+          missingEmail: '이메일 정보 없음',
+          callbackTitle: '환영합니다',
+          callbackLine1: '이메일 인증이 완료되었습니다.',
+          callbackLine2: '거부기린 앱으로 돌아가서',
+          callbackLine3: '로그인하여 서비스를 이용해주세요.',
+        },
+        validation: {
+          emailRequired: '이메일을 입력해주세요.',
+          emailInvalid: '유효한 이메일을 입력해주세요.',
+          passwordMin: '비밀번호는 8자 이상이어야 합니다.',
+          passwordMax: '비밀번호는 16자 이하여야 합니다.',
+          passwordPattern: '영문, 숫자, 특수문자를 조합해주세요.',
+          nameRequired: '이름을 입력해주세요.',
+          nameMax: '최대 글자수를 초과했습니다.',
+          nameNoWhitespace: '띄어쓰기 없이 붙여 작성해주세요.',
+        },
+      },
+      onboarding: {
+        pageTitle: '온보딩 페이지',
+        initPageTitle: '온보딩 시작 페이지',
+        completionPageTitle: '온보딩 완료 페이지',
+        calibrationPageTitle: '보정 페이지',
+      },
+      dashboard: {
+        pageTitle: '메인 페이지',
+      },
+      settings: {
+        language: {
+          sectionTitle: '언어',
+          label: '앱 언어',
+          description: '설정 모달에서 앱 표시 언어를 변경할 수 있습니다.',
+          optionKo: '한국어',
+          optionEn: '영어',
+        },
+      },
+    },
+  },
+  en: {
+    translation: {
+      auth: {
+        slogan: 'Until every forward head posture stands tall like a giraffe',
+        login: {
+          emailPlaceholder: 'Email',
+          passwordPlaceholder: 'Password',
+          missingCredentials: 'Please enter your email and password.',
+          saveId: 'Remember email',
+          submit: 'Log in',
+          signup: 'Sign up',
+          forgotPassword: 'Forgot password',
+        },
+        signup: {
+          title: 'Sign up',
+          email: 'Email',
+          emailPlaceholder: 'Enter your email.',
+          duplicateCheck: 'Check',
+          duplicateRequired: 'Please complete the email duplication check.',
+          duplicateAvailable: 'This email is available.',
+          duplicateExists: 'This email is already registered.',
+          password: 'Password',
+          passwordGuide:
+            'Use 8-16 characters with letters, numbers, and special characters.',
+          confirmPasswordPlaceholder: 'Re-enter your password.',
+          confirmPasswordMatch: 'Passwords match.',
+          confirmPasswordMismatch: 'Passwords do not match.',
+          name: 'Name',
+          namePlaceholder: 'Enter your name.',
+          nameGuide: 'Please use up to 10 characters.',
+          nameAvailable: 'This name is available.',
+          submit: 'Done',
+          resendPrompt: "Didn't receive the email?",
+          resendAction: 'Send again',
+          verificationTitle: 'Email verification',
+          verificationHighlightFallback: 'your email',
+          verificationLine1Prefix: 'We sent a verification email to',
+          verificationLine1Suffix: '.',
+          verificationLine2Prefix:
+            'Open the email in your inbox and click',
+          verificationLine2Highlight: 'Verify',
+          verificationLine2Suffix: ' to complete sign up.',
+          verificationResent:
+            'We sent the verification email again to {{email}}.',
+          resendSentTitle: 'We sent the verification link by email',
+          resendSentLine1:
+            'Please check the verification link sent to your email.',
+          resendSentLine2:
+            'The link is valid for 24 hours from the time it was sent.',
+          resendSentToast: 'The verification link was sent again.',
+          missingEmail: 'No email information',
+          callbackTitle: 'Welcome',
+          callbackLine1: 'Your email has been verified.',
+          callbackLine2: 'Return to the GBGR app',
+          callbackLine3: 'and log in to continue.',
+        },
+        validation: {
+          emailRequired: 'Please enter your email.',
+          emailInvalid: 'Please enter a valid email address.',
+          passwordMin: 'Password must be at least 8 characters.',
+          passwordMax: 'Password must be 16 characters or fewer.',
+          passwordPattern:
+            'Use a combination of letters, numbers, and special characters.',
+          nameRequired: 'Please enter your name.',
+          nameMax: 'You exceeded the maximum number of characters.',
+          nameNoWhitespace: 'Please enter your name without spaces.',
+        },
+      },
+      onboarding: {
+        pageTitle: 'Onboarding Page',
+        initPageTitle: 'Onboarding Init Page',
+        completionPageTitle: 'Onboarding Completion Page',
+        calibrationPageTitle: 'Calibration Page',
+      },
+      dashboard: {
+        pageTitle: 'Main Page',
+      },
+      settings: {
+        language: {
+          sectionTitle: 'Language',
+          label: 'App language',
+          description:
+            'You will be able to change the app display language in the settings modal.',
+          optionKo: 'Korean',
+          optionEn: 'English',
+        },
+      },
+    },
+  },
+} as const

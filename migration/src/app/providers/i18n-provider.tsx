@@ -1,0 +1,24 @@
+import { useEffect, type ReactNode } from 'react'
+import { I18nextProvider } from 'react-i18next'
+import { i18n, normalizeLanguage } from '@/shared/lib/i18n'
+
+interface I18nProviderProps {
+  children: ReactNode
+}
+
+export function AppI18nProvider({ children }: I18nProviderProps) {
+  useEffect(() => {
+    const applyLanguageToDocument = (language: string) => {
+      document.documentElement.lang = normalizeLanguage(language)
+    }
+
+    applyLanguageToDocument(i18n.resolvedLanguage ?? i18n.language)
+    i18n.on('languageChanged', applyLanguageToDocument)
+
+    return () => {
+      i18n.off('languageChanged', applyLanguageToDocument)
+    }
+  }, [])
+
+  return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
+}
