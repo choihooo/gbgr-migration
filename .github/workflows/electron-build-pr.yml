@@ -1,0 +1,264 @@
+name: Electron Build for PR
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.electron-builder.config.js'
+      - '.github/workflows/electron-build-pr.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# PR마다 독립적으로 실행 (캔슬 방지)
+concurrency:
+  group: pr-${{ github.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================
+  # Lint & Type Check (병렬 실행)
+  # ============================================
+  quality-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Run Biome check
+        run: pnpm lint:check
+        continue-on-error: true
+
+      - name: Run TypeScript check
+        run: pnpm typecheck
+        continue-on-error: true
+
+  # ============================================
+  # 의존성 설치 및 캐싱
+  # ============================================
+  setup:
+    runs-on: ubuntu-latest
+    needs: quality-check
+    outputs:
+      cache-key: ${{ steps.cache-keys.outputs.key }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate cache keys
+        id: cache-keys
+        run: |
+          echo "key=${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          echo "✅ Dependencies installed"
+
+      - name: Cache node_modules
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules
+            .pnpm-store
+          key: ${{ steps.cache-keys.outputs.key }}
+
+  # ============================================
+  # Electron 빌드 (병렬 실행)
+  # ============================================
+  build-electron:
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    env:
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            os_short: mac
+          - os: windows-latest
+            os_short: win
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            .pnpm-store
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: false
+
+      - name: Install dependencies (cache miss fallback)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+        if: steps.cache.outputs.cache-hit != 'true'
+
+      - name: Verify project setup
+        shell: bash
+        run: |
+          echo "✅ Dependencies installed successfully"
+          echo "📁 Project structure:"
+          ls -la
+          echo "📦 Checking if renderer source exists:"
+          if [ -d "src/renderer" ]; then
+            echo "✅ src/renderer directory found"
+          else
+            echo "❌ src/renderer directory not found"
+            exit 1
+          fi
+
+      - name: Package Electron App
+        run: pnpm run build:${{ matrix.os_short }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-${{ matrix.os }}-${{ github.event.number }}
+          if-no-files-found: warn
+          path: |
+            electron-dist/*.dmg
+            electron-dist/*.zip
+            electron-dist/*.blockmap
+            electron-dist/mac/**
+            electron-dist/mac-arm64/**
+            electron-dist/거부기린.*
+            electron-dist/win-ia32-unpacked/**
+            electron-dist/win-unpacked/**
+
+      # 빌드 실패 시 로그 업로드
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.os_short }}
+          path: |
+            ~/Library/Logs/
+            ~/.npm/_logs/
+          if-no-files-found: ignore
+
+  # ============================================
+  # PR 코멘트 (마지막에 실행)
+  # ============================================
+  comment:
+    needs: [build-electron, quality-check]
+    runs-on: ubuntu-latest
+    if: always()
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+
+            const buildJobs = jobs.data.jobs.filter(job =>
+              job.name.startsWith('build-electron')
+            );
+
+            const qualityJob = jobs.data.jobs.find(job =>
+              job.name === 'quality-check'
+            );
+
+            let body = `## 🔧 Electron Build Results\n\n`;
+
+            // 품질 체크 결과
+            if (qualityJob) {
+              const qualityIcon = qualityJob.conclusion === 'success' ? '✅' :
+                                qualityJob.conclusion === 'failure' ? '❌' : '⚠️';
+              body += `### ${qualityIcon} Quality Check\n`;
+              body += `- **Status**: ${qualityJob.conclusion || 'In Progress'}\n`;
+              body += `- **Job**: [${qualityJob.name}](${qualityJob.html_url})\n\n`;
+            }
+
+            // 빌드 결과
+            buildJobs.forEach(job => {
+              const osName = job.name.includes('macos') ? 'macOS' :
+                           job.name.includes('windows') ? 'Windows' : job.name;
+              const statusIcon = job.conclusion === 'success' ? '✅' :
+                                job.conclusion === 'failure' ? '❌' : '⚠️';
+              const statusText = job.conclusion === 'success' ? 'Success' :
+                               job.conclusion === 'failure' ? 'Failed' :
+                               job.conclusion === 'cancelled' ? 'Cancelled' : 'In Progress';
+
+              body += `### ${statusIcon} ${osName}\n`;
+              body += `- **Status**: ${statusText}\n`;
+              body += `- **Job**: [${job.name}](${job.html_url})\n\n`;
+            });
+
+            body += `---\n*This is an automated comment.*`;
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.data.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('## 🔧 Electron Build Results')
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }

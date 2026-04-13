@@ -1,0 +1,173 @@
+name: CI
+
+on:
+  push:
+    branches: ['main', 'develop']
+  pull_request:
+    branches: ['main', 'develop']
+  workflow_dispatch:
+
+# 병렬 실행 최적화
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ============================================
+  # 코드 품질 체크 - Lint
+  # ============================================
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Run Biome check
+        run: pnpm lint:check
+
+  # ============================================
+  # 타입 체크 - 병렬 실행
+  # ============================================
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Run TypeScript check
+        run: pnpm typecheck
+
+  # ============================================
+  # 빌드 테스트 - Lint & Typecheck 성공 시
+  # ============================================
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build Main process
+        run: pnpm run build:main
+
+      - name: Build Preload
+        run: pnpm run build:preload
+
+      - name: Build Renderer
+        run: pnpm run build:renderer
+        env:
+          VITE_BASE_URL: ${{ secrets.VITE_BASE_URL }}
+
+      - name: Verify build outputs
+        run: |
+          echo "📁 Verifying build outputs..."
+          ls -la dist/main/ && echo "✅ Main build OK"
+          ls -la dist/preload/ && echo "✅ Preload build OK"
+          ls -la dist/renderer/ && echo "✅ Renderer build OK"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            dist/main/
+            dist/preload/
+            dist/renderer/
+          retention-days: 7
+
+  release-automation:
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Validate release automation contracts
+        run: pnpm run release:validate
+
+  # ============================================
+  # 의존성 취약점 스캔 - 독립 실행
+  # ============================================
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run npm audit
+        run: |
+          pnpm audit --audit-level moderate
+        continue-on-error: true
+
+  # ============================================
+  # 코드 복잡도 분석 (PR 시만)
+  # ============================================
+  complexity:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Analyze code complexity
+        run: |
+          echo "📊 Analyzing code complexity for changed files..."
+          git diff --name-only origin/main | grep -E '\.(ts|tsx)$' | while read file; do
+            if [ -f "$file" ]; then
+              LINES=$(wc -l < "$file")
+              echo "📄 $file: $LINES lines"
+              if [ "$LINES" -gt 500 ]; then
+                echo "⚠️ Warning: $file has $LINES lines (consider splitting)"
+              fi
+            fi
+          done

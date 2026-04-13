@@ -1,0 +1,117 @@
+name: Release Notes
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag to generate release notes for'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to generate release notes for (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
+            VERSION="${{ inputs.tag }}"
+          fi
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        id: release_notes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.get_version.outputs.version }}';
+            const { owner, repo } = context.repo;
+
+            const { data: tags } = await github.rest.repos.listTags({
+              owner,
+              repo,
+              per_page: 100
+            });
+
+            const currentTagIndex = tags.findIndex(t => t.name === `v${version}`);
+            const previousTag = currentTagIndex >= 0 ? tags[currentTagIndex + 1] : null;
+            const base = previousTag ? previousTag.name : 'HEAD~10';
+            const head = `v${version}`;
+
+            const { data: commits } = await github.rest.repos.compareCommits({
+              owner,
+              repo,
+              base,
+              head,
+            });
+
+            const categories = {
+              'Features': [],
+              'Bug Fixes': [],
+              'Refactoring': [],
+              'Docs': [],
+              'Build': [],
+              'Other': [],
+            };
+
+            const commitMessages = commits.commits.map(c => c.commit.message.split('\n')[0]);
+            for (const msg of commitMessages) {
+              if (msg.startsWith('feat(') || msg.startsWith('feat:')) categories['Features'].push(msg);
+              else if (msg.startsWith('fix(') || msg.startsWith('fix:')) categories['Bug Fixes'].push(msg);
+              else if (msg.startsWith('refactor(') || msg.startsWith('refactor:')) categories['Refactoring'].push(msg);
+              else if (msg.startsWith('docs(') || msg.startsWith('docs:')) categories['Docs'].push(msg);
+              else if (msg.startsWith('chore(') || msg.startsWith('build(') || msg.startsWith('ci(')) categories['Build'].push(msg);
+              else categories['Other'].push(msg);
+            }
+
+            let notes = `## Release ${version}\n\n`;
+            notes += `### Automated Release Policy\n\n`;
+            notes += `- main merge path is the default release entry point.\n`;
+            notes += `- Exactly one of release:major, release:minor, or release:patch decides the semver bump.\n`;
+            notes += `- Manual workflow_dispatch releases are reserved for approved exception flows.\n\n`;
+            notes += `### Change Summary\n\n`;
+
+            for (const [category, items] of Object.entries(categories)) {
+              if (items.length === 0) continue;
+              notes += `#### ${category}\n`;
+              for (const item of items) {
+                const cleaned = item.replace(/^(feat|fix|refactor|docs|chore|build|ci)(\([^)]+\))?:\s*/, '');
+                notes += `- ${cleaned}\n`;
+              }
+              notes += '\n';
+            }
+
+            if (commitMessages.length === 0) {
+              notes += '- No commits were found for this tag range.\n';
+            }
+
+            core.setOutput('notes', notes);
+            return notes;
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: ${{ steps.release_notes.outputs.notes }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,25 @@
+name: Mark stale issues and pull requests
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 매일 자정 (KST 09:00)
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          stale-issue-message: '이 이슈가 30일 동안 활동이 없어 자동으로 stale로 표시되었습니다. 활동이 없으면 7일 후에 close됩니다.'
+          stale-pr-message: '이 PR이 30일 동안 활동이 없어 자동으로 stale로 표시되었습니다. 활동이 없으면 7일 후에 close됩니다.'
+          days-before-stale: 30
+          days-before-close: 7
+          exempt-issue-labels: '🔒 고정,blocked,enhancement,bug'
+          exempt-pr-labels: '🔒 고정,blocked,WIP,work-in-progress'
+          labels-to-add-when-stale: 'stale'
+          delete-branch-after-delete: true

@@ -1,0 +1,25 @@
+name: Trigger Dependabot
+
+on:
+  workflow_dispatch:
+    inputs:
+  # 수동 실행 시에만 작동
+
+permissions:
+  contents: write
+  pull-requests: write
+  dependabot-secrets: inherit
+
+jobs:
+  trigger-dependabot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Dependabot
+        run: |
+          echo "Dependabot is configured to run on schedule (weekly)"
+          echo "To trigger immediate updates, use GitHub CLI:"
+          echo "  gh api /repos/:owner/:repo/dependabot/update_branches"
+          echo ""
+          echo "Or manually update dependencies:"
+          echo "  pnpm update"
+          echo "  pnpm audit --fix"

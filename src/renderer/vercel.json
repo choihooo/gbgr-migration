@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "cd ../path0 && npx pnpm@9.0.0 install --frozen-lockfile",
+  "buildCommand": "cd ../path0 && npx pnpm@9.0.0 build:renderer && rm -rf ../path1/renderer && cp -R dist/renderer ../path1/renderer",
+  "outputDirectory": "renderer",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

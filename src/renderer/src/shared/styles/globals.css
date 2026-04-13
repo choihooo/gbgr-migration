@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import "./fonts.css";
+@import "./colors.css";
+@import "./base.css";
+@import "./typography.css";
+@import "./breakpoint.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 슬라이드 애니메이션 */
+@keyframes slide-next {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-next {
+  animation: slide-next 0.3s ease-out;
+}
+
+.animate-slide-prev {
+  animation: slide-prev 0.3s ease-out;
+}
+
+/* 페이드인 애니메이션 */
+@keyframes fade-in {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}

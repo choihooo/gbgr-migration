@@ -1,0 +1,182 @@
+name: Auto Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: ['main']
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Merged PR number to replay'
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  checks: read
+  pull-requests: read
+
+concurrency:
+  group: auto-release-main
+  cancel-in-progress: false
+
+jobs:
+  orchestrate:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.prepare.outputs.should_release }}
+      status: ${{ steps.prepare.outputs.status }}
+      current_version: ${{ steps.prepare.outputs.current_version }}
+      next_version: ${{ steps.prepare.outputs.next_version }}
+      tag: ${{ steps.prepare.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Resolve replay PR payload
+        if: github.event_name == 'workflow_dispatch'
+        id: replay-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const rawPrNumber = context.payload.inputs?.pr_number;
+            const prNumber = Number(rawPrNumber);
+            if (!rawPrNumber || Number.isNaN(prNumber) || prNumber <= 0) {
+              core.setFailed(`Invalid pr_number input: ${rawPrNumber ?? 'undefined'}`);
+              return;
+            }
+            const { owner, repo } = context.repo;
+            const { data } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+            core.setOutput('payload', JSON.stringify({ pull_request: data }));
+            core.setOutput('merge_sha', data.merge_commit_sha ?? '');
+
+      - name: Collect required check runs
+        id: checks
+        uses: actions/github-script@v7
+        env:
+          REPLAY_PR_PAYLOAD: ${{ steps.replay-pr.outputs.payload }}
+        with:
+          script: |
+            const pullRequest =
+              context.eventName === 'workflow_dispatch'
+                ? JSON.parse(process.env.REPLAY_PR_PAYLOAD).pull_request
+                : context.payload.pull_request;
+            if (!pullRequest?.merge_commit_sha) {
+              core.setFailed('Unable to resolve merge_commit_sha from the replayed PR payload.');
+              return;
+            }
+            const sha = pullRequest.merge_commit_sha;
+            const { owner, repo } = context.repo;
+            const { data } = await github.rest.checks.listForRef({
+              owner,
+              repo,
+              ref: sha,
+              per_page: 100,
+            });
+            const checkRuns = data.check_runs.map(run => ({
+              name: run.name,
+              status: run.status,
+              conclusion: run.conclusion,
+            }));
+            core.setOutput('json', JSON.stringify(checkRuns));
+
+      - name: Prepare release candidate
+        id: prepare
+        env:
+          RELEASE_CHECKS_JSON: ${{ steps.checks.outputs.json }}
+          GITHUB_EVENT_JSON: ${{ github.event_name == 'workflow_dispatch' && steps.replay-pr.outputs.payload || '' }}
+        run: node scripts/release/prepare-release.mjs
+
+      - name: Configure git identity
+        if: steps.prepare.outputs.should_release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit version sync
+        if: steps.prepare.outputs.should_release == 'true'
+        run: |
+          git add package.json
+          git commit -m "${{ steps.prepare.outputs.release_commit_message }}"
+          git tag "${{ steps.prepare.outputs.tag }}"
+
+      - name: Push release commit and tag
+        if: steps.prepare.outputs.should_release == 'true'
+        run: |
+          git push origin HEAD:main
+          git push origin "${{ steps.prepare.outputs.tag }}"
+
+      - name: Summarize blocked orchestration
+        if: steps.prepare.outputs.status == 'blocked'
+        env:
+          EXECUTION_ID: ${{ github.run_id }}
+          VERSION: ${{ steps.prepare.outputs.current_version }}
+          FAILURE_STAGE: ${{ steps.prepare.outputs.failure_stage }}
+          FAILURE_MESSAGE: ${{ steps.prepare.outputs.message }}
+        run: |
+          export RELEASE_SUMMARY_INPUT_JSON="$(node - <<'NODE'
+          const failureStage = process.env.FAILURE_STAGE;
+          const message = process.env.FAILURE_MESSAGE;
+          const stageNames = ['quality_gate', 'version_decision', 'tag_push'];
+          const stageStatuses = stageNames.map(stageName => ({
+            stage_name: stageName,
+            status: stageName === failureStage ? 'failure' : stageName === 'quality_gate' ? 'success' : 'skipped',
+            summary: message,
+          }));
+          console.log(JSON.stringify({
+            execution_id: process.env.EXECUTION_ID,
+            version: process.env.VERSION,
+            stage_statuses: stageStatuses,
+          }));
+          NODE
+          )"
+          node scripts/release/summarize-release-failure.mjs
+
+      - name: Stop on blocked release
+        if: steps.prepare.outputs.status == 'blocked'
+        run: |
+          echo "${{ steps.prepare.outputs.message }}"
+          exit 1
+
+      - name: Record duplicate guard
+        if: steps.prepare.outputs.status == 'duplicate'
+        run: |
+          {
+            echo "## Auto Release Duplicate Guard"
+            echo "- Message: ${{ steps.prepare.outputs.message }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release-electron:
+    needs: orchestrate
+    if: needs.orchestrate.outputs.should_release == 'true'
+    uses: ./.github/workflows/electron-release.yml
+    with:
+      version: ${{ needs.orchestrate.outputs.next_version }}
+    secrets: inherit
+
+  release-notes:
+    needs: [orchestrate, release-electron]
+    if: needs.orchestrate.outputs.should_release == 'true' && needs.release-electron.result == 'success'
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.orchestrate.outputs.tag }}
+    secrets: inherit

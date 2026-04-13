@@ -1,0 +1,466 @@
+name: Electron Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version to release from auto release orchestration'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+      reason:
+        description: 'Approved manual release reason'
+        required: true
+        type: choice
+        options:
+          - auto_release_recovery
+          - approved_hotfix
+          - operator_intervention
+      approval_reference:
+        description: 'Ticket, runbook, or approval reference for the exception'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-keys.outputs.key }}
+      node-version: 20
+      version: ${{ steps.release-meta.outputs.version }}
+      tag: ${{ steps.release-meta.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate manual release exception
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Manual exception reason: ${{ github.event.inputs.reason }}"
+          echo "Approval reference: ${{ github.event.inputs.approval_reference }}"
+
+      - name: Generate cache keys
+        id: cache-keys
+        run: |
+          echo "key=${{ runner.os }}-node-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+
+      - name: Resolve release metadata
+        id: release-meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          VERSION="${VERSION#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid version: $VERSION"
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Cache node_modules
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules
+            .pnpm-store
+          key: ${{ steps.cache-keys.outputs.key }}
+
+  release-mac-x64:
+    needs: setup
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.setup.outputs.node-version }}
+          cache: 'pnpm'
+
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            .pnpm-store
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: false
+
+      - name: Install dependencies (cache miss fallback)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Import Apple code-signing certificate
+        shell: bash
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/codesign.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+
+          echo "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Create runtime env for packaged app
+        shell: bash
+        run: |
+          mkdir -p .secrets
+          cat > .secrets/runtime.env << EOF
+          GA4_MEASUREMENT_ID=${{ secrets.GA4_MEASUREMENT_ID }}
+          GA4_API_SECRET=${{ secrets.GA4_API_SECRET }}
+          GA4_DEBUG_MP=false
+          EOF
+
+      - name: Build and publish macOS artifacts
+        env:
+          VITE_APP_VERSION: ${{ needs.setup.outputs.version }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec electron-builder build --config .electron-builder.config.js --mac --x64 --publish always
+
+      - name: Preserve x64 updater metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="electron-dist/latest-mac.yml"
+          if [ -f "$FILE" ]; then
+            cp "$FILE" "electron-dist/latest-mac-x64.yml"
+          else
+            echo "No $FILE found"
+            exit 1
+          fi
+
+      - name: Upload x64 updater metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest-mac-x64
+          path: electron-dist/latest-mac-x64.yml
+
+  release-mac-arm64:
+    needs: setup
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.setup.outputs.node-version }}
+          cache: 'pnpm'
+
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            .pnpm-store
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: false
+
+      - name: Install dependencies (cache miss fallback)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Import Apple code-signing certificate
+        shell: bash
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/codesign.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+
+          echo "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Create runtime env for packaged app
+        shell: bash
+        run: |
+          mkdir -p .secrets
+          cat > .secrets/runtime.env << EOF
+          GA4_MEASUREMENT_ID=${{ secrets.GA4_MEASUREMENT_ID }}
+          GA4_API_SECRET=${{ secrets.GA4_API_SECRET }}
+          GA4_DEBUG_MP=false
+          EOF
+
+      - name: Build and publish macOS arm64 artifacts
+        env:
+          VITE_APP_VERSION: ${{ needs.setup.outputs.version }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec electron-builder build --config .electron-builder.config.js --mac --arm64 --publish always
+
+      - name: Preserve arm64 updater metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="electron-dist/latest-mac.yml"
+          if [ -f "$FILE" ]; then
+            cp "$FILE" "electron-dist/latest-mac-arm64.yml"
+          else
+            echo "No $FILE found"
+            exit 1
+          fi
+
+      - name: Upload arm64 updater metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest-mac-arm64
+          path: electron-dist/latest-mac-arm64.yml
+
+  release-mac-metadata:
+    needs: [setup, release-mac-x64, release-mac-arm64]
+    if: needs.release-mac-x64.result == 'success' && needs.release-mac-arm64.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download x64 updater metadata artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: latest-mac-x64
+          path: .artifacts/x64
+
+      - name: Download arm64 updater metadata artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: latest-mac-arm64
+          path: .artifacts/arm64
+
+      - name: Merge macOS updater metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const x64 = fs.readFileSync('.artifacts/x64/latest-mac-x64.yml', 'utf8');
+          const arm64 = fs.readFileSync('.artifacts/arm64/latest-mac-arm64.yml', 'utf8');
+
+          const parse = source => {
+            const lines = source.split(/\r?\n/);
+            const result = { files: [] };
+            let currentFile = null;
+            for (const line of lines) {
+              if (line.startsWith('version: ')) result.version = line.slice(9).trim();
+              else if (line.startsWith('path: ')) result.path = line.slice(6).trim();
+              else if (line.startsWith('sha512: ') && !currentFile) result.sha512 = line.slice(8).trim();
+              else if (line.startsWith('releaseDate: ')) result.releaseDate = line.slice(13).trim();
+              else if (line.startsWith('  - url: ')) {
+                currentFile = { url: line.slice(9).trim() };
+                result.files.push(currentFile);
+              } else if (line.startsWith('    sha512: ') && currentFile) currentFile.sha512 = line.slice(12).trim();
+              else if (line.startsWith('    size: ') && currentFile) currentFile.size = Number(line.slice(10).trim());
+              else if (line.trim() === '') currentFile = null;
+            }
+            return result;
+          };
+
+          const merged = parse(x64);
+          const arm64Parsed = parse(arm64);
+          const seen = new Set(merged.files.map(file => file.url));
+          for (const file of arm64Parsed.files) {
+            if (!seen.has(file.url)) {
+              merged.files.push(file);
+              seen.add(file.url);
+            }
+          }
+          merged.releaseDate = arm64Parsed.releaseDate || merged.releaseDate;
+
+          const lines = [
+            `version: ${merged.version}`,
+            'files:',
+            ...merged.files.flatMap(file => [
+              `  - url: ${file.url}`,
+              `    sha512: ${file.sha512}`,
+              `    size: ${file.size}`,
+            ]),
+            `path: ${merged.path}`,
+            `sha512: ${merged.sha512}`,
+            `releaseDate: ${merged.releaseDate}`,
+            '',
+          ];
+          fs.writeFileSync('latest-mac.yml', lines.join('\n'));
+          NODE
+
+      - name: Upload merged macOS updater metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release upload "${{ needs.setup.outputs.tag }}" latest-mac.yml --clobber
+
+  release-win:
+    needs: setup
+    runs-on: windows-latest
+    outputs:
+      stage_name: win_release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.setup.outputs.node-version }}
+          cache: 'pnpm'
+
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            .pnpm-store
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: false
+
+      - name: Install dependencies (cache miss fallback)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Create runtime env for packaged app
+        shell: bash
+        run: |
+          mkdir -p .secrets
+          cat > .secrets/runtime.env << EOF
+          GA4_MEASUREMENT_ID=${{ secrets.GA4_MEASUREMENT_ID }}
+          GA4_API_SECRET=${{ secrets.GA4_API_SECRET }}
+          GA4_DEBUG_MP=false
+          EOF
+
+      - name: Build and publish Windows artifacts
+        env:
+          VITE_APP_VERSION: ${{ needs.setup.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm run build:win --publish always
+
+      - name: Upload Windows updater metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          FILE="electron-dist/latest.yml"
+          if [ -f "$FILE" ]; then
+            gh release upload "${{ needs.setup.outputs.tag }}" "$FILE" --clobber
+          else
+            echo "No $FILE found"
+            exit 1
+          fi
+
+  summarize:
+    if: always()
+    needs: [setup, release-mac-x64, release-mac-arm64, release-mac-metadata, release-win]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Summarize release outcome
+        env:
+          EXECUTION_ID: ${{ github.run_id }}
+          VERSION: ${{ needs.setup.outputs.version }}
+          TAG: ${{ needs.setup.outputs.tag }}
+          MAC_X64_RESULT: ${{ needs.release-mac-x64.result }}
+          MAC_ARM64_RESULT: ${{ needs.release-mac-arm64.result }}
+          MAC_METADATA_RESULT: ${{ needs.release-mac-metadata.result }}
+          WIN_RESULT: ${{ needs.release-win.result }}
+        run: |
+          export RELEASE_SUMMARY_INPUT_JSON="$(node - <<'NODE'
+          const macX64Status = process.env.MAC_X64_RESULT === 'success' ? 'success' : 'failure';
+          const macArm64Status = process.env.MAC_ARM64_RESULT === 'success' ? 'success' : 'failure';
+          const macMetadataStatus = process.env.MAC_METADATA_RESULT === 'success' ? 'success' : 'failure';
+          const macStatus = macX64Status === 'success' && macArm64Status === 'success' ? 'success' : 'failure';
+          const winStatus = process.env.WIN_RESULT === 'success' ? 'success' : 'failure';
+          const metadataStatus = macMetadataStatus === 'success' && winStatus === 'success' ? 'success' : 'failure';
+          console.log(JSON.stringify({
+            execution_id: process.env.EXECUTION_ID,
+            version: process.env.VERSION,
+            stage_statuses: [
+              { stage_name: 'quality_gate', status: 'success', summary: 'Release setup completed.' },
+              { stage_name: 'version_sync', status: 'success', summary: `Tagged version ${process.env.VERSION} was resolved.` },
+              { stage_name: 'tag_push', status: 'success', summary: `Release started from tag ${process.env.TAG}.` },
+              { stage_name: 'mac_release', status: macStatus, summary: `macOS x64 result: ${process.env.MAC_X64_RESULT}; macOS arm64 result: ${process.env.MAC_ARM64_RESULT}.` },
+              { stage_name: 'win_release', status: winStatus, summary: `Windows build job result: ${process.env.WIN_RESULT}.` },
+              { stage_name: 'updater_metadata', status: metadataStatus, summary: `macOS metadata merge result: ${process.env.MAC_METADATA_RESULT}; Windows metadata is only healthy when the Windows build succeeds.` },
+            ],
+          }));
+          NODE
+          )"
+          node scripts/release/summarize-release-failure.mjs

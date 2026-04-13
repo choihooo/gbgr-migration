@@ -1,0 +1,91 @@
+version: 2
+updates:
+  # ============================================
+  # npm 의존성 업데이트 (일반)
+  # ============================================
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - choihooo
+    assignees:
+      - choihooo
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "pnpm"
+      - "dependabot"
+    milestone: 4
+    # 취약점 업데이트는 즉시 처리
+    separate-major-minor-patch: true
+    ignore:
+      # 주요 업데이트만 받기 (패치 버전 무시)
+      - dependency-name: "@types/*"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "eslint-*"
+        update-types: ["version-update:semver-patch"]
+      - dependency-name: "@typescript-eslint/*"
+        update-types: ["version-update:semver-patch"]
+    groups:
+      # React 관련 패키지는 한 번에 업데이트
+      react-dependencies:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-*"
+        exclude-patterns:
+          - "react-router"
+      # React Router 별도 그룹 (보안 업데이트 빈번)
+      react-router-dependencies:
+        patterns:
+          - "react-router*"
+      # TypeScript 관련 패키지 그룹화
+      typescript-dependencies:
+        patterns:
+          - "typescript"
+          - "@types/*"
+      # 빌드 도구 그룹화
+      build-dependencies:
+        patterns:
+          - "vite"
+          - "electron*"
+          - "esbuild"
+          - "@electron/*"
+      # Electron Builder 관련
+      electron-builder-dependencies:
+        patterns:
+          - "electron-builder"
+          - "app-builder-lib"
+      # Zustand 관련 패키지
+      state-dependencies:
+        patterns:
+          - "zustand"
+      # MediaPipe 관련 패키지
+      mediapipe-dependencies:
+        patterns:
+          - "@mediapipe/*"
+      # TanStack Query 관련
+      query-dependencies:
+        patterns:
+          - "@tanstack/*"
+      # Biome 관련
+      biome-dependencies:
+        patterns:
+          - "@biomejs/*"
+      # 보안 취약점이 있는 패키지들 즉시 업데이트
+      security-patches:
+        patterns:
+          - "glob"
+          - "minimatch"
+          - "tar"
+          - "axios"
+        update-types:
+          - "version-update:semver-patch"
+          - "version-update:semver-minor"

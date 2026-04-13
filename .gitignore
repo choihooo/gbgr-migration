@@ -1,0 +1,80 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# build outputs
+dist/
+build/
+out/
+electron-dist/
+/renderer/
+/src/renderer/renderer/
+
+# Electron
+*.dmg
+*.zip
+*.exe
+*.blockmap
+*.AppImage
+*.snap
+*.deb
+*.rpm
+*.pkg
+*.dmg.blockmap
+*.zip.blockmap
+*.exe.blockmap
+latest-*.yml
+latest-*.json
+builder-debug.yml
+builder-effective-config.yaml
+
+# testing
+coverage/
+.nyc_output/
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# local env files
+.env
+.env*
+.secrets/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# pnpm
+.pnpm-store/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+
+# misc
+*.pem
+*.log
+*.tmp
+
+.vscode/
+.vercel
