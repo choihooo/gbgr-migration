@@ -23,11 +23,11 @@
 
 **Purpose**: Tauri 2 + React + TypeScript 프로젝트 생성 및 기본 설정
 
-- [ ] T001 `bunx create-tauri-app` 실행하여 프로젝트 생성 (React + TypeScript + Bun, name: gbgr-app, identifier: com.gbgr.app) → 생성된 `gbgr-app/` 하위 내용물을 `migration/`으로 이동
-- [ ] T002 [P] Tailwind CSS v4 설치 및 Vite 설정 — `migration/vite.config.ts`에 `@tailwindcss/vite` 플러그인 추가, `migration/src/style.css`에 `@import 'tailwindcss'` 작성
-- [ ] T003 [P] Biome 설치 및 초기화 — `bun add -D -E @biomejs/biome`, `bunx --bun @biomejs/biome init`, `migration/biome.json`에 레거시와 동일한 규칙 적용 (참조: 루트 biome.json, indentStyle: space, lineWidth: 100, ignore: node_modules, dist, src-tauri/target, src-tauri/gen)
-- [ ] T004 [P] Zustand 및 TanStack Query 설치 — `bun add zustand @tanstack/react-query`
-- [ ] T005 `migration/package.json` scripts 업데이트 — lint, lint:check, format, tauri 스크립트 추가
+- [x] T001 `bunx create-tauri-app` 실행하여 프로젝트 생성 (React + TypeScript + Bun, name: gbgr-app, identifier: com.gbgr.app) → 생성된 `gbgr-app/` 하위 내용물을 `migration/`으로 이동
+- [x] T002 [P] Tailwind CSS v4 설치 및 Vite 설정 — `migration/vite.config.ts`에 `@tailwindcss/vite` 플러그인 추가, `migration/src/style.css`에 `@import 'tailwindcss'` 작성
+- [x] T003 [P] Biome 설치 및 초기화 — `bun add -D -E @biomejs/biome`, `bunx --bun @biomejs/biome init`, `migration/biome.json`에 레거시와 동일한 규칙 적용 (참조: 루트 biome.json, indentStyle: space, lineWidth: 100, ignore: node_modules, dist, src-tauri/target, src-tauri/gen)
+- [x] T004 [P] Zustand 및 TanStack Query 설치 — `bun add zustand @tanstack/react-query`
+- [x] T005 `migration/package.json` scripts 업데이트 — lint, lint:check, format, tauri 스크립트 추가
 
 **Checkpoint**: `bun run tauri dev`로 앱 창이 표시되는지 확인, `bun run lint:check` 통과, `bunx tsc --noEmit` 통과
 
@@ -39,14 +39,14 @@
 
 **⚠️ CRITICAL**: 이 Phase가 완료되어야 이후 기능 포팅 작업 시작 가능
 
-- [ ] T006 `migration/src/` 하위에 FSD 레이어 디렉토리 생성 — app/layouts, app/providers, shared/api, shared/config, shared/hooks, shared/lib, shared/styles, shared/types, shared/ui (각 폴더에 `.gitkeep` 추가)
-- [ ] T007 [P] FSD entities 폴더 생성 — migration/src/entities/ 하위에 posture, session, dashboard, user 디렉토리 생성 (각 폴더에 `.gitkeep` 추가)
-- [ ] T008 [P] FSD features 폴더 생성 — migration/src/features/ 하위에 auth, calibration, dashboard, notification, onboarding 디렉토리 생성 (각 폴더에 `.gitkeep` 추가)
-- [ ] T009 [P] FSD pages 폴더 생성 — migration/src/pages/ 하위에 login-page, signup-page, email-verification-page, email-verification-callback-page, resend-verification-page, main-page, calibration-page, onboarding-page, onboarding-init-page, onboarding-completion-page, widget-page 디렉토리 생성 (각 폴더에 `.gitkeep` 추가)
-- [ ] T010 [P] FSD widgets 폴더 생성 — migration/src/widgets/ 하위에 camera, widget 디렉토리 생성 (각 폴더에 `.gitkeep` 추가)
-- [ ] T011 레거시 디자인 토큰 이관 — `src/renderer/src/shared/styles/colors.css`를 `migration/src/shared/styles/colors.css`로 복사, `src/renderer/src/shared/styles/typography.css`를 `migration/src/shared/styles/typography.css`로 복사, `src/renderer/src/shared/styles/breakpoint.css`를 `migration/src/shared/styles/breakpoint.css`로 복사
-- [ ] T012 `migration/src/style.css`에 디자인 토큰 import 추가 — `@import './shared/styles/colors.css'`, `@import './shared/styles/typography.css'`, `@import './shared/styles/breakpoint.css'`를 Tailwind import 이후에 추가
-- [ ] T013 create-tauri-app이 생성한 기본 파일 정리 — `migration/src/App.tsx`를 빈 렌더링 컴포넌트로 변경, 불필요한 기본 CSS 제거
+- [x] T006 `migration/src/` 하위에 FSD 레이어 디렉토리 생성 — app/layouts, app/providers, shared/api, shared/config, shared/hooks, shared/lib, shared/styles, shared/types, shared/ui (각 폴더에 `.gitkeep` 추가)
+- [x] T007 [P] FSD entities 폴더 생성 — migration/src/entities/ 하위에 posture, session, dashboard, user 디렉토리 생성 (각 폴더에 `.gitkeep` 추가)
+- [x] T008 [P] FSD features 폴더 생성 — migration/src/features/ 하위에 auth, calibration, dashboard, notification, onboarding 디렉토리 생성 (각 폴더에 `.gitkeep` 추가)
+- [x] T009 [P] FSD pages 폴더 생성 — migration/src/pages/ 하위에 login-page, signup-page, email-verification-page, email-verification-callback-page, resend-verification-page, main-page, calibration-page, onboarding-page, onboarding-init-page, onboarding-completion-page, widget-page 디렉토리 생성 (각 폴더에 `.gitkeep` 추가)
+- [x] T010 [P] FSD widgets 폴더 생성 — migration/src/widgets/ 하위에 camera, widget 디렉토리 생성 (각 폴더에 `.gitkeep` 추가)
+- [x] T011 레거시 디자인 토큰 이관 — `src/renderer/src/shared/styles/colors.css`를 `migration/src/shared/styles/colors.css`로 복사, `src/renderer/src/shared/styles/typography.css`를 `migration/src/shared/styles/typography.css`로 복사, `src/renderer/src/shared/styles/breakpoint.css`를 `migration/src/shared/styles/breakpoint.css`로 복사
+- [x] T012 `migration/src/style.css`에 디자인 토큰 import 추가 — `@import './shared/styles/colors.css'`, `@import './shared/styles/typography.css'`, `@import './shared/styles/breakpoint.css'`를 Tailwind import 이후에 추가
+- [x] T013 create-tauri-app이 생성한 기본 파일 정리 — `migration/src/App.tsx`를 빈 렌더링 컴포넌트로 변경, 불필요한 기본 CSS 제거
 
 **Checkpoint**: FSD 폴더 구조가 레거시와 1:1 대응, 디자인 토큰 파일이 존재
 
@@ -60,10 +60,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] `migration/vite.config.ts` 완성 — Tauri 개발 서버 포트(1420), TAURI_DEV_HOST 처리, build target(Windows: chrome105, macOS: safari14), src-tauri watch ignore 설정
-- [ ] T015 [US1] `migration/tsconfig.json` 검증 및 수정 — FSD 경로 alias가 필요한 경우 paths 설정 추가
-- [ ] T016 [US1] `migration/src-tauri/tauri.conf.json` 기본 설정 확인 — identifier(com.gbgr.app), window 크기, title 등
-- [ ] T017 [US1] 초기 품질 게이트 검증 — `bun run lint:check`, `bunx tsc --noEmit`, `bun run tauri build` 성공 확인 (이후 T025에서 최종 재검증)
+- [x] T014 [US1] `migration/vite.config.ts` 완성 — Tauri 개발 서버 포트(1420), TAURI_DEV_HOST 처리, build target(Windows: chrome105, macOS: safari14), src-tauri watch ignore 설정
+- [x] T015 [US1] `migration/tsconfig.json` 검증 및 수정 — FSD 경로 alias가 필요한 경우 paths 설정 추가
+- [x] T016 [US1] `migration/src-tauri/tauri.conf.json` 기본 설정 확인 — identifier(com.gbgr.app), window 크기, title 등
+- [x] T017 [US1] 초기 품질 게이트 검증 — `bun run lint:check`, `bunx tsc --noEmit`, `bun run tauri build` 성공 확인 (이후 T025에서 최종 재검증)
 
 **Checkpoint**: 앱이 실행되고 모든 품질 게이트 통과
 
@@ -77,8 +77,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] FSD 레이어 검증 스크립트 작성 또는 수동 확인 — 레거시 entities(4), features(5), pages(11), widgets(2), shared(7)가 migration/에 동일하게 존재하는지 비교
-- [ ] T019 [US2] 누락된 FSD 폴더가 있으면 생성 — 비교 후 차이가 있으면 즉시 보완
+- [x] T018 [US2] FSD 레이어 검증 스크립트 작성 또는 수동 확인 — 레거시 entities(4), features(5), pages(11), widgets(2), shared(7)가 migration/에 동일하게 존재하는지 비교
+- [x] T019 [US2] 누락된 FSD 폴더가 있으면 생성 — 비교 후 차이가 있으면 즉시 보완
 
 **Checkpoint**: 레거시 FSD 구조와 100% 일치
 
@@ -92,9 +92,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] 디자인 토큰 정합성 검증 — 레거시 `src/renderer/src/shared/styles/colors.css`의 모든 변수를 `migration/src/shared/styles/colors.css`와 1:1 비교하여 값이 동일한지 확인
-- [ ] T021 [US3] typography.css 정합성 검증 — 레거시 typography.css의 모든 @utility가 동일하게 존재하는지 확인
-- [ ] T022 [US3] breakpoint.css 정합성 검증 — 레거시 breakpoint.css의 모든 값이 동일한지 확인
+- [x] T020 [US3] 디자인 토큰 정합성 검증 — 레거시 `src/renderer/src/shared/styles/colors.css`의 모든 변수를 `migration/src/shared/styles/colors.css`와 1:1 비교하여 값이 동일한지 확인
+- [x] T021 [US3] typography.css 정합성 검증 — 레거시 typography.css의 모든 @utility가 동일하게 존재하는지 확인
+- [x] T022 [US3] breakpoint.css 정합성 검증 — 레거시 breakpoint.css의 모든 값이 동일한지 확인
 
 **Checkpoint**: 모든 디자인 토큰이 레거시와 100% 일치
 
@@ -104,9 +104,9 @@
 
 **Purpose**: 최종 검증 및 정리
 
-- [ ] T023 [P] `.gitignore`에 `src-tauri/target/`, `src-tauri/gen/`, `dist/` 추가 — `migration/.gitignore`
-- [ ] T024 [P] `migration/.vscode/settings.json`에 Biome을 기본 포매터로 설정
-- [ ] T025 전체 빌드 및 실행 최종 검증 — `bun run lint:check && bunx tsc --noEmit && bun run tauri build` 성공, `bun run tauri dev` 실행 후 10초 이내 창 표시 확인 (SC-001)
+- [x] T023 [P] `.gitignore`에 `src-tauri/target/`, `src-tauri/gen/`, `dist/` 추가 — `migration/.gitignore`
+- [x] T024 [P] `migration/.vscode/settings.json`에 Biome을 기본 포매터로 설정
+- [x] T025 전체 빌드 및 실행 최종 검증 — `bun run lint:check && bunx tsc --noEmit && bun run tauri build` 성공, `bun run tauri dev` 실행 후 10초 이내 창 표시 확인 (SC-001)
 
 ---
 
