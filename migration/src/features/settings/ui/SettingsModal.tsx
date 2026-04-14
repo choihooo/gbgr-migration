@@ -1,15 +1,20 @@
 /**
  * @legacy src/renderer/src/features/dashboard/ui/SettingsModal.tsx
  */
+
+import { disable, enable, isEnabled } from '@tauri-apps/plugin-autostart'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart'
-import { Modal } from '@/shared/ui/modal'
-import { NotificationToggleSwitch } from '@/shared/ui/toggle-switch'
-import { Button } from '@/shared/ui/button'
-import { CalibrationResetIcon, LogoutIcon, WithdrawIcon } from '@/shared/ui/icons/option-icons'
 import { useAuthSessionStore } from '@/entities/session'
 import { cn } from '@/shared/lib/cn'
+import { Button } from '@/shared/ui/button'
+import {
+  CalibrationResetIcon,
+  LogoutIcon,
+  WithdrawIcon,
+} from '@/shared/ui/icons/option-icons'
+import { Modal } from '@/shared/ui/modal'
+import { NotificationToggleSwitch } from '@/shared/ui/toggle-switch'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -18,7 +23,7 @@ interface SettingsModalProps {
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const navigate = useNavigate()
-  const markUnauthenticated = useAuthSessionStore((s) => s.markUnauthenticated)
+  const markUnauthenticated = useAuthSessionStore(s => s.markUnauthenticated)
 
   const [isStartupEnabled, setIsStartupEnabled] = useState(false)
   const [isStartupSupported, setIsStartupSupported] = useState(true)
@@ -71,7 +76,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       }
       setIsStartupEnabled(nextEnabled)
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : '자동 실행 설정을 변경하지 못했습니다.'
+      const message =
+        error instanceof Error
+          ? error.message
+          : '자동 실행 설정을 변경하지 못했습니다.'
       setStartupError(message)
       setIsStartupEnabled(!nextEnabled)
     } finally {
@@ -112,14 +120,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const actionItems = [
     { label: '로그아웃', icon: <LogoutIcon />, onClick: handleLogout },
     { label: '회원탈퇴', icon: <WithdrawIcon />, onClick: handleWithdraw },
-    { label: '캘리브레이션 재설정', icon: <CalibrationResetIcon />, onClick: handleCalibrationReset },
+    {
+      label: '캘리브레이션 재설정',
+      icon: <CalibrationResetIcon />,
+      onClick: handleCalibrationReset,
+    },
   ]
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="w-[339px]">
       <div className="flex flex-col gap-4 rounded-[24px] border border-grey-0 bg-white p-4 shadow-[0_0_24px_rgba(0,0,0,0.12)] dark:bg-grey-1000">
         <div className="rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
-          <h2 className="text-body-lg-semibold text-grey-900 dark:text-grey-100">설정</h2>
+          <h2 className="text-body-lg-semibold text-grey-900 dark:text-grey-100">
+            설정
+          </h2>
         </div>
 
         <div className="flex items-center justify-between gap-3 rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
@@ -140,7 +154,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <NotificationToggleSwitch
             checked={isStartupEnabled}
             onChange={handleStartupToggle}
-            isDisabled={isStartupLoading || isStartupSaving || !isStartupSupported}
+            isDisabled={
+              isStartupLoading || isStartupSaving || !isStartupSupported
+            }
           />
         </div>
 
@@ -152,7 +168,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               onClick={item.onClick}
               className={cn(
                 "font-['Pretendard'] flex cursor-pointer items-center gap-2 px-3 py-[10px] text-left text-[12px] font-medium leading-[150%] text-grey-700 hover:bg-grey-50 dark:text-grey-300 dark:hover:bg-grey-800",
-                index === actionItems.length - 1 ? '' : 'border-b border-grey-50 dark:border-grey-800',
+                index === actionItems.length - 1
+                  ? ''
+                  : 'border-b border-grey-50 dark:border-grey-800',
               )}
             >
               <span className="flex size-6 shrink-0 items-center justify-center">

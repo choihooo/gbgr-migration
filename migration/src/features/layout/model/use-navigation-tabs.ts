@@ -1,7 +1,7 @@
 /**
  * @legacy src/renderer/src/features/dashboard/ui/MainHeader.tsx (탭 상태 관리 로직)
  */
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 
 export type TabType = 'dashboard' | 'settings' | 'report' | 'review'
 

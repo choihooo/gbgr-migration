@@ -1,17 +1,17 @@
 <!--
 Sync Impact Report
-- Version change: 2.0.0 → 2.1.0 (MINOR: 테스트 추가 기준 명문화)
+- Version change: 2.1.1 → 2.2.0 (MINOR: 자세 분석 엔진 전환 시점과 방식 명문화)
 - Modified principles:
-  - 5. 품질 게이트 강제 → 5. 품질 게이트 강제 (테스트 추가 기준 보강)
+  - 3. Tauri 아키텍처 준수 → 3. Tauri 아키텍처 준수 (Python 자세 분석 브리지 원칙 추가)
 - Added sections:
   - 없음
 - Removed sections:
   - 없음
 - Templates requiring updates:
-  - ✅ .specify/templates/tasks-template.md
   - ✅ .specify/memory/constitution.md
   - ⚠ .specify/templates/plan-template.md (변경 불필요, 현행 원칙과 충돌 없음)
   - ⚠ .specify/templates/spec-template.md (변경 불필요, 현행 원칙과 충돌 없음)
+  - ⚠ .specify/templates/tasks-template.md (변경 불필요, 현행 원칙과 충돌 없음)
   - ⚠ .specify/templates/commands/*.md (디렉터리 없음)
 - Follow-up TODOs:
   - 없음
@@ -92,6 +92,16 @@ Tauri의 보안 모델과 아키텍처 패턴을 따르지 않으면
 - OS 부작용(알림, 파일 시스템, 업데이트, 분석 전송)은
   Rust 백엔드에서만 수행한다.
   프론트엔드는 Tauri API를 통해 요청만 보낸다.
+- 현재 레거시의 웹 MediaPipe 자세 분석 파이프라인은
+  UI/도메인 마이그레이션 단계에서 임의로 Python 런타임으로
+  바꾸지 않는다. 자세 분석 엔진 전환은 별도 기능 스펙으로 분리하고,
+  추후 Python 프로세스에서 MediaPipe를 실행한 뒤
+  Tauri 백엔드가 메인 윈도우와 위젯 윈도우에 채널 기반으로
+  결과를 전달하는 구조로 설계·구현한다.
+- 자세 분석 엔진을 Python으로 전환하는 작업은
+  인증, 공통 UI, 대시보드/온보딩 화면 이관이 안정화된 뒤에만 착수한다.
+  중간 단계에서 웹 MediaPipe와 Python MediaPipe를 혼합 운영하는
+  임시 구조는 도입하지 않는다.
 - 보안: Tauri의 권한 시스템(capabilities)을 사용하여
   최소 권한 원칙을 적용한다.
   프론트엔드가 필요 이상의 시스템 접근 권한을 가지지 않도록 한다.
@@ -100,6 +110,9 @@ Tauri의 보안 모델과 아키텍처 패턴을 따르지 않으면
 
 - 신규 Tauri 명령어는 권한 범위와 입력 검증을
   PR에 명시해야 한다.
+- Python 자세 분석 브리지 관련 PR은
+  프로세스 경계, 메시지 스키마, 메인/위젯 전달 경로,
+  장애 복구 전략을 반드시 문서화해야 한다.
 - 프론트엔드에서 직접 시스템 API를 호출하는 코드는 반려한다.
 
 ### 4. 점진적 마이그레이션
@@ -192,4 +205,4 @@ Tauri의 보안 모델과 아키텍처 패턴을 따르지 않으면
 - 패키지 관리: 개발 환경에서는 `bun`을 사용하고, 프로덕션(Tauri 런타임)에서는 `node`를 사용한다.
   의존성 추가, 스크립트 실행 등 개발 작업에는 `bun add`, `bun run` 등 bun 명령어를 사용한다.
 
-**Version**: 2.1.1 | **Ratified**: 2026-04-13 | **Last Amended**: 2026-04-14
+**Version**: 2.2.0 | **Ratified**: 2026-04-13 | **Last Amended**: 2026-04-14

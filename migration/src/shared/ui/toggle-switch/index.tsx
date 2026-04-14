@@ -1,5 +1,6 @@
-import { cn } from '@/shared/lib/cn'
 import { forwardRef, useEffect, useRef, useState } from 'react'
+import { cn } from '@/shared/lib/cn'
+
 // 레거시: src/renderer/src/shared/ui/toggle-switch/ToggleSwitch.tsx
 // 레거시: src/renderer/src/shared/ui/toggle-switch/NotificationToggleSwitch.tsx
 
@@ -39,7 +40,7 @@ export const ToggleSwitch = forwardRef<HTMLButtonElement, ToggleSwitchProps>(
 
       const timeoutId = setTimeout(updateIndicator, 0)
       return () => clearTimeout(timeoutId)
-    }, [uncheckedLabel, checkedLabel, checked])
+    }, [checked])
 
     return (
       <button

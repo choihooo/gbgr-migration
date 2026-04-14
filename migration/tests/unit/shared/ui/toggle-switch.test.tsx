@@ -23,7 +23,12 @@ describe('ToggleSwitch', () => {
   it('클릭 시 onChange가 반대값으로 호출된다', async () => {
     const onChange = vi.fn()
     render(
-      <ToggleSwitch checked={false} onChange={onChange} uncheckedLabel="A" checkedLabel="B" />,
+      <ToggleSwitch
+        checked={false}
+        onChange={onChange}
+        uncheckedLabel="A"
+        checkedLabel="B"
+      />,
     )
     await userEvent.click(screen.getByRole('switch'))
     expect(onChange).toHaveBeenCalledWith(true)
@@ -31,7 +36,12 @@ describe('ToggleSwitch', () => {
 
   it('role=switch와 aria-checked 속성을 가진다', () => {
     render(
-      <ToggleSwitch checked={true} onChange={vi.fn()} uncheckedLabel="A" checkedLabel="B" />,
+      <ToggleSwitch
+        checked={true}
+        onChange={vi.fn()}
+        uncheckedLabel="A"
+        checkedLabel="B"
+      />,
     )
     const sw = screen.getByRole('switch')
     expect(sw).toHaveAttribute('aria-checked', 'true')

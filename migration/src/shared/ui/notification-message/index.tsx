@@ -1,6 +1,7 @@
-import { cn } from '@/shared/lib/cn'
 import type { ReactNode } from 'react'
+import { cn } from '@/shared/lib/cn'
 import { ErrorIcon, SuccessIcon } from '@/shared/ui/icons/status-icons'
+
 // 레거시: src/renderer/src/shared/ui/notification-message/NotificateMessage.tsx
 // CVA → Record 직접 매핑 변환
 

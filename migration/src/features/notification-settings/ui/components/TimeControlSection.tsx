@@ -1,23 +1,54 @@
 /**
  * @legacy src/renderer/src/features/notification/ui/components/TimeControlSection.tsx
  */
-import { NotificationToggleSwitch } from '@/shared/ui/toggle-switch'
-import { cn } from '@/shared/lib/cn'
-import type { useTimeEditor } from '../../lib/use-time-editor'
+
 import type { SVGProps } from 'react'
+import { cn } from '@/shared/lib/cn'
+import { NotificationToggleSwitch } from '@/shared/ui/toggle-switch'
+import type { useTimeEditor } from '../../lib/use-time-editor'
 
 function MinusIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      role="img"
+      aria-label="시간 감소"
+      {...props}
+    >
+      <path
+        d="M5 12H19"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
 
 function PlusIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      role="img"
+      aria-label="시간 증가"
+      {...props}
+    >
+      <path
+        d="M12 5V19M5 12H19"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
@@ -48,7 +79,9 @@ export function TimeControlSection({
     >
       {/* 헤더 */}
       <div className="flex items-center justify-between">
-        <span className="text-body-lg-semibold text-grey-900 dark:text-grey-100">{title}</span>
+        <span className="text-body-lg-semibold text-grey-900 dark:text-grey-100">
+          {title}
+        </span>
         <NotificationToggleSwitch
           checked={isEnabled}
           onChange={onToggle}
@@ -68,7 +101,7 @@ export function TimeControlSection({
           timeEditor.isEditing
             ? 'border-sementic-brand-primary'
             : 'border-grey-50 dark:border-grey-800',
-          (isDisabled || !isEnabled) ? 'pointer-events-none' : '',
+          isDisabled || !isEnabled ? 'pointer-events-none' : '',
         )}
       >
         {/* 감소 버튼 */}
@@ -92,13 +125,14 @@ export function TimeControlSection({
             className="h-10 text-center text-body-md-meidum text-grey-900 outline-none dark:bg-grey-800 dark:text-grey-100"
           />
         ) : (
-          <div
-            aria-disabled={isDisabled || !isEnabled}
+          <button
+            type="button"
+            disabled={isDisabled || !isEnabled}
             onClick={timeEditor.handlers.handleTimeClick}
             className="flex h-10 flex-1 cursor-pointer items-center justify-center text-body-md-meidum text-grey-900 dark:text-grey-100"
           >
             {timeEditor.time}분
-          </div>
+          </button>
         )}
 
         {/* 증가 버튼 */}

@@ -1,14 +1,20 @@
 /**
  * @legacy src/renderer/src/features/dashboard/ui/MainHeader.tsx
  */
-import { BrandLogo, BrandSymbol } from '@/shared/ui/icons/brand-icons'
-import { DashboardIcon, SettingIcon, TipOffIcon, BellIcon } from '@/shared/ui/icons/nav-icons'
-import { useThemeStore } from '@/entities/theme'
-import { ThemeToggleSwitch } from '@/shared/ui/theme-toggle-switch'
-import { Button } from '@/shared/ui/button'
-import { cn } from '@/shared/lib/cn'
-import type { TabType } from '../model/use-navigation-tabs'
+
 import type { ComponentType, SVGProps } from 'react'
+import { useThemeStore } from '@/entities/theme'
+import { cn } from '@/shared/lib/cn'
+import { Button } from '@/shared/ui/button'
+import { BrandLogo, BrandSymbol } from '@/shared/ui/icons/brand-icons'
+import {
+  BellIcon,
+  DashboardIcon,
+  SettingIcon,
+  TipOffIcon,
+} from '@/shared/ui/icons/nav-icons'
+import { ThemeToggleSwitch } from '@/shared/ui/theme-toggle-switch'
+import type { TabType } from '../model/use-navigation-tabs'
 
 interface TabItem {
   id: TabType
@@ -35,11 +41,13 @@ export function DashboardHeader({
   onTabClick,
   onOpenNotification,
 }: DashboardHeaderProps) {
-  const isDark = useThemeStore((s) => s.isDark)
-  const setPreference = useThemeStore((s) => s.setPreference)
+  const isDark = useThemeStore(s => s.isDark)
+  const setPreference = useThemeStore(s => s.setPreference)
 
   return (
-    <div className={cn('bg-grey-0 mr-4 flex justify-between rounded-[999px] p-2')}>
+    <header
+      className={cn('bg-grey-0 mr-4 flex justify-between rounded-[999px] p-2')}
+    >
       <div className="flex items-center gap-10">
         <div className="ml-3 flex items-center gap-[10px]">
           <BrandSymbol className="flex h-[27px] w-[27px]" />
@@ -51,7 +59,7 @@ export function DashboardHeader({
         </div>
 
         <nav className="flex gap-2">
-          {tabs.map((tab) => {
+          {tabs.map(tab => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
 
@@ -94,7 +102,7 @@ export function DashboardHeader({
       <div className="flex items-center gap-2">
         <ThemeToggleSwitch
           checked={isDark}
-          onChange={(dark) => setPreference(dark ? 'dark' : 'light')}
+          onChange={dark => setPreference(dark ? 'dark' : 'light')}
         />
         <Button
           onClick={onOpenNotification}
@@ -103,6 +111,6 @@ export function DashboardHeader({
           text={<BellIcon className="[&>path]:stroke-grey-400" />}
         />
       </div>
-    </div>
+    </header>
   )
 }
