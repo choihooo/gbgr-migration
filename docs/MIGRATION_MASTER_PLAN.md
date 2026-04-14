@@ -73,11 +73,12 @@
 - 온보딩 라우트 구성
 - 위젯 라우트 구성
 - 딥링크(`gbgr://`) 처리 연결
+- 인증 도메인 정식 구현 완료
+- 로그인, 회원가입, 이메일 인증, 인증 메일 재발송, 보호 라우트 분기 연결 완료
+- 인증 세션 저장/복구, 토큰 재발급, 인증 관련 i18n 문구 정리 완료
 
 ### 4.2 아직 남은 핵심 범위
 
-- 실제 인증 화면 UI 이전
-- 인증 API 연결
 - 공통 UI 컴포넌트 이전
 - 메인 대시보드 UI 및 로직 이전
 - 자세 측정 파이프라인 이전
@@ -201,6 +202,20 @@ migration/src-tauri/
 - 공통 인증 레이아웃과 폼 컴포넌트를 먼저 정리
 - 그 위에 각 인증 페이지를 올린다
 - 이후 API 및 토큰 처리 연결
+
+상태:
+
+- 완료
+
+검증 메모:
+
+- `SC-001` 측정값: mock API 기준 앱 재실행 후 인증 복구 완료 `1051ms`
+- 측정 방법: `migration/public/verification/restore-probe.html`에서 동일 오리진 `localStorage`를 세팅한 뒤 `/main` iframe의 보호 화면 텍스트 노출 시점을 측정
+- 측정 환경: `VITE_API_BASE_URL=http://127.0.0.1:4010` 로컬 mock API, `google-chrome --headless` 사용
+- 판단: 성공 기준인 3초 이내를 충족
+- 시각 비교 캡처:
+- 레거시: `docs/verification/auth-captures/legacy/login.png`, `signup.png`, `verify.png`, `resend.png`
+- 마이그레이션: `docs/verification/auth-captures/migration/login.png`, `signup.png`, `verify.png`, `resend.png`
 
 ### 8.3 3단계: 공통 UI 시스템
 
@@ -403,13 +418,13 @@ migration/src-tauri/
 
 ### 권장 1순위
 
-- 인증 도메인 마이그레이션 문서 작성
-- 범위: 로그인, 회원가입, 이메일 인증, 인증 API, 공통 인증 UI
+- 공통 UI 마이그레이션 문서 작성
+- 범위: Button, TextField, Typography, LoadingSpinner, Modal
 
 ### 권장 2순위
 
-- 공통 UI 마이그레이션 문서 작성
-- 범위: Button, TextField, Typography, LoadingSpinner, Modal
+- 메인 대시보드 상세 이전 문서 작성
+- 범위: 탭별 콘텐츠, 데이터 패널, 대시보드 API 연결
 
 ### 권장 3순위
 
@@ -421,5 +436,5 @@ migration/src-tauri/
 ## 14. 문서 상태
 
 - 작성일: 2026-04-13
-- 상태: 초안
+- 상태: 진행 중
 - 갱신 원칙: 주요 단계 완료 또는 우선순위 변경 시 갱신

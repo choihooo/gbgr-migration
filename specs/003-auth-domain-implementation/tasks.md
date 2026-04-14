@@ -115,8 +115,8 @@
 **Purpose**: 여러 사용자 스토리에 걸치는 정리와 최종 검증을 수행한다.
 
 - [X] T032 [P] `migration/src/entities/user/index.ts`, `migration/src/entities/session/index.ts`, `migration/src/features/auth/index.ts`를 정리하고 새 공개 export를 연결한다
-- [ ] T033 `specs/003-auth-domain-implementation/quickstart.md` 기준으로 앱 재실행 후 인증 복구 완료 시간을 측정하고 `SC-001` 검증 결과를 `docs/MIGRATION_MASTER_PLAN.md` 또는 관련 검증 메모에 기록한다
-- [ ] T034 [P] `migration/src/pages/login-page/index.tsx`, `migration/src/pages/signup-page/index.tsx`, `migration/src/pages/email-verification-page/index.tsx`, `migration/src/pages/resend-verification-page/index.tsx` 기준으로 레거시 인증 화면과 `migration` 인증 화면의 before/after 비교 캡처를 수집하고 결과를 `docs/MIGRATION_MASTER_PLAN.md` 또는 관련 검증 메모에 기록한다
+- [X] T033 `specs/003-auth-domain-implementation/quickstart.md` 기준으로 앱 재실행 후 인증 복구 완료 시간을 측정하고 `SC-001` 검증 결과를 `docs/MIGRATION_MASTER_PLAN.md` 또는 관련 검증 메모에 기록한다
+- [X] T034 [P] `migration/src/pages/login-page/index.tsx`, `migration/src/pages/signup-page/index.tsx`, `migration/src/pages/email-verification-page/index.tsx`, `migration/src/pages/resend-verification-page/index.tsx` 기준으로 레거시 인증 화면과 `migration` 인증 화면의 before/after 비교 캡처를 수집하고 결과를 `docs/MIGRATION_MASTER_PLAN.md` 또는 관련 검증 메모에 기록한다
 - [X] T035 `migration/package.json`과 `migration/tests/` 기준으로 `pnpm lint:check`, `pnpm typecheck`, `pnpm test`가 통과하도록 전체 인증 도메인 코드를 정리한다
 
 ---
