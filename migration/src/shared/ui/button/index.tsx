@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { cn } from '@/shared/lib/cn'
 
 type ButtonVariant = 'primary' | 'sub' | 'grey'
 type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
@@ -24,10 +25,6 @@ const sizeClasses: Record<ButtonSize, string> = {
   xl: 'h-[59px] px-7 text-body-lg-medium',
 }
 
-function joinClasses(...classes: Array<string | undefined | false>) {
-  return classes.filter(Boolean).join(' ')
-}
-
 export function Button({
   className,
   text,
@@ -39,7 +36,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={joinClasses(
+      className={cn(
         'inline-flex cursor-pointer items-center justify-center rounded-full transition-colors focus-visible:outline-none disabled:cursor-not-allowed active:scale-95',
         variantClasses[variant],
         sizeClasses[size],
