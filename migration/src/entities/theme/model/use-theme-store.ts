@@ -66,7 +66,7 @@ export const useThemeStore = create<ThemeStore>()(
     }),
     {
       name: 'theme',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => window.localStorage),
       partialize: state => ({ preference: state.preference }),
     },
   ),

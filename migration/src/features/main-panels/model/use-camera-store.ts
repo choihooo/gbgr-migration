@@ -35,7 +35,7 @@ export const useCameraStore = create<CameraStore>()(
     }),
     {
       name: 'camera-store',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => window.localStorage),
     },
   ),
 )

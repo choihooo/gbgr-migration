@@ -1,7 +1,12 @@
 import { lazy } from 'react'
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import RootLayout from '@/app/layouts/RootLayout'
-import { ProtectedRoute, PublicOnlyRoute } from '@/shared/config/auth-routes'
+// TODO: 인증 우회 복원 — 아래 import 주석 해제
+// import { ProtectedRoute, PublicOnlyRoute } from '@/shared/config/auth-routes'
+// TODO: 보정 게이트 복원 (007 구현 완료 후)
+// import { CalibrationRouteGuard } from '@/shared/lib/calibration-route-guard'
+// TODO: 인증 우회 복원 — 아래 라인 주석 해제 후 Outlet 제거
+// import { ProtectedRoute, PublicOnlyRoute } from '@/shared/config/auth-routes'
 
 const LoginPage = lazy(() => import('@/pages/login-page'))
 const SignupPage = lazy(() => import('@/pages/signup-page'))
@@ -29,60 +34,53 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        element: <Navigate to="/auth/login" replace />,
+        element: <Navigate to="/main" replace />,
       },
       {
-        element: <PublicOnlyRoute />,
-        children: [
-          {
-            path: '/auth/login',
-            element: <LoginPage />,
-          },
-          {
-            path: '/auth/signup',
-            element: <SignupPage />,
-          },
-          {
-            path: '/auth/verify',
-            element: <EmailVerificationPage />,
-          },
-          {
-            path: '/auth/verify-callback',
-            element: <EmailVerificationCallbackPage />,
-          },
-          {
-            path: '/auth/resend',
-            element: <ResendVerificationPage />,
-          },
-        ],
+        // TODO: 인증 우회 복원 — PublicOnlyRoute로 감싸기
+        path: '/auth/login',
+        element: <LoginPage />,
       },
       {
-        element: <ProtectedRoute />,
+        path: '/auth/signup',
+        element: <SignupPage />,
+      },
+      {
+        path: '/auth/verify',
+        element: <EmailVerificationPage />,
+      },
+      {
+        path: '/auth/verify-callback',
+        element: <EmailVerificationCallbackPage />,
+      },
+      {
+        path: '/auth/resend',
+        element: <ResendVerificationPage />,
+      },
+      // TODO: 인증 우회 복원 — ProtectedRoute로 감싸기
+      {
+        path: '/main',
+        element: <MainPage />,
+      },
+      {
+        path: '/onboarding',
+        element: <Outlet />,
         children: [
           {
-            path: '/main',
-            element: <MainPage />,
+            index: true,
+            element: <OnboardingPage />,
           },
           {
-            path: '/onboarding',
-            children: [
-              {
-                index: true,
-                element: <OnboardingPage />,
-              },
-              {
-                path: 'init',
-                element: <OnboardingInitPage />,
-              },
-              {
-                path: 'calibration',
-                element: <CalibrationPage />,
-              },
-              {
-                path: 'completion',
-                element: <OnboardingCompletionPage />,
-              },
-            ],
+            path: 'init',
+            element: <OnboardingInitPage />,
+          },
+          {
+            path: 'calibration',
+            element: <CalibrationPage />,
+          },
+          {
+            path: 'completion',
+            element: <OnboardingCompletionPage />,
           },
         ],
       },

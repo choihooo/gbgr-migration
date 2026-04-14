@@ -35,6 +35,8 @@ export function installMockStorage(seed: StorageSeed = {}) {
     storage.setItem(key, value)
   }
 
+  // zustand persist 미들웨어가 window.localStorage를 참조하므로
+  // window.localStorage를 덮어씌움
   Object.defineProperty(window, 'localStorage', {
     configurable: true,
     writable: true,
