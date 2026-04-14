@@ -12,6 +12,7 @@ out/
 electron-dist/
 /renderer/
 /src/renderer/renderer/
+migration/src-tauri/target/
 
 # Electron
 *.dmg
@@ -78,3 +79,4 @@ Thumbs.db
 
 .vscode/
 .vercel
+.claude/settings.local.json

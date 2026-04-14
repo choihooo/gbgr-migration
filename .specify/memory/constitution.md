@@ -1,23 +1,17 @@
 <!--
 Sync Impact Report
-- Version change: 1.0.0 → 2.0.0 (MAJOR: 프로젝트 성격 재정의)
+- Version change: 2.0.0 → 2.1.0 (MINOR: 테스트 추가 기준 명문화)
 - Modified principles:
-  - 1. 프로세스 경계 우선 → 1. 레거시 존중 (마이그레이션 특성 반영)
-  - 2. 계약된 브리지 우선 → 2. UI 충실도 보존
-  - 3. FSD 의존성 보존 → 3. Tauri 아키텍처 준수
-  - 4. 상태 책임 단일화 → 4. 점진적 마이그레이션
-  - 5. 실패 우선 품질 게이트 → 5. 품질 게이트 강제
-  - 6. 관측 가능한 릴리즈 → (5에 통합)
+  - 5. 품질 게이트 강제 → 5. 품질 게이트 강제 (테스트 추가 기준 보강)
 - Added sections:
   - 없음
 - Removed sections:
-  - 강제 규칙 (NR-01~15) — 원칙 내 Rules로 통합
-  - PR 체크리스트 — 원칙 내 Check로 대체
-  - 헌법 적용 예시 — 제거
+  - 없음
 - Templates requiring updates:
-  - ✅ .specify/templates/plan-template.md
-  - ✅ .specify/templates/spec-template.md
   - ✅ .specify/templates/tasks-template.md
+  - ✅ .specify/memory/constitution.md
+  - ⚠ .specify/templates/plan-template.md (변경 불필요, 현행 원칙과 충돌 없음)
+  - ⚠ .specify/templates/spec-template.md (변경 불필요, 현행 원칙과 충돌 없음)
   - ⚠ .specify/templates/commands/*.md (디렉터리 없음)
 - Follow-up TODOs:
   - 없음
@@ -145,7 +139,12 @@ Tauri의 보안 모델과 아키텍처 패턴을 따르지 않으면
 - lint, typecheck, 빌드 중 하나라도 실패하면 merge하지 않는다.
 - 포팅된 핵심 로직(PostureClassifier, ScoreProcessor,
   calibration, 세션 관리, 알림 스케줄러)은
-  단위 테스트 또는 수동 검증 시나리오로 회귀를 확인한다.
+  회귀 위험과 검증 비용을 기준으로 필요한 범위에서만
+  단위 테스트, E2E 테스트, 또는 수동 검증 시나리오를 추가한다.
+- 테스트는 "많을수록 좋다"가 아니라
+  회귀를 조기에 잡는 데 실질적으로 도움이 되는 경우에만 추가한다.
+  단순 마크업 이관, 정적 문구 변경, 시각 복제처럼
+  리스크가 낮은 변경에는 테스트를 강제하지 않는다.
 - Tauri 명령어의 입력 검증과 에러 처리는 필수다.
   검증 없는 명령어는 merge하지 않는다.
 - 기능 포팅 완료 기준:
@@ -154,7 +153,8 @@ Tauri의 보안 모델과 아키텍처 패턴을 따르지 않으면
 **Check**:
 
 - CI 필수 체크를 브랜치 보호 규칙으로 연결한다.
-- 핵심 로직 포팅 PR에 검증 결과를 첨부해야 한다.
+- 핵심 로직 포팅 PR에 왜 해당 테스트가 필요한지
+  또는 왜 수동 검증만으로 충분한지 근거를 첨부해야 한다.
 - 리뷰에서 신규 경고, suppress 주석, 우회 코드를 확인한다.
 
 ## Governance
@@ -187,4 +187,4 @@ Tauri의 보안 모델과 아키텍처 패턴을 따르지 않으면
 - 포팅 후 발견된 정합성 위반은 다음 영업일 내에
   회고 항목으로 등록하고 재발 방지 액션을 남긴다.
 
-**Version**: 2.0.0 | **Ratified**: 2026-04-13 | **Last Amended**: 2026-04-13
+**Version**: 2.1.0 | **Ratified**: 2026-04-13 | **Last Amended**: 2026-04-14
