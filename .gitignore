@@ -46,6 +46,8 @@ lerna-debug.log*
 # local env files
 .env
 .env*
+!.env.example
+!migration/.env.example
 .secrets/
 .env.local
 .env.development.local
