@@ -17,7 +17,7 @@ export const useAuthEmailStore = create<AuthEmailState>()(
     }),
     {
       name: AUTH_STORAGE_KEYS.signupEmail,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => window.localStorage),
     },
   ),
 )

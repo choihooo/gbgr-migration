@@ -88,6 +88,73 @@ export const resources = {
         initPageTitle: '온보딩 시작 페이지',
         completionPageTitle: '온보딩 완료 페이지',
         calibrationPageTitle: '보정 페이지',
+        init: {
+          privacyNote:
+            '영상은 사용자의 PC에서만 처리되며, 어디에도 저장되거나 전송되지 않으니 안심하세요.',
+          greeting:
+            '안녕하세요! {{userName}}님의 자세 건강을 책임질 AI 파트너, 거부기린이에요.',
+          steps: [
+            {
+              keypoint: 'Keypoint 1',
+              title: '바른 자세 분석',
+              description:
+                '이제부터 {{userName}}님이 일하는 동안 웹캠을 통해 실시간으로 자세를 분석해 드릴게요.',
+            },
+            {
+              keypoint: 'Keypoint 2',
+              title: '실시간 위젯 피드백',
+              description:
+                '화면 상단 작은 위젯의 기린과 거북이가 실시간 자세 피드백을 제공해요.',
+            },
+            {
+              keypoint: 'Keypoint 3',
+              title: '데이터로 보는 대시보드',
+              description:
+                '주간, 월간 단위의 개인화 통계와 패턴 분석을 통해 나도 몰랐던 나의 자세 습관을 발견할 수 있어요.\nAI가 제안하는 맞춤형 팁을 통해 자발적이고 지속적인 변화를 느껴보세요.',
+            },
+            {
+              keypoint: 'Keypoint 4',
+              title: '스마트 알림',
+              description:
+                '자세가 심하게 나빠지거나 스트레칭이 필요한 순간을 AI가 정확하게 포착하여 똑똑하게 알려드려요.',
+            },
+            {
+              keypoint: 'Keypoint 5',
+              title: '즐거운 게임을 통한 자세 교정',
+              description:
+                '건강 관리는 지루하다는 편견을 깨기 위해 게이미페케이션 요소를 넣었어요.\n바른 자세를 유지할수록 나의 캐릭터가 레벨업하고 더 빨리 달려 보상을 받을 수 있어요.',
+            },
+          ],
+          next: '다음',
+          start: '시작하기',
+        },
+        camera: {
+          title: '카메라 사용 권한',
+          description:
+            '거부기린은 PC 웹캠을 통해 사용자의 자세를 실시간으로 분석해요.',
+          privacyNote:
+            '모든 분석은 사용자 PC 내에서만 이루어지며 영상은 서버로 전송되지 않아요.',
+          button: '카메라 권한 허용',
+        },
+        calibration: {
+          welcomeTitle: '바른자세 기준점 등록',
+          welcomeDescription:
+            '{{userName}}님의 바른 자세를 등록할 준비가 되셨다면',
+          welcomeDescriptionLine2: '측정하기 버튼을 눌러주세요.',
+          measureButton: '측정하기',
+          step1Message: '의자에 편안히 앉아 허리를 펴고 턱을 당겨주세요',
+          step2Message:
+            '화면의 가이드에 맞춰 바르다고 생각하는 자세를 5초간 유지해주세요',
+          engineUnavailable: '자세 측정 엔진이 아직 연결되지 않았습니다.',
+          engineUnavailableDescription:
+            '측정 기능은 추후 업데이트에서 제공됩니다.',
+        },
+        completion: {
+          title: '자세 등록 완료',
+          description: '이제부터 거부기린과 함께 거북목을 개선해볼까요?',
+          button: '시작하기',
+          creatingSession: '세션 생성 중...',
+        },
       },
       dashboard: {
         pageTitle: '메인 페이지',
@@ -192,6 +259,76 @@ export const resources = {
         initPageTitle: 'Onboarding Init Page',
         completionPageTitle: 'Onboarding Completion Page',
         calibrationPageTitle: 'Calibration Page',
+        init: {
+          privacyNote:
+            'Video is processed only on your PC and is never stored or transmitted anywhere else, so please rest assured.',
+          greeting:
+            "Hello! I'm GBGR, your AI partner responsible for {{userName}}'s posture health.",
+          steps: [
+            {
+              keypoint: 'Keypoint 1',
+              title: 'Posture Analysis',
+              description:
+                "From now on, we'll analyze your posture in real-time through your webcam while you work.",
+            },
+            {
+              keypoint: 'Keypoint 2',
+              title: 'Real-time Widget Feedback',
+              description:
+                'The giraffe and turtle on the small widget at the top of the screen provide real-time posture feedback.',
+            },
+            {
+              keypoint: 'Keypoint 3',
+              title: 'Data-driven Dashboard',
+              description:
+                'Discover your unknown posture habits through personalized weekly and monthly statistics and pattern analysis.\nExperience voluntary and lasting change with AI-suggested personalized tips.',
+            },
+            {
+              keypoint: 'Keypoint 4',
+              title: 'Smart Notifications',
+              description:
+                'AI accurately detects when your posture gets significantly worse or when you need stretching, and notifies you smartly.',
+            },
+            {
+              keypoint: 'Keypoint 5',
+              title: 'Posture Correction Through Fun Games',
+              description:
+                'We added gamification elements to break the prejudice that health management is boring.\nThe better your posture, the more your character levels up and runs faster to earn rewards.',
+            },
+          ],
+          next: 'Next',
+          start: 'Get Started',
+        },
+        camera: {
+          title: 'Camera Permission',
+          description:
+            'GBGR analyzes your posture in real-time through your PC webcam.',
+          privacyNote:
+            'All analysis is done only on your PC, and video is never transmitted to the server.',
+          button: 'Allow Camera Access',
+        },
+        calibration: {
+          welcomeTitle: 'Register Posture Baseline',
+          welcomeDescription:
+            "{{userName}}, when you're ready to register your correct posture,",
+          welcomeDescriptionLine2: 'press the Measure button.',
+          measureButton: 'Measure',
+          step1Message:
+            'Sit comfortably in your chair, straighten your back, and tuck your chin in',
+          step2Message:
+            'Maintain what you consider correct posture for 5 seconds following the on-screen guide',
+          engineUnavailable:
+            'The posture measurement engine is not yet connected.',
+          engineUnavailableDescription:
+            'The measurement feature will be provided in a future update.',
+        },
+        completion: {
+          title: 'Posture Registration Complete',
+          description:
+            'Shall we start improving your forward head posture with GBGR?',
+          button: 'Get Started',
+          creatingSession: 'Creating session...',
+        },
       },
       dashboard: {
         pageTitle: 'Main Page',

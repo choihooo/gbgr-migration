@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import RootLayout from '@/app/layouts/RootLayout'
 import { ProtectedRoute, PublicOnlyRoute } from '@/shared/config/auth-routes'
+import { CalibrationRouteGuard } from '@/shared/lib/calibration-route-guard'
 
 const LoginPage = lazy(() => import('@/pages/login-page'))
 const SignupPage = lazy(() => import('@/pages/signup-page'))
@@ -65,6 +66,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/onboarding',
+            element: <CalibrationRouteGuard />,
             children: [
               {
                 index: true,

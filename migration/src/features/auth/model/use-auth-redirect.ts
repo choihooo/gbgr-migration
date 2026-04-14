@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthSessionStore } from '@/entities/session'
 import { clearRedirectPath } from '@/features/auth/lib/session-persistence'
+import { getCalibrationGateState } from '@/shared/lib/calibration-gate'
 
 export function getPostAuthRedirectPath(
   redirectPath: string | null | undefined,
@@ -10,6 +11,17 @@ export function getPostAuthRedirectPath(
     redirectPath.startsWith('/auth') ||
     redirectPath === '/widget'
   ) {
+    // 보정 상태에 따라 분기
+    const userId = localStorage.getItem('userId')
+    const gateState = getCalibrationGateState(userId)
+
+    if (gateState === 'initial_required') {
+      return '/onboarding/init'
+    }
+    if (gateState === 'reset_requested') {
+      return '/onboarding/calibration'
+    }
+
     return '/main'
   }
 
