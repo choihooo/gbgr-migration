@@ -17,78 +17,92 @@ export function useAuthBootstrap() {
   const setUser = useAuthUserStore(state => state.setUser)
   const clearUser = useAuthUserStore(state => state.clearUser)
 
+  // TODO: 인증 우회 복원 (007 구현 완료 후) — 아래 useEffect 블록으로 교체
   useEffect(() => {
-    let cancelled = false
+    setSession({
+      status: 'authenticated',
+      accessToken: 'bypass',
+      refreshToken: 'bypass',
+      userId: 'dev',
+      userName: 'Dev User',
+      hydratedAt: Date.now(),
+      lastErrorCode: null,
+    })
+    setUser({ id: 'dev', name: 'Dev User' })
+  }, [setSession, setUser])
 
-    async function bootstrap() {
-      markChecking()
+  // useEffect(() => {
+  //   let cancelled = false
 
-      const stored = readStoredAuthSession()
+  //   async function bootstrap() {
+  //     markChecking()
 
-      if (!stored.accessToken || !stored.refreshToken) {
-        clearAuthSession()
-        clearUser()
-        markUnauthenticated()
-        return
-      }
+  //     const stored = readStoredAuthSession()
 
-      setSession({
-        accessToken: stored.accessToken,
-        refreshToken: stored.refreshToken,
-        userId: stored.userId,
-        userName: stored.userName,
-        redirectPath: stored.redirectPath,
-      })
+  //     if (!stored.accessToken || !stored.refreshToken) {
+  //       clearAuthSession()
+  //       clearUser()
+  //       markUnauthenticated()
+  //       return
+  //     }
 
-      try {
-        await refreshAccessToken().catch(() => undefined)
+  //     setSession({
+  //       accessToken: stored.accessToken,
+  //       refreshToken: stored.refreshToken,
+  //       userId: stored.userId,
+  //       userName: stored.userName,
+  //       redirectPath: stored.redirectPath,
+  //     })
 
-        const response = await api.get<MeResponse>('/users/me')
+  //     try {
+  //       await refreshAccessToken().catch(() => undefined)
 
-        if (!response.data.success || !response.data.data) {
-          throw new Error(
-            response.data.message ?? '사용자 정보를 불러오지 못했습니다.',
-          )
-        }
+  //       const response = await api.get<MeResponse>('/users/me')
 
-        if (cancelled) {
-          return
-        }
+  //       if (!response.data.success || !response.data.data) {
+  //         throw new Error(
+  //           response.data.message ?? '사용자 정보를 불러오지 못했습니다.',
+  //         )
+  //       }
 
-        const userId =
-          response.data.data.userId ?? response.data.data.id ?? null
-        const userName = response.data.data.name ?? null
-        const accessToken = localStorage.getItem('auth.accessToken')
-        const refreshToken = localStorage.getItem('auth.refreshToken')
+  //       if (cancelled) {
+  //         return
+  //       }
 
-        setUser({
-          id: userId,
-          name: userName,
-        })
-        setSession({
-          status: 'authenticated',
-          accessToken,
-          refreshToken,
-          userId,
-          userName,
-          hydratedAt: Date.now(),
-          lastErrorCode: null,
-        })
-      } catch (error) {
-        if (cancelled) {
-          return
-        }
+  //       const userId =
+  //         response.data.data.userId ?? response.data.data.id ?? null
+  //       const userName = response.data.data.name ?? null
+  //       const accessToken = localStorage.getItem('auth.accessToken')
+  //       const refreshToken = localStorage.getItem('auth.refreshToken')
 
-        clearAuthSession()
-        clearUser()
-        markUnauthenticated(classifyAuthError(error).code)
-      }
-    }
+  //       setUser({
+  //         id: userId,
+  //         name: userName,
+  //       })
+  //       setSession({
+  //         status: 'authenticated',
+  //         accessToken,
+  //         refreshToken,
+  //         userId,
+  //         userName,
+  //         hydratedAt: Date.now(),
+  //         lastErrorCode: null,
+  //       })
+  //     } catch (error) {
+  //       if (cancelled) {
+  //         return
+  //       }
 
-    void bootstrap()
+  //       clearAuthSession()
+  //       clearUser()
+  //       markUnauthenticated(classifyAuthError(error).code)
+  //     }
+  //   }
 
-    return () => {
-      cancelled = true
-    }
-  }, [clearUser, markChecking, markUnauthenticated, setSession, setUser])
+  //   void bootstrap()
+
+  //   return () => {
+  //     cancelled = true
+  //   }
+  // }, [clearUser, markChecking, markUnauthenticated, setSession, setUser])
 }

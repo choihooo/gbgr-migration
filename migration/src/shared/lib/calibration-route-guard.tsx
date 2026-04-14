@@ -11,9 +11,10 @@ import { canAccessCalibrationFlow } from '@/shared/lib/calibration-gate'
  */
 export function CalibrationRouteGuard() {
   const userId = localStorage.getItem('userId')
-  const canAccess = canAccessCalibrationFlow(userId)
+  // TODO: 보정 게이트 복원 (007 구현 완료 후)
+  const _canAccess = canAccessCalibrationFlow(userId)
 
-  if (!canAccess) {
+  if (!_canAccess) {
     return <Navigate to="/main" replace />
   }
 
