@@ -8,6 +8,8 @@
 - TypeScript 5.8, React 19.1 + Tailwind CSS 4.2.2, clsx + tailwind-merge (신규 추가), Vitest 4.1.4 (004-shared-ui-components)
 - TypeScript 5.8, React 19.1, Rust 2021 (Tauri 런타임) + React Router DOM 7, Zustand 5, TanStack Query 5, Tailwind CSS 4.2.2, clsx + tailwind-merge (005-app-layout-settings)
 - Zustand persist (sessionStorage for notification settings, localStorage for theme) (005-app-layout-settings)
+- TypeScript 5.8, React 19.1, Rust 2021 (Tauri 런타임) + React Router DOM 7, Zustand 5, TanStack Query 5, Tailwind CSS 4.2.2, clsx + tailwind-merge, i18next 26, @tauri-apps/api 2 (006-main-page-migration)
+- localStorage (accessToken, refreshToken, theme), sessionStorage (notification settings) (006-main-page-migration)
 
 ## Recent Changes
 - 001-migration-scaffold: Added TypeScript 5.x, Rust (latest stable via rustup) + Tauri 2, React 19, Vite 6, Tailwind CSS v4, Biome
