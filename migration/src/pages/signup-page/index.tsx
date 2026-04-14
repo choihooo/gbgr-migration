@@ -1,5 +1,5 @@
-import { SignUpForm } from '@/features/auth/ui/signup/components/SignUpForm'
 import { useTranslation } from 'react-i18next'
+import { SignUpForm } from '@/features/auth/ui/signup/components/SignUpForm'
 
 function SignupPage() {
   const { t } = useTranslation()

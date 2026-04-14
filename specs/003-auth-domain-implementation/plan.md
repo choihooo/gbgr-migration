@@ -5,12 +5,12 @@
 
 ## Summary
 
-`migration` 앱의 기존 인증 UI와 i18n 자산을 유지한 채, 임시 `localStorage` 토큰 처리와 단순 라우트 가드를 실제 인증 세션 복구 흐름으로 대체한다. 구현은 `features/auth`에 사용자 액션과 화면 상태 전이를 모으고, `entities/user`와 `entities/session`에 사용자/세션 모델과 저장 복구 책임을 분리하며, 레거시 Electron 앱이 사용하던 인증 API 계약과 토큰 재발급 규칙을 기준으로 Tauri + React 구조에 맞는 얇은 페이지 구성을 완성한다.
+`migration` 앱의 기존 인증 UI와 i18n 자산을 유지한 채, 임시 `localStorage` 토큰 처리와 단순 라우트 가드를 실제 인증 세션 복구 흐름으로 대체한다. 구현은 `features/auth`에 인증 API 호출, 사용자 액션, 화면 상태 전이를 모으고, `entities/user`와 `entities/session`에 사용자/세션 모델과 저장 복구 책임을 분리하며, 레거시 Electron 앱이 사용하던 인증 API 계약과 토큰 재발급 규칙을 기준으로 Tauri + React 구조에 맞는 얇은 페이지 구성을 완성한다.
 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.8, React 19, Rust 2021(Tauri 런타임)  
-**Primary Dependencies**: React Router 7, Zustand 5, TanStack Query 5, i18next 26, Tauri 2 플러그인  
+**Primary Dependencies**: React Router 7, Zustand 5, TanStack Query 5, Axios 1.x, i18next 26, Tauri 2 플러그인  
 **Storage**: 브라우저 `localStorage` 기반 클라이언트 저장소, 백엔드 인증 API, Tauri deep-link 진입 정보  
 **Testing**: `biome check`, `tsc --noEmit`, 수동 인증 시나리오 검증, 신규 순수 로직/스토어 단위 테스트 추가를 전제로 한 Vitest 도입  
 **Target Platform**: Tauri 2 기반 데스크톱 앱(macOS/Windows/Linux)  
@@ -87,7 +87,7 @@ migration/
     └── capabilities/
 ```
 
-**Structure Decision**: 단일 `migration/` 앱 안에서 FSD 구조를 유지한다. 페이지는 라우트 진입과 조합만 맡고, 인증 요청과 상태 전이는 `features/auth`, 사용자/세션 영속화와 복구는 `entities/user`, `entities/session`, 공통 HTTP 클라이언트와 라우터 어댑터는 `shared`에 둔다.
+**Structure Decision**: 단일 `migration/` 앱 안에서 FSD 구조를 유지한다. 페이지는 라우트 진입과 조합만 맡고, 인증 요청과 상태 전이는 `features/auth`가 소유한다. `entities/user`, `entities/session`은 사용자/세션 영속화와 복구 모델을 맡고, 공통 HTTP 클라이언트와 라우터 어댑터는 `shared`에 둔다.
 
 ## Phase 0: Research Plan
 

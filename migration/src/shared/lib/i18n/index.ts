@@ -2,10 +2,10 @@ import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
 import {
+  type AppLanguage,
   defaultLanguage,
   resources,
   supportedLanguages,
-  type AppLanguage,
 } from './resources'
 
 export const I18N_LANGUAGE_STORAGE_KEY = 'appLanguage'

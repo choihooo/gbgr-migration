@@ -1,8 +1,8 @@
 import { lazy } from 'react'
-import { createBrowserRouter, redirect } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import RootLayout from '@/app/layouts/RootLayout'
+import { ProtectedRoute, PublicOnlyRoute } from '@/shared/config/auth-routes'
 
-// Lazy loaded pages
 const LoginPage = lazy(() => import('@/pages/login-page'))
 const SignupPage = lazy(() => import('@/pages/signup-page'))
 const EmailVerificationPage = lazy(
@@ -23,91 +23,76 @@ const OnboardingCompletionPage = lazy(
 )
 const WidgetPage = lazy(() => import('@/pages/widget-page'))
 
-// Auth guards
-export const requireAuthLoader = () => {
-  const token = localStorage.getItem('accessToken')
-  if (!token) return redirect('/auth/login')
-  return null
-}
-
-export const redirectIfAuthLoader = () => {
-  const token = localStorage.getItem('accessToken')
-  if (token) return redirect('/main')
-  return null
-}
-
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
-      // Public routes
       {
         path: '/',
-        loader: () => redirect('/auth/login'),
+        element: <Navigate to="/auth/login" replace />,
       },
       {
-        path: '/auth/login',
-        element: <LoginPage />,
-        loader: redirectIfAuthLoader,
-      },
-      {
-        path: '/auth/signup',
-        element: <SignupPage />,
-      },
-      {
-        path: '/auth/verify',
-        element: <EmailVerificationPage />,
-      },
-      {
-        path: '/auth/verify-callback',
-        element: <EmailVerificationCallbackPage />,
-      },
-      {
-        path: '/auth/resend',
-        element: <ResendVerificationPage />,
-      },
-
-      // Protected routes
-      {
-        path: '/main',
-        element: <MainPage />,
-        loader: requireAuthLoader,
-      },
-
-      // Onboarding routes (protected)
-      {
-        path: '/onboarding',
-        loader: requireAuthLoader,
+        element: <PublicOnlyRoute />,
         children: [
           {
-            index: true,
-            element: <OnboardingPage />,
+            path: '/auth/login',
+            element: <LoginPage />,
           },
           {
-            path: 'init',
-            element: <OnboardingInitPage />,
+            path: '/auth/signup',
+            element: <SignupPage />,
           },
           {
-            path: 'calibration',
-            element: <CalibrationPage />,
+            path: '/auth/verify',
+            element: <EmailVerificationPage />,
           },
           {
-            path: 'completion',
-            element: <OnboardingCompletionPage />,
+            path: '/auth/verify-callback',
+            element: <EmailVerificationCallbackPage />,
+          },
+          {
+            path: '/auth/resend',
+            element: <ResendVerificationPage />,
           },
         ],
       },
-
-      // Widget route (public, independent window)
+      {
+        element: <ProtectedRoute />,
+        children: [
+          {
+            path: '/main',
+            element: <MainPage />,
+          },
+          {
+            path: '/onboarding',
+            children: [
+              {
+                index: true,
+                element: <OnboardingPage />,
+              },
+              {
+                path: 'init',
+                element: <OnboardingInitPage />,
+              },
+              {
+                path: 'calibration',
+                element: <CalibrationPage />,
+              },
+              {
+                path: 'completion',
+                element: <OnboardingCompletionPage />,
+              },
+            ],
+          },
+        ],
+      },
       {
         path: '/widget',
         element: <WidgetPage />,
       },
-
-      // 404 fallback
       {
         path: '*',
-        loader: () => redirect('/'),
+        element: <Navigate to="/" replace />,
       },
     ],
   },

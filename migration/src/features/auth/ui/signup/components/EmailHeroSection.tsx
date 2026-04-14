@@ -1,6 +1,6 @@
+import { useTranslation } from 'react-i18next'
 import emailIcon from '@/assets/auth/email_icon.svg'
 import { useAuthEmailStore } from '@/entities/user'
-import { useTranslation } from 'react-i18next'
 
 export function EmailHeroSection() {
   const { t } = useTranslation()

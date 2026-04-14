@@ -1,7 +1,7 @@
-import { forwardRef, useState, type ChangeEvent } from 'react'
+import { type ChangeEvent, forwardRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { TextField } from '@/shared/ui/input-field'
 import { VisibilityIcon } from '@/shared/ui/icons/status-icons'
+import { TextField } from '@/shared/ui/input-field'
 
 interface PasswordFieldProps {
   hasValue?: boolean
@@ -13,17 +13,7 @@ interface PasswordFieldProps {
 }
 
 export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
-  (
-    {
-      className = '',
-      hasValue,
-      name,
-      onChange,
-      placeholder = '비밀번호',
-      value,
-    },
-    ref,
-  ) => {
+  ({ className = '', hasValue, name, onChange, placeholder, value }, ref) => {
     const { t } = useTranslation()
     const [isVisible, setIsVisible] = useState(false)
 

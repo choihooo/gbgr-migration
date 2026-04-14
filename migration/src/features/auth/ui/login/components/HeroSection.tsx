@@ -1,5 +1,5 @@
-import { BrandLogo, BrandSymbol } from '@/shared/ui/icons/brand-icons'
 import { useTranslation } from 'react-i18next'
+import { BrandLogo, BrandSymbol } from '@/shared/ui/icons/brand-icons'
 
 export function HeroSection() {
   const { t } = useTranslation()

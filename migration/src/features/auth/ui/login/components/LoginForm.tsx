@@ -1,79 +1,16 @@
-import {
-  useEffect,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-} from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { useLoginForm } from '@/features/auth/model/use-login-form'
 import { Button } from '@/shared/ui/button'
-import { TextField } from '@/shared/ui/input-field'
 import { ErrorStatusIcon } from '@/shared/ui/icons/status-icons'
+import { TextField } from '@/shared/ui/input-field'
 import { PasswordField } from './PasswordField'
-
-interface LoginFormValues {
-  email: string
-  password: string
-  saveId: boolean
-}
-
-const SAVED_EMAIL_KEY = 'savedEmail'
 
 export function LoginForm() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [formValues, setFormValues] = useState<LoginFormValues>({
-    email: '',
-    password: '',
-    saveId: false,
-  })
-  const [showError, setShowError] = useState(false)
-
-  useEffect(() => {
-    const savedEmail = localStorage.getItem(SAVED_EMAIL_KEY)
-
-    if (!savedEmail) {
-      return
-    }
-
-    setFormValues(previous => ({
-      ...previous,
-      email: savedEmail,
-      saveId: true,
-    }))
-  }, [])
-
-  const updateField =
-    (field: keyof LoginFormValues) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const value =
-        field === 'saveId' ? event.target.checked : event.target.value
-
-      setFormValues(previous => ({
-        ...previous,
-        [field]: value,
-      }))
-      setShowError(false)
-    }
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
-    if (!formValues.email || !formValues.password) {
-      setShowError(true)
-      return
-    }
-
-    if (formValues.saveId) {
-      localStorage.setItem(SAVED_EMAIL_KEY, formValues.email)
-    } else {
-      localStorage.removeItem(SAVED_EMAIL_KEY)
-    }
-
-    // 다음 단계에서 실제 인증 API와 토큰 처리로 대체한다.
-    localStorage.setItem('accessToken', 'temporary-auth-token')
-    navigate('/main')
-  }
+  const { formValues, errorMessage, handleSubmit, isSubmitting, updateField } =
+    useLoginForm()
 
   return (
     <>
@@ -95,10 +32,10 @@ export function LoginForm() {
           hasValue={Boolean(formValues.password)}
         />
 
-        {showError ? (
+        {errorMessage ? (
           <div className="text-caption-sm-regular text-error flex gap-1 self-start">
             <ErrorStatusIcon className="mt-[1px] h-5 w-5 shrink-0" />
-            <span>{t('auth.login.missingCredentials')}</span>
+            <span>{errorMessage}</span>
           </div>
         ) : null}
 
@@ -140,7 +77,7 @@ export function LoginForm() {
           type="submit"
           text={t('auth.login.submit')}
           size="xl"
-          disabled={!formValues.email || !formValues.password}
+          disabled={!formValues.email || !formValues.password || isSubmitting}
           className="hbp:text-body-xl-medium h-[49px] w-full"
         />
       </form>

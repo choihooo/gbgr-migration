@@ -2,9 +2,13 @@ import { useTranslation } from 'react-i18next'
 
 interface ResendSectionProps {
   onClick: () => void
+  disabled?: boolean
 }
 
-export function ResendSection({ onClick }: ResendSectionProps) {
+export function ResendSection({
+  onClick,
+  disabled = false,
+}: ResendSectionProps) {
   const { t } = useTranslation()
 
   return (
@@ -13,6 +17,7 @@ export function ResendSection({ onClick }: ResendSectionProps) {
       <button
         type="button"
         onClick={onClick}
+        disabled={disabled}
         className="cursor-pointer text-yellow-500 underline"
       >
         {t('auth.signup.resendAction')}

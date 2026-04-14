@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuthEmailStore } from '@/entities/user'
+import { useResendVerification } from '@/features/auth/model/use-resend-verification'
 import { AuthPageShell } from '@/features/auth/ui/shared/AuthPageShell'
 import { ResendEmailHeroSection } from '@/features/auth/ui/signup/components/ResendEmailHeroSection'
 import { ResendSection } from '@/features/auth/ui/signup/components/ResendSection'
@@ -8,17 +7,17 @@ import { VerifyAction } from '@/features/auth/ui/signup/components/VerifyAction'
 
 function ResendVerificationPage() {
   const { t } = useTranslation()
-  const email = useAuthEmailStore(state => state.email)
-  const [resendCount, setResendCount] = useState(0)
+  const { email, feedbackMessage, handleResend, isResending } =
+    useResendVerification()
 
   return (
     <AuthPageShell>
       <ResendEmailHeroSection />
       <VerifyAction email={email || t('auth.signup.missingEmail')} />
-      <ResendSection onClick={() => setResendCount(previous => previous + 1)} />
-      {resendCount > 0 ? (
+      <ResendSection onClick={handleResend} disabled={isResending} />
+      {feedbackMessage ? (
         <p className="text-caption-sm-regular text-success mt-4">
-          {t('auth.signup.resendSentToast')}
+          {feedbackMessage}
         </p>
       ) : null}
     </AuthPageShell>
