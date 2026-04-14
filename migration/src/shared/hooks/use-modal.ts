@@ -17,6 +17,6 @@ export function useModal(): UseModalReturn {
     isOpen,
     open: () => setIsOpen(true),
     close: () => setIsOpen(false),
-    toggle: () => setIsOpen((prev) => !prev),
+    toggle: () => setIsOpen(prev => !prev),
   }
 }

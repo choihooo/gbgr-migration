@@ -3,12 +3,12 @@
  */
 import { Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
-import { Header } from '@/features/layout/ui/Header'
 import { useAuthSessionStore } from '@/entities/session'
+import { Header } from '@/features/layout/ui/Header'
 
 function RootLayout() {
   const location = useLocation()
-  const authStatus = useAuthSessionStore((s) => s.status)
+  const authStatus = useAuthSessionStore(s => s.status)
   const isAuthenticated = authStatus === 'authenticated'
   const shouldShowGlobalHeader =
     isAuthenticated && !location.pathname.startsWith('/main')

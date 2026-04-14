@@ -1,1 +1,1 @@
-export { useThemeStore, type ThemePreference } from './model/use-theme-store'
+export { type ThemePreference, useThemeStore } from './model/use-theme-store'

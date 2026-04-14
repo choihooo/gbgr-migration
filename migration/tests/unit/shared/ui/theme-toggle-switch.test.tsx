@@ -2,8 +2,9 @@
  * @tests ThemeToggleSwitch — 복잡 토글 인터랙션 (sun/moon 아이콘, 슬라이딩 인디케이터)
  * @see migration/src/shared/ui/theme-toggle-switch/index.tsx
  */
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { ThemeToggleSwitch } from '@/shared/ui/theme-toggle-switch'
 
 describe('ThemeToggleSwitch', () => {

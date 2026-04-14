@@ -2,12 +2,12 @@
  * @legacy src/renderer/src/features/notification/ui/NotificationModal.tsx
  */
 import { useState } from 'react'
-import { Modal } from '@/shared/ui/modal'
 import { Button } from '@/shared/ui/button'
+import { Modal } from '@/shared/ui/modal'
 import { NotificationToggleSwitch } from '@/shared/ui/toggle-switch'
+import { useTimeEditor } from '../lib/use-time-editor'
 import { useNotificationStore } from '../model/use-notification-store'
 import { TimeControlSection } from './components/TimeControlSection'
-import { useTimeEditor } from '../lib/use-time-editor'
 
 interface NotificationModalProps {
   isOpen: boolean

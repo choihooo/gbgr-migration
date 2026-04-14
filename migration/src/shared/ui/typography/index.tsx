@@ -1,5 +1,6 @@
-import { cn } from '@/shared/lib/cn'
 import type { ElementType, ReactNode } from 'react'
+import { cn } from '@/shared/lib/cn'
+
 // 레거시: src/renderer/src/shared/ui/typography/Typography.tsx
 
 type TypographyVariant =

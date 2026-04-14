@@ -8,8 +8,10 @@
  * - 범위 클램핑 (1-300)
  * - disabled 상태
  */
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import type { useTimeEditor } from '@/features/notification-settings/lib/use-time-editor'
 import { TimeControlSection } from '@/features/notification-settings/ui/components/TimeControlSection'
 
 /**
@@ -31,7 +33,7 @@ function makeTimeEditor(overrides: Record<string, unknown> = {}) {
       decreaseTime: vi.fn(),
     },
     ...overrides,
-  } as any
+  } as ReturnType<typeof useTimeEditor>
 }
 
 const baseProps = {
@@ -44,25 +46,17 @@ const baseProps = {
 
 describe('TimeControlSection', () => {
   it('제목과 설명을 렌더링한다', () => {
-    render(
-      <TimeControlSection
-        {...baseProps}
-        timeEditor={makeTimeEditor()}
-      />,
-    )
+    render(<TimeControlSection {...baseProps} timeEditor={makeTimeEditor()} />)
 
     expect(screen.getByText('맞춤 스트레칭 주기')).toBeInTheDocument()
-    expect(screen.getByText('나만의 스트레칭 타이밍이에요.')).toBeInTheDocument()
+    expect(
+      screen.getByText('나만의 스트레칭 타이밍이에요.'),
+    ).toBeInTheDocument()
   })
 
   it('+ 버튼 클릭 시 increaseTime 핸들러를 호출한다', () => {
     const editor = makeTimeEditor()
-    render(
-      <TimeControlSection
-        {...baseProps}
-        timeEditor={editor}
-      />,
-    )
+    render(<TimeControlSection {...baseProps} timeEditor={editor} />)
 
     // 증가 버튼: 마지막 버튼 요소
     const buttons = screen.getAllByRole('button')
@@ -74,31 +68,21 @@ describe('TimeControlSection', () => {
 
   it('- 버튼 클릭 시 decreaseTime 핸들러를 호출한다', () => {
     const editor = makeTimeEditor()
-    render(
-      <TimeControlSection
-        {...baseProps}
-        timeEditor={editor}
-      />,
-    )
+    render(<TimeControlSection {...baseProps} timeEditor={editor} />)
 
     // 감소 버튼: 첫 번째 버튼 요소 (토글 스위치 제외하고 영역 내 첫 버튼)
-    const decreaseBtn = screen.getAllByRole('button').find(
-      (btn) => btn.querySelector('svg path[d*="M5 12H19"]'),
-    )
+    const decreaseBtn = screen
+      .getAllByRole('button')
+      .find(btn => btn.querySelector('svg path[d*="M5 12H19"]'))
     expect(decreaseBtn).toBeTruthy()
-    fireEvent.click(decreaseBtn!)
+    fireEvent.click(decreaseBtn as HTMLElement)
 
     expect(editor.handlers.decreaseTime).toHaveBeenCalledOnce()
   })
 
   it('시간 표시를 클릭하면 handleTimeClick 핸들러를 호출한다', () => {
     const editor = makeTimeEditor()
-    render(
-      <TimeControlSection
-        {...baseProps}
-        timeEditor={editor}
-      />,
-    )
+    render(<TimeControlSection {...baseProps} timeEditor={editor} />)
 
     const timeDisplay = screen.getByText('30분')
     fireEvent.click(timeDisplay)
@@ -108,12 +92,7 @@ describe('TimeControlSection', () => {
 
   it('isEditing=true일 때 input을 렌더링한다', () => {
     const editor = makeTimeEditor({ isEditing: true, tempTime: '45' })
-    render(
-      <TimeControlSection
-        {...baseProps}
-        timeEditor={editor}
-      />,
-    )
+    render(<TimeControlSection {...baseProps} timeEditor={editor} />)
 
     const input = screen.getByDisplayValue('45')
     expect(input).toBeInTheDocument()
@@ -134,9 +113,9 @@ describe('TimeControlSection', () => {
     const buttons = screen.getAllByRole('button')
     // toggle 스위치 버튼 제외한 +/- 버튼들
     const controlButtons = buttons.filter(
-      (btn) => btn.getAttribute('role') !== 'switch',
+      btn => btn.getAttribute('role') !== 'switch',
     )
-    controlButtons.forEach((btn) => {
+    controlButtons.forEach(btn => {
       expect(btn).toBeDisabled()
     })
   })
@@ -153,36 +132,26 @@ describe('TimeControlSection', () => {
 
     const buttons = screen.getAllByRole('button')
     const controlButtons = buttons.filter(
-      (btn) => btn.getAttribute('role') !== 'switch',
+      btn => btn.getAttribute('role') !== 'switch',
     )
-    controlButtons.forEach((btn) => {
+    controlButtons.forEach(btn => {
       expect(btn).toBeDisabled()
     })
   })
 
   it('time이 1이면 감소 버튼이 비활성화된다', () => {
     const editor = makeTimeEditor({ time: 1 })
-    render(
-      <TimeControlSection
-        {...baseProps}
-        timeEditor={editor}
-      />,
-    )
+    render(<TimeControlSection {...baseProps} timeEditor={editor} />)
 
-    const decreaseBtn = screen.getAllByRole('button').find(
-      (btn) => btn.querySelector('svg path[d*="M5 12H19"]'),
-    )
+    const decreaseBtn = screen
+      .getAllByRole('button')
+      .find(btn => btn.querySelector('svg path[d*="M5 12H19"]'))
     expect(decreaseBtn).toBeDisabled()
   })
 
   it('time이 300이면 증가 버튼이 비활성화된다', () => {
     const editor = makeTimeEditor({ time: 300 })
-    render(
-      <TimeControlSection
-        {...baseProps}
-        timeEditor={editor}
-      />,
-    )
+    render(<TimeControlSection {...baseProps} timeEditor={editor} />)
 
     const buttons = screen.getAllByRole('button')
     const increaseBtn = buttons[buttons.length - 1]

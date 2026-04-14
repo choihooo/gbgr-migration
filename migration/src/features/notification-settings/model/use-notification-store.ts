@@ -27,7 +27,7 @@ interface NotificationStore extends NotificationSettings {
 
 export const useNotificationStore = create<NotificationStore>()(
   persist(
-    (set) => ({
+    set => ({
       isAllow: false,
       stretching: {
         isEnabled: false,
@@ -38,29 +38,29 @@ export const useNotificationStore = create<NotificationStore>()(
         interval: 10,
       },
 
-      setIsAllow: (isAllow) => set({ isAllow }),
+      setIsAllow: isAllow => set({ isAllow }),
 
-      setStretchingEnabled: (isEnabled) =>
-        set((state) => ({
+      setStretchingEnabled: isEnabled =>
+        set(state => ({
           stretching: { ...state.stretching, isEnabled },
         })),
 
-      setStretchingInterval: (interval) =>
-        set((state) => ({
+      setStretchingInterval: interval =>
+        set(state => ({
           stretching: { ...state.stretching, interval },
         })),
 
-      setTurtleNeckEnabled: (isEnabled) =>
-        set((state) => ({
+      setTurtleNeckEnabled: isEnabled =>
+        set(state => ({
           turtleNeck: { ...state.turtleNeck, isEnabled },
         })),
 
-      setTurtleNeckInterval: (interval) =>
-        set((state) => ({
+      setTurtleNeckInterval: interval =>
+        set(state => ({
           turtleNeck: { ...state.turtleNeck, interval },
         })),
 
-      setSettings: (settings) => set(settings),
+      setSettings: settings => set(settings),
     }),
     {
       name: 'notification-settings-storage',

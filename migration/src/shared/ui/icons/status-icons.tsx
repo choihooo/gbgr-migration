@@ -50,6 +50,8 @@ export function SuccessIcon({ className }: { className?: string }) {
       viewBox="0 0 40 40"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="성공"
       className={className}
     >
       <circle cx="20" cy="20" r="20" fill="var(--color-yellow-500)" />
@@ -72,6 +74,8 @@ export function ErrorIcon({ className }: { className?: string }) {
       viewBox="0 0 20 20"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="에러"
       className={className}
     >
       <g clipPath="url(#clip0_625_2297)">

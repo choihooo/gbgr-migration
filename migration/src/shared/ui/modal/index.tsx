@@ -1,7 +1,8 @@
-import { cn } from '@/shared/lib/cn'
 import type { ReactNode } from 'react'
 import { useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { cn } from '@/shared/lib/cn'
+
 // 레거시: src/renderer/src/shared/ui/modal/ModalPortal.ts
 // + 오버레이, ESC 닫기, 스크롤 락 기능 통합
 

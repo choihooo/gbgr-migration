@@ -1,5 +1,6 @@
 import LoadingVideo from '@/assets/video/Loading.mov'
 import { cn } from '@/shared/lib/cn'
+
 // 레거시: src/renderer/src/shared/ui/loading/LoadingSpinner.tsx
 
 interface LoadingSpinnerProps {

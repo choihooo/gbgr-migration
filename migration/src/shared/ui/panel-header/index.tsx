@@ -1,5 +1,6 @@
 import { forwardRef, type ReactNode } from 'react'
 import { InfoIcon } from '@/shared/ui/icons/ui-icons'
+
 // 레거시: src/renderer/src/shared/ui/panel-header/PannelHeader.tsx
 
 interface PanelHeaderProps {

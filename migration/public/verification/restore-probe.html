@@ -6,52 +6,52 @@
     <title>인증 복구 측정</title>
     <style>
       body {
-        font-family: sans-serif;
-        padding: 24px;
-      }
+                          font-family: sans-serif;
+                          padding: 24px;
+                        }
 
-      iframe {
-        width: 1440px;
-        height: 1100px;
-        border: 1px solid #d9d9d9;
-      }
+                        iframe {
+                          width: 1440px;
+                          height: 1100px;
+                          border: 1px solid #d9d9d9;
+                        }
     </style>
   </head>
   <body>
     <p id="status">측정 중...</p>
-    <iframe id="app-frame" src="/main"></iframe>
+    <iframe id="app-frame" title="앱 복구 측정 프레임" src="/main"></iframe>
     <script>
       const start = performance.now()
-      const status = document.getElementById('status')
-      const frame = document.getElementById('app-frame')
+                        const status = document.getElementById('status')
+                        const frame = document.getElementById('app-frame')
 
-      localStorage.setItem('auth.accessToken', 'probe-access-token')
-      localStorage.setItem('auth.refreshToken', 'probe-refresh-token')
-      localStorage.setItem('auth.userId', 'probe-user')
-      localStorage.setItem('auth.userName', 'Probe User')
+                        localStorage.setItem('auth.accessToken', 'probe-access-token')
+                        localStorage.setItem('auth.refreshToken', 'probe-refresh-token')
+                        localStorage.setItem('auth.userId', 'probe-user')
+                        localStorage.setItem('auth.userName', 'Probe User')
 
-      const timer = window.setInterval(() => {
-        try {
-          const doc = frame.contentDocument
-          const text = doc?.body?.innerText ?? ''
+                        const timer = window.setInterval(() => {
+                          try {
+                            const doc = frame.contentDocument
+                            const text = doc?.body?.innerText ?? ''
 
-          if (text.includes('대시보드 콘텐츠 (구현 예정)')) {
-            const elapsed = Math.round(performance.now() - start)
-            status.textContent = `RESTORE_MS=${elapsed}`
-            window.clearInterval(timer)
-          }
-        } catch (error) {
-          status.textContent = `ERROR=${String(error)}`
-          window.clearInterval(timer)
-        }
-      }, 50)
+                            if (text.includes('대시보드 콘텐츠 (구현 예정)')) {
+                              const elapsed = Math.round(performance.now() - start)
+                              status.textContent = `RESTORE_MS=${elapsed}`
+                              window.clearInterval(timer)
+                            }
+                          } catch (error) {
+                            status.textContent = `ERROR=${String(error)}`
+                            window.clearInterval(timer)
+                          }
+                        }, 50)
 
-      window.setTimeout(() => {
-        if (status.textContent === '측정 중...') {
-          status.textContent = 'TIMEOUT'
-          window.clearInterval(timer)
-        }
-      }, 5000)
+                        window.setTimeout(() => {
+                          if (status.textContent === '측정 중...') {
+                            status.textContent = 'TIMEOUT'
+                            window.clearInterval(timer)
+                          }
+                        }, 5000)
     </script>
   </body>
 </html>

@@ -2,7 +2,7 @@
  * @legacy src/renderer/src/shared/hooks/use-theme-preference.ts
  */
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
 export type ThemePreference = 'light' | 'dark' | 'system'
 
@@ -16,7 +16,9 @@ interface ThemeStore {
 
 function getSystemTheme(): 'light' | 'dark' {
   if (typeof window === 'undefined') return 'light'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light'
 }
 
 function resolveTheme(preference: ThemePreference): 'light' | 'dark' {
@@ -26,14 +28,18 @@ function resolveTheme(preference: ThemePreference): 'light' | 'dark' {
 
 export const useThemeStore = create<ThemeStore>()(
   persist(
-    (set) => ({
+    set => ({
       preference: 'system' as ThemePreference,
       resolvedTheme: getSystemTheme(),
       isDark: false,
 
       setPreference: (pref: ThemePreference) => {
         const resolved = resolveTheme(pref)
-        set({ preference: pref, resolvedTheme: resolved, isDark: resolved === 'dark' })
+        set({
+          preference: pref,
+          resolvedTheme: resolved,
+          isDark: resolved === 'dark',
+        })
 
         if (typeof document !== 'undefined') {
           if (resolved === 'dark') {
@@ -61,7 +67,7 @@ export const useThemeStore = create<ThemeStore>()(
     {
       name: 'theme',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ preference: state.preference }),
+      partialize: state => ({ preference: state.preference }),
     },
   ),
 )
