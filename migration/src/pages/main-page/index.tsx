@@ -1,9 +1,11 @@
-import { useTranslation } from 'react-i18next'
+/**
+ * /main 라우트 — DashboardPage로 위임
+ * @legacy src/renderer/src/features/dashboard/ui/MainHeader.tsx (레이아웃)
+ */
+import DashboardPage from '@/pages/dashboard-page'
 
 function MainPage() {
-  const { t } = useTranslation()
-
-  return <div>{t('dashboard.pageTitle')}</div>
+  return <DashboardPage />
 }
 
 export default MainPage

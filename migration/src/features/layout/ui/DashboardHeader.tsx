@@ -1,0 +1,108 @@
+/**
+ * @legacy src/renderer/src/features/dashboard/ui/MainHeader.tsx
+ */
+import { BrandLogo, BrandSymbol } from '@/shared/ui/icons/brand-icons'
+import { DashboardIcon, SettingIcon, TipOffIcon, BellIcon } from '@/shared/ui/icons/nav-icons'
+import { useThemeStore } from '@/entities/theme'
+import { ThemeToggleSwitch } from '@/shared/ui/theme-toggle-switch'
+import { Button } from '@/shared/ui/button'
+import { cn } from '@/shared/lib/cn'
+import type { TabType } from '../model/use-navigation-tabs'
+import type { ComponentType, SVGProps } from 'react'
+
+interface TabItem {
+  id: TabType
+  label: string
+  icon?: ComponentType<SVGProps<SVGSVGElement>>
+  disabled: boolean
+}
+
+const tabs: TabItem[] = [
+  { id: 'dashboard', label: '대시보드', icon: DashboardIcon, disabled: false },
+  { id: 'settings', label: '설정', icon: SettingIcon, disabled: false },
+  { id: 'report', label: '오류 제보', icon: TipOffIcon, disabled: false },
+  { id: 'review', label: '후기 등록', disabled: false },
+]
+
+interface DashboardHeaderProps {
+  activeTab?: TabType
+  onTabClick?: (tabId: TabType) => void
+  onOpenNotification?: () => void
+}
+
+export function DashboardHeader({
+  activeTab = 'dashboard',
+  onTabClick,
+  onOpenNotification,
+}: DashboardHeaderProps) {
+  const isDark = useThemeStore((s) => s.isDark)
+  const setPreference = useThemeStore((s) => s.setPreference)
+
+  return (
+    <div className={cn('bg-grey-0 mr-4 flex justify-between rounded-[999px] p-2')}>
+      <div className="flex items-center gap-10">
+        <div className="ml-3 flex items-center gap-[10px]">
+          <BrandSymbol className="flex h-[27px] w-[27px]" />
+          <BrandLogo
+            className={cn(
+              'hbp:h-[27px] hbp:w-[115px] [&>path]:fill-logo-fill flex h-[22px] w-[92px]',
+            )}
+          />
+        </div>
+
+        <nav className="flex gap-2">
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            const isActive = activeTab === tab.id
+
+            return (
+              <Button
+                key={tab.id}
+                onClick={() => onTabClick?.(tab.id)}
+                disabled={tab.disabled}
+                variant={isActive ? 'primary' : 'grey'}
+                size="sm"
+                className={cn(
+                  'group',
+                  isActive
+                    ? 'text-grey-1000 dark:text-grey-0 bg-yellow-400'
+                    : 'bg-grey-25 text-grey-400 group-hover:text-grey-700',
+                )}
+                text={
+                  <div className="flex items-center gap-2">
+                    {Icon && (
+                      <Icon
+                        className={cn(
+                          'h-[18px] w-[18px]',
+                          isActive
+                            ? 'text-grey-1000 dark:text-grey-0'
+                            : 'text-grey-400 group-hover:text-grey-700',
+                        )}
+                      />
+                    )}
+                    <span className="text-body-md-medium group-hover:text-grey-700">
+                      {tab.label}
+                    </span>
+                  </div>
+                }
+              />
+            )
+          })}
+        </nav>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <ThemeToggleSwitch
+          checked={isDark}
+          onChange={(dark) => setPreference(dark ? 'dark' : 'light')}
+        />
+        <Button
+          onClick={onOpenNotification}
+          variant="grey"
+          className="h-[34px] w-[34px] p-[7px]"
+          text={<BellIcon className="[&>path]:stroke-grey-400" />}
+        />
+      </div>
+    </div>
+  )
+}
