@@ -1,3 +1,8 @@
+/**
+ * 출석 현황 패널
+ * @legacy src/renderer/src/features/dashboard/ui/AttendacePanel.tsx
+ */
+
 import { useState } from 'react'
 import { useAttendanceQuery } from '@/entities/dashboard/model/use-dashboard-queries'
 import { cn } from '@/shared/lib/cn'
