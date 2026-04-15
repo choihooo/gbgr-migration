@@ -1,5 +1,20 @@
 use tauri::Manager;
 
+mod commands {
+    pub mod posture_engine;
+}
+
+mod posture_engine;
+mod state {
+    pub mod posture_engine_state;
+}
+
+use commands::posture_engine::{
+    get_latest_posture_state, push_posture_frame, start_background_measurement, start_posture_engine,
+    stop_background_measurement, stop_posture_engine,
+};
+use state::posture_engine_state::PostureEngineState;
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -21,6 +36,7 @@ pub fn run() {
     }
 
     builder
+        .manage(PostureEngineState::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_autostart::init(
@@ -37,7 +53,15 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            start_posture_engine,
+            stop_posture_engine,
+            push_posture_frame,
+            start_background_measurement,
+            stop_background_measurement,
+            get_latest_posture_state
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

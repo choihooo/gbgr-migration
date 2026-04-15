@@ -8,9 +8,14 @@ import { NotificateMessage } from '@/shared/ui/notification-message'
 interface MeasuringPanelProps {
   step1Error?: string | null
   step2Error?: string | null
+  engineMessage?: string | null
 }
 
-const MeasuringPanel = ({ step1Error, step2Error }: MeasuringPanelProps) => {
+const MeasuringPanel = ({
+  step1Error,
+  step2Error,
+  engineMessage,
+}: MeasuringPanelProps) => {
   return (
     <div className="flex w-[544px] min-w-[544px] shrink-0 flex-col pt-12">
       <div className="mb-12">
@@ -30,6 +35,13 @@ const MeasuringPanel = ({ step1Error, step2Error }: MeasuringPanelProps) => {
             variant={step1Error || step2Error ? 'default' : 'success'}
             errorMessage={step2Error || undefined}
           />
+          {engineMessage ? (
+            <NotificateMessage
+              message={engineMessage}
+              step={3}
+              variant="default"
+            />
+          ) : null}
         </div>
       </div>
     </div>

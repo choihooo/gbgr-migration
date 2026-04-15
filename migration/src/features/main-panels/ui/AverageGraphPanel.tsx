@@ -1,5 +1,3 @@
-import { PanelHeader } from '@/shared/ui/panel-header'
-import { ToggleSwitch } from '@/shared/ui/toggle-switch'
 import { useState } from 'react'
 import {
   Area,
@@ -10,6 +8,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { PanelHeader } from '@/shared/ui/panel-header'
+import { ToggleSwitch } from '@/shared/ui/toggle-switch'
 import {
   type AverageGraphPeriod,
   useAverageGraphChart,

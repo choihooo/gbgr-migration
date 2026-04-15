@@ -1,31 +1,42 @@
-/**
- * 보정 화면 - 웹캠 뷰 (UI만, 측정 엔진 미연결)
- *
- * 포팅 원본: src/renderer/src/pages/calibration-page/components/WebcamView.tsx
- * 변경점: PoseDetection, PoseVisualizer 제외. CameraStore 대신 직접 상태 관리.
- *         isEngineAvailable=false 시 카메라 placeholder 표시.
- */
 import { type RefObject, useEffect, useRef, useState } from 'react'
 import Webcam from 'react-webcam'
+import { PoseOverlayCanvas, type PostureEngineResult } from '@/entities/posture'
+import { usePostureEngine } from '@/features/posture-engine'
+import { Timer } from '@/shared/ui/timer'
 
 interface WebcamViewProps {
   showTimer?: boolean
   remainingTime?: number
   onVideoRefReady?: (videoRef: RefObject<Webcam>) => void
-  isEngineAvailable?: boolean
+  isActive?: boolean
+  mode?: 'foreground' | 'background'
+  onResultChange?: (result: PostureEngineResult | null) => void
 }
 
 const WebcamView = ({
+  showTimer = false,
+  remainingTime = 0,
   onVideoRefReady,
-  isEngineAvailable = false,
+  isActive = true,
+  mode = 'foreground',
+  onResultChange,
 }: WebcamViewProps) => {
   const webcamRef = useRef<Webcam>(null)
+  const { overlayLandmarks, latestResult, engineState } = usePostureEngine({
+    active: isActive,
+    mode,
+    webcamRef,
+  })
 
   useEffect(() => {
     if (onVideoRefReady) {
       onVideoRefReady(webcamRef as RefObject<Webcam>)
     }
   }, [onVideoRefReady])
+
+  useEffect(() => {
+    onResultChange?.(latestResult)
+  }, [latestResult, onResultChange])
 
   const containerRef = useRef<HTMLDivElement>(null)
   const [videoDimensions, setVideoDimensions] = useState({
@@ -62,6 +73,8 @@ const WebcamView = ({
     }
   }
 
+  const isEngineAvailable = engineState.engineStatus !== 'error'
+
   if (!isEngineAvailable) {
     return (
       <div
@@ -94,6 +107,24 @@ const WebcamView = ({
           onUserMedia={handleUserMedia}
           className="h-full w-full scale-x-[-1] rounded-[24px] object-fill"
         />
+        {overlayLandmarks.length > 0 ? (
+          <PoseOverlayCanvas
+            landmarks={overlayLandmarks}
+            width={videoDimensions.width}
+            height={videoDimensions.height}
+            className="pointer-events-none absolute inset-0 h-full w-full"
+          />
+        ) : null}
+        {showTimer ? (
+          <div className="absolute right-4 bottom-4">
+            <Timer
+              value={
+                Math.min(5, Math.max(0, remainingTime)) as 0 | 1 | 2 | 3 | 4 | 5
+              }
+              size={58}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   )

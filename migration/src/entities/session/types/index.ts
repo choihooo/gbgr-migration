@@ -50,3 +50,16 @@ export interface SessionReportResponse {
   code: string
   message: string
 }
+
+export interface BackgroundSessionMetrics {
+  totalResults: number
+  badResults: number
+  lastScore: number | null
+  lastPostureClass: number | null
+  updatedAt: string | null
+}
+
+export interface BackgroundNotificationDecision {
+  shouldNotify: boolean
+  message: string | null
+}

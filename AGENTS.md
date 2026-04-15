@@ -18,6 +18,8 @@
 - TypeScript 5.8, React 19.1, Rust 2021 (Tauri 런타임) + React Router DOM 7.14, TanStack Query 5, Tailwind CSS 4.2.2, clsx 2.1.1, tailwind-merge 3.3.0 (010-average-posture-panel)
 - N/A (조회형 UI 패널, 신규 저장 없음) (010-average-posture-panel)
 - TypeScript 5.8, React 19.1, Rust 2021(Tauri 런타임) + React Router DOM 7.14, TanStack Query 5, Recharts 3.8.1, Tailwind CSS 4.2.2, clsx 2.1.1, tailwind-merge 3.3.0 (014-average-graph-panel)
+- TypeScript 5.8, React 19.1, Rust 2021(Tauri 런타임), Python 3.11 sidecar + React Router DOM 7.14, Zustand 5, TanStack Query 5, `@tauri-apps/api` 2.x, `react-webcam` 7.2.0, Tauri 2 플러그인, Python MediaPipe 기반 자세 추론 런타임 (015-posture-engine-migration)
+- 브라우저 `localStorage` 기반 클라이언트 저장소, 기존 세션/인증 API, Rust 측 최신 자세 상태 캐시 (015-posture-engine-migration)
 
 ## Recent Changes
 - 003-auth-domain-implementation: Added TypeScript 5.8, React 19, Rust 2021(Tauri 런타임) + React Router 7, Zustand 5, TanStack Query 5, i18next 26, Tauri 2 플러그인

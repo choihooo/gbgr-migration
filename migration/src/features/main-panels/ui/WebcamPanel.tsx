@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { useLevelQuery } from '@/entities/dashboard/model/use-dashboard-queries'
+import { usePostureEngineStore } from '@/entities/posture'
 import {
   useCreateSessionMutation,
   usePauseSessionMutation,
   useResumeSessionMutation,
   useStopSessionMutation,
 } from '@/entities/session/model/use-session-mutations'
+import { useWindowVisibilitySync } from '@/features/posture-engine'
+import WebcamView from '@/pages/calibration-page/components/WebcamView'
 import { cn } from '@/shared/lib/cn'
 import { Button } from '@/shared/ui/button'
 import { HideIcon, ShowIcon, WidgetIcon } from '@/shared/ui/icons/ui-icons'
@@ -31,8 +35,11 @@ function StatusCard({
 }
 
 export function WebcamPanel() {
+  const [mode, setMode] = useState<'foreground' | 'background'>('foreground')
   const { cameraState, widgetState, setCameraState, toggleWidget } =
     useCameraStore()
+  const engineState = usePostureEngineStore(state => state.engineState)
+  const latestResult = usePostureEngineStore(state => state.latestResult)
   const isWebcamOn = cameraState === 'show'
   const isExit = cameraState === 'exit'
   const currentSessionId =
@@ -43,6 +50,8 @@ export function WebcamPanel() {
   const stopSession = useStopSessionMutation()
   const pauseSession = usePauseSessionMutation()
   const resumeSession = useResumeSessionMutation()
+
+  useWindowVisibilitySync(setMode)
 
   const handleStartStop = () => {
     if (isExit) {
@@ -97,10 +106,16 @@ export function WebcamPanel() {
     <section className="flex w-full flex-col gap-3">
       <div className="relative aspect-video max-h-[198px] max-w-[352px] overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,#4B4A48_0%,#232323_100%)]">
         {cameraState === 'show' ? (
-          <StatusCard
-            title="카메라 활성화"
-            description={'실시간 분석 화면이\n이곳에 표시됩니다'}
-          />
+          <>
+            <WebcamView isActive={true} mode={mode} />
+            <div className="absolute bottom-2 left-2 rounded-full bg-black/40 px-3 py-1 text-[11px] text-white">
+              {engineState.engineStatus === 'error'
+                ? '엔진 오류'
+                : latestResult
+                  ? `자세 단계 ${latestResult.postureClass}`
+                  : '엔진 준비 중'}
+            </div>
+          </>
         ) : cameraState === 'hide' ? (
           <StatusCard
             title="카메라 일시 숨김"

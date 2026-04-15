@@ -1,0 +1,43 @@
+import type { PoseLandmark } from '@/entities/posture/model/posture-types'
+
+export interface OverlayPoint {
+  x: number
+  y: number
+  visible: boolean
+}
+
+export const mapLandmarksToOverlay = (
+  landmarks: PoseLandmark[],
+  width: number,
+  height: number,
+): OverlayPoint[] => {
+  return landmarks.map(landmark => ({
+    x: (1 - landmark.x) * width,
+    y: landmark.y * height,
+    visible: (landmark.visibility ?? 1) > 0.1,
+  }))
+}
+
+export const DEFAULT_POSE_CONNECTIONS: Array<[number, number]> = [
+  [0, 1],
+  [1, 2],
+  [2, 3],
+  [3, 7],
+  [0, 4],
+  [4, 5],
+  [5, 6],
+  [6, 8],
+  [9, 10],
+  [11, 12],
+  [11, 13],
+  [13, 15],
+  [12, 14],
+  [14, 16],
+  [11, 23],
+  [12, 24],
+  [23, 24],
+  [23, 25],
+  [24, 26],
+  [25, 27],
+  [26, 28],
+]
