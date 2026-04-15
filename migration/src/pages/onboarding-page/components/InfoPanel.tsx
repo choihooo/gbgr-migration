@@ -13,6 +13,7 @@ import ThirdIcon from '@/assets/onboarding/third_progress_icon.svg?react'
 import { Button } from '@/shared/ui/button'
 
 const STEP_ICONS = [FirstIcon, SecondIcon, ThirdIcon, FourthIcon, FifthIcon]
+const STEP_PROGRESS_KEYS = ['step-1', 'step-2', 'step-3', 'step-4', 'step-5']
 
 interface InfoPanelProps {
   currentStep: number
@@ -42,9 +43,9 @@ const InfoPanel = ({ currentStep, onNext, direction }: InfoPanelProps) => {
         {/* 프로그레스바 */}
         <div className="mb-[91px]">
           <div className="flex gap-1">
-            {Array.from({ length: 5 }).map((_, index) => (
+            {STEP_PROGRESS_KEYS.map((progressKey, index) => (
               <span
-                key={index}
+                key={progressKey}
                 className={`bg-sementic-brand-primary h-[6px] flex-[1_0_0] rounded-full ${
                   index < currentStep ? 'opacity-100' : 'opacity-20'
                 }`}
@@ -70,8 +71,8 @@ const InfoPanel = ({ currentStep, onNext, direction }: InfoPanelProps) => {
             </span>
             {descriptionLines.length > 1 ? (
               <span className="text-body-md-meidum text-grey-400 flex flex-col gap-6">
-                {descriptionLines.map((desc, index) => (
-                  <span key={index}>{desc}</span>
+                {descriptionLines.map(desc => (
+                  <span key={`${currentStep}-${desc}`}>{desc}</span>
                 ))}
               </span>
             ) : (

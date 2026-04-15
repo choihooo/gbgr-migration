@@ -6,7 +6,10 @@ import {
   clearAuthSession,
   readStoredAuthSession,
 } from '@/features/auth/lib/session-persistence'
-import api, { clearStoredTokens, refreshAccessToken } from '@/shared/api/instance'
+import api, {
+  clearStoredTokens,
+  refreshAccessToken,
+} from '@/shared/api/instance'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 
 export function useAuthBootstrap() {
@@ -60,7 +63,9 @@ export function useAuthBootstrap() {
         const userId = response.data.data.email ?? null
         const userName = response.data.data.name ?? null
         const accessToken = localStorage.getItem(AUTH_STORAGE_KEYS.accessToken)
-        const refreshToken = localStorage.getItem(AUTH_STORAGE_KEYS.refreshToken)
+        const refreshToken = localStorage.getItem(
+          AUTH_STORAGE_KEYS.refreshToken,
+        )
 
         setUser({
           id: userId,

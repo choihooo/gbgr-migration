@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 
 // localStorage mock
 const localStorageMock = (() => {
@@ -21,10 +22,9 @@ const localStorageMock = (() => {
   }
 })()
 
-vi.stubGlobal('localStorage', localStorageMock)
-
 import { getPostAuthRedirectPath } from '../../model/use-auth-redirect'
-import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
+
+vi.stubGlobal('localStorage', localStorageMock)
 
 describe('getPostAuthRedirectPath - 보정 상태 라우팅', () => {
   beforeEach(() => {
