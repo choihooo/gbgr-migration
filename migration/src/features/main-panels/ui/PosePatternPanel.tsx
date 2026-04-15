@@ -1,4 +1,8 @@
+import type { ReactNode } from 'react'
+
 import { usePosturePatternQuery } from '@/entities/dashboard/model/use-dashboard-queries'
+import type { PanelBaseProps } from '@/features/main-panels/model/types'
+import { cn } from '@/shared/lib/cn'
 import {
   CalendarIcon,
   ChevronRightIcon,
@@ -35,7 +39,7 @@ function PatternCard({
   title,
   value,
 }: {
-  icon: React.ReactNode
+  icon: ReactNode
   title: string
   value: string
 }) {
@@ -50,15 +54,21 @@ function PatternCard({
   )
 }
 
-export function PosePatternPanel() {
+export function PosePatternPanel({ className }: PanelBaseProps) {
   const { data } = usePosturePatternQuery()
-  const worstTime = formatTime(data?.data.worstTime)
-  const worstDay = formatDay(data?.data.worstDay)
-  const recovery = `${data?.data.recovery ?? 18}분`
-  const stretching = data?.data.stretching ?? '목돌리기'
+  const posePattern = data?.data
+
+  const worstTime = formatTime(posePattern?.worstTime)
+  const worstDay = formatDay(posePattern?.worstDay)
+  const recovery = `${posePattern?.recovery ?? 18}분`
+  const stretching = posePattern?.stretching?.trim()
+    ? posePattern.stretching
+    : '목돌리기'
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-3 p-4">
+    <section
+      className={cn('flex h-full min-h-0 flex-col gap-3 p-4', className)}
+    >
       <PanelHeader>자세 패턴 분석</PanelHeader>
 
       <div className="bg-grey-25 flex shrink-0 flex-col gap-3 rounded-2xl p-3">

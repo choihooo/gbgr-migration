@@ -14,6 +14,8 @@
 - localStorage (accessToken, refreshToken, calibration_gate_v1, calibration_result_v1, userId, sessionStartDistance, preferredCameraDeviceId, GA 관련 키) (007-onboarding-calibration)
 - TypeScript 5.8, React 19.1, Rust 2021 (Tauri 런타임) + React Router DOM 7.14, Tailwind CSS 4.2.2, clsx 2.1.1, tailwind-merge 3.3.0 (009-trend-panel-migration)
 - N/A (정적 UI 패널, 신규 저장 없음) (009-trend-panel-migration)
+- TypeScript 5.8, React 19.1 + React Router DOM 7.14, TanStack Query 5, Tailwind CSS 4.2.2, clsx 2.1.1, tailwind-merge 3.3.0 (013-pose-pattern-panel-migration)
+- N/A (정적 UI 패널, API 조회만) (013-pose-pattern-panel-migration)
 
 ## Recent Changes
 - 001-migration-scaffold: Added TypeScript 5.x, Rust (latest stable via rustup) + Tauri 2, React 19, Vite 6, Tailwind CSS v4, Biome

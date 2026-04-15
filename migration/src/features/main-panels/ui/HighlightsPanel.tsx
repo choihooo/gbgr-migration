@@ -1,81 +1,200 @@
-import { useMemo, useState } from 'react'
-import { useHighlightQuery } from '@/entities/dashboard/model/use-dashboard-queries'
+/**
+ * 하이라이트 패널 - 주간/월간 비교 막대 차트
+ * @legacy src/renderer/src/features/dashboard/ui/HighlightsPanel.tsx
+ */
+
+import { useState } from 'react'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import type { Props as RechartsLabelProps } from 'recharts/types/component/Label'
+import { LoadingSpinner } from '@/shared/ui/loading-spinner'
 import { PanelHeader } from '@/shared/ui/panel-header'
 import { ToggleSwitch } from '@/shared/ui/toggle-switch'
 
-const WEEKLY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
-const MONTHLY_LABELS = ['1주', '2주', '3주', '4주']
+import type { HighlightDatum } from './HighlightsPanel/data'
+import {
+  type HighlightPeriod,
+  useHighlightsChart,
+} from './HighlightsPanel/hooks/useHighlightsChart'
+
+function isCartesianViewBox(
+  viewBox: RechartsLabelProps['viewBox'],
+): viewBox is { x: number; y: number; width: number; height: number } {
+  return (
+    viewBox != null &&
+    'x' in viewBox &&
+    'y' in viewBox &&
+    'width' in viewBox &&
+    'height' in viewBox
+  )
+}
 
 export function HighlightsPanel() {
-  const [activePeriod, setActivePeriod] = useState<'weekly' | 'monthly'>(
-    'weekly',
-  )
-  const today = new Date()
-  const { data } = useHighlightQuery({
-    period: activePeriod === 'weekly' ? 'WEEKLY' : 'MONTHLY',
-    year: today.getFullYear(),
-    month: today.getMonth() + 1,
-  })
+  const [activePeriod, setActivePeriod] = useState<HighlightPeriod>('weekly')
 
-  const chartData = useMemo(() => {
-    const labels = activePeriod === 'weekly' ? WEEKLY_LABELS : MONTHLY_LABELS
-    const current = data?.data.current ?? 6
-    const previous = data?.data.previous ?? 4
+  const {
+    data,
+    unitLabel,
+    maxDomain,
+    barSize,
+    barRadius,
+    categoryGap,
+    chartColors,
+    labelColor,
+    previousLabelColor,
+    labelStyle,
+    labelPosition,
+    gridColor,
+    yAxisTickColor,
+    yAxisTicks,
+    isLoading,
+  } = useHighlightsChart(activePeriod)
 
-    return labels.map((label, index) => ({
-      label,
-      current: Math.max(current - index, 1),
-      previous: Math.max(previous - Math.floor(index / 2), 1),
-    }))
-  }, [activePeriod, data?.data.current, data?.data.previous])
-
-  const maxValue = Math.max(
-    ...chartData.flatMap(item => [item.current, item.previous]),
-    1,
-  )
+  const handleToggleChange = (isMonthly: boolean) => {
+    setActivePeriod(isMonthly ? 'monthly' : 'weekly')
+  }
 
   return (
-    <section className="flex h-full flex-col rounded-2xl p-5">
+    <div className="flex h-full flex-col rounded-2xl p-5">
       <div className="mb-4 flex items-center justify-between">
         <PanelHeader>하이라이트</PanelHeader>
         <ToggleSwitch
           uncheckedLabel="주간"
           checkedLabel="월간"
           checked={activePeriod === 'monthly'}
-          onChange={checked => setActivePeriod(checked ? 'monthly' : 'weekly')}
+          onChange={handleToggleChange}
         />
       </div>
 
       <div className="flex items-center justify-end">
-        <span className="text-caption-xs-regular text-grey-400">횟수</span>
+        <span className="text-caption-xs-regular text-grey-400">
+          {unitLabel}
+        </span>
       </div>
 
-      <div className="mt-6 flex min-h-[220px] flex-1 items-end justify-between gap-3">
-        {chartData.map(item => (
-          <div
-            key={item.label}
-            className="flex flex-1 flex-col items-center gap-2"
-          >
-            <div className="flex h-[180px] items-end gap-1">
-              <div
-                className="flex w-6 items-center justify-center rounded-full bg-yellow-100 text-[10px] font-medium text-yellow-700"
-                style={{ height: `${(item.previous / maxValue) * 100}%` }}
-              >
-                {item.previous}
-              </div>
-              <div
-                className="flex w-6 items-center justify-center rounded-full bg-yellow-400 text-[10px] font-medium text-grey-1000"
-                style={{ height: `${(item.current / maxValue) * 100}%` }}
-              >
-                {item.current}
-              </div>
-            </div>
-            <span className="text-caption-2xs-medium text-grey-300">
-              {item.label}
-            </span>
+      <div className="mt-6 min-h-[220px] flex-1">
+        {isLoading ? (
+          <div className="flex h-full items-center justify-center">
+            <LoadingSpinner size="md" />
           </div>
-        ))}
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data}
+              barSize={barSize}
+              barCategoryGap={categoryGap}
+              margin={{ top: 12, right: 8, left: 0, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient
+                  id="previousBarGradient"
+                  x1="0"
+                  y1="1"
+                  x2="0"
+                  y2="0"
+                >
+                  <stop offset="0%" stopColor={chartColors.previous} />
+                  <stop offset="100%" stopColor={chartColors.previous} />
+                </linearGradient>
+                <linearGradient
+                  id="currentBarGradient"
+                  x1="0"
+                  y1="1"
+                  x2="0"
+                  y2="0"
+                >
+                  <stop offset="0%" stopColor={chartColors.current} />
+                  <stop offset="100%" stopColor={chartColors.current} />
+                </linearGradient>
+              </defs>
+
+              <CartesianGrid
+                vertical={false}
+                stroke={gridColor}
+                strokeDasharray="0"
+              />
+
+              <XAxis
+                dataKey="periodLabel"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: yAxisTickColor, fontSize: 10, fontWeight: 400 }}
+              />
+
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: yAxisTickColor, fontSize: 10, fontWeight: 400 }}
+                domain={[0, maxDomain]}
+                ticks={yAxisTicks}
+                width={30}
+              />
+
+              <Bar dataKey="value" radius={barRadius} background={false}>
+                {data.map((datum: HighlightDatum) => (
+                  <Cell
+                    key={datum.periodLabel}
+                    fill={
+                      datum.barKey === 'current'
+                        ? 'url(#currentBarGradient)'
+                        : 'url(#previousBarGradient)'
+                    }
+                  />
+                ))}
+
+                <LabelList
+                  dataKey="value"
+                  position={labelPosition}
+                  content={(props: RechartsLabelProps) => {
+                    const { value, index, viewBox } = props
+                    if (!isCartesianViewBox(viewBox) || index == null)
+                      return null
+
+                    const { x, y, width, height } = viewBox
+
+                    const datum = data[index] as HighlightDatum | undefined
+                    if (!datum) return null
+
+                    const isCurrent = datum.barKey === 'current'
+
+                    const cx = x + width / 2
+                    const cy = y + height / 2
+
+                    const fill = isCurrent ? labelColor : previousLabelColor
+
+                    let text: string
+                    if (typeof value === 'number') text = value.toString()
+                    else if (typeof value === 'string') text = value
+                    else return null
+
+                    return (
+                      <text
+                        x={cx}
+                        y={cy}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize={labelStyle.fontSize}
+                        fontWeight={labelStyle.fontWeight}
+                        fill={fill}
+                      >
+                        {text}
+                      </text>
+                    )
+                  }}
+                />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
-    </section>
+    </div>
   )
 }
