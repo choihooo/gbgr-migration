@@ -13,7 +13,7 @@
 | `status` | `checking \| authenticated \| unauthenticated` | 앱 초기 복구 중인지, 인증 완료인지, 미인증인지 나타낸다 |
 | `accessToken` | `string \| null` | API 인증에 사용하는 액세스 토큰 |
 | `refreshToken` | `string \| null` | 세션 연장에 사용하는 리프레시 토큰 |
-| `userId` | `string \| null` | 인증된 사용자 식별자 |
+| `userId` | `string \| null` | 인증된 사용자 식별자. 현재 `/users/me` 응답 스펙에서는 `email` 값을 저장한다 |
 | `userName` | `string \| null` | 보호 화면과 온보딩 분기에 쓰는 사용자 표시 이름 |
 | `redirectPath` | `string \| null` | 공개 상태에서 사용자가 요청했던 보호 경로 |
 | `lastErrorCode` | `string \| null` | 최근 인증 실패 코드 또는 분류값 |
@@ -22,6 +22,7 @@
 ### 검증 규칙
 
 - `authenticated` 상태에서는 `accessToken`, `refreshToken`, `userId`가 모두 존재해야 한다.
+- 현재 백엔드 `/users/me` 응답이 `name`, `email`, `avatar`만 제공하므로, migration 앱은 `email`을 `userId` 슬롯에 저장해 사용자별 로컬 상태 분기와 보정 게이트 키 계산에 사용한다.
 - `checking` 상태에서는 보호 화면을 렌더링하지 않는다.
 - `redirectPath`는 보호 라우트 경로만 저장한다.
 - `AUTH-101`, `AUTH-102`가 감지되면 세션은 `unauthenticated`로 전환되고 인증 키를 정리한다.
@@ -145,3 +146,5 @@
 | `savedEmail` | 로그인 아이디 저장 | 사용자가 체크 해제할 때 |
 
 `appLanguage` 등 인증 외 키는 인증 정리 과정에서 건드리지 않는다.
+
+현재 구현에서 `auth.userId`에는 숫자형 또는 별도 계정 ID가 아니라 `/users/me`의 `email` 값이 저장될 수 있다. 이는 현재 백엔드 응답 계약을 따르기 위한 의도된 동작이다.

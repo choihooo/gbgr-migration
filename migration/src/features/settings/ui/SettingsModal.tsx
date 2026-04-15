@@ -6,6 +6,12 @@ import { disable, enable, isEnabled } from '@tauri-apps/plugin-autostart'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthSessionStore } from '@/entities/session'
+import { useAuthUserStore } from '@/entities/user'
+import {
+  clearAuthSession,
+  clearRedirectPath,
+} from '@/features/auth/lib/session-persistence'
+import { clearStoredTokens } from '@/shared/api/instance'
 import { cn } from '@/shared/lib/cn'
 import { Button } from '@/shared/ui/button'
 import {
@@ -24,6 +30,7 @@ interface SettingsModalProps {
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const navigate = useNavigate()
   const markUnauthenticated = useAuthSessionStore(s => s.markUnauthenticated)
+  const clearUser = useAuthUserStore(s => s.clearUser)
 
   const [isStartupEnabled, setIsStartupEnabled] = useState(false)
   const [isStartupSupported, setIsStartupSupported] = useState(true)
@@ -87,8 +94,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   }
 
-  const handleLogout = () => {
+  const clearAuthState = () => {
+    clearStoredTokens()
+    clearAuthSession()
+    clearRedirectPath()
+    clearUser()
     markUnauthenticated()
+  }
+
+  const handleLogout = () => {
+    clearAuthState()
     onClose()
     navigate('/auth/login', { replace: true })
   }
@@ -98,7 +113,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     if (!shouldProceed) return
 
     // TODO: 회원탈퇴 API 연동 (withdrawMutation)
-    markUnauthenticated()
+    clearAuthState()
     onClose()
     navigate('/auth/signup', { replace: true })
   }

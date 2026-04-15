@@ -1,4 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom'
+import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { canAccessCalibrationFlow } from '@/shared/lib/calibration-gate'
 
 /**
@@ -10,7 +11,7 @@ import { canAccessCalibrationFlow } from '@/shared/lib/calibration-gate'
  * 포팅 원본: src/renderer/src/shared/lib/calibration-gate.ts (canAccessCalibrationFlow 활용)
  */
 export function CalibrationRouteGuard() {
-  const userId = localStorage.getItem('userId')
+  const userId = localStorage.getItem(AUTH_STORAGE_KEYS.userId)
   // TODO: 보정 게이트 복원 (007 구현 완료 후)
   const _canAccess = canAccessCalibrationFlow(userId)
 

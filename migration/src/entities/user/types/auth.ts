@@ -52,6 +52,8 @@ export interface MeData {
   id?: string
   userId?: string
   name?: string
+  email?: string
+  avatar?: string
 }
 
 export type MeResponse = ApiEnvelope<MeData>
