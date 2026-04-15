@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthSessionStore } from '@/entities/session'
 import { clearRedirectPath } from '@/features/auth/lib/session-persistence'
+import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { getCalibrationGateState } from '@/shared/lib/calibration-gate'
 
 export function getPostAuthRedirectPath(
@@ -11,7 +12,7 @@ export function getPostAuthRedirectPath(
     redirectPath.startsWith('/auth') ||
     redirectPath === '/widget'
   ) {
-    const userId = localStorage.getItem('userId')
+    const userId = localStorage.getItem(AUTH_STORAGE_KEYS.userId)
     const gateState = getCalibrationGateState(userId)
     if (gateState === 'initial_required') return '/onboarding/init'
     if (gateState === 'reset_requested') return '/onboarding/calibration'

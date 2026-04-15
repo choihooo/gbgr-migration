@@ -83,12 +83,21 @@ describe('useLoginForm', () => {
         refreshToken: 'refresh',
       },
     })
-    mockFetchCurrentUser.mockResolvedValue({
-      success: true,
-      data: {
-        id: 'user-1',
-        name: 'Tester',
-      },
+    mockFetchCurrentUser.mockImplementation(async () => {
+      expect(window.localStorage.getItem(AUTH_STORAGE_KEYS.accessToken)).toBe(
+        'access',
+      )
+      expect(window.localStorage.getItem(AUTH_STORAGE_KEYS.refreshToken)).toBe(
+        'refresh',
+      )
+
+      return {
+        success: true,
+        data: {
+          email: 'user@test.com',
+          name: 'Tester',
+        },
+      }
     })
 
     const { result } = renderHook(() => useLoginForm(), {

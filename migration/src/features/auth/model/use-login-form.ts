@@ -12,6 +12,7 @@ import {
   persistSavedEmail,
 } from '@/features/auth/lib/session-persistence'
 import { useAuthRedirect } from '@/features/auth/model/use-auth-redirect'
+import { setStoredTokens } from '@/shared/api/instance'
 
 export interface LoginFormValues {
   email: string
@@ -87,13 +88,15 @@ export function useLoginForm() {
         throw new Error(result.message ?? t('auth.login.genericFailure'))
       }
 
+      setStoredTokens(result.data.accessToken, result.data.refreshToken)
+
       const me = await fetchCurrentUser()
 
       if (!me.success || !me.data) {
         throw new Error(me.message ?? t('auth.login.restoreFailed'))
       }
 
-      const userId = me.data.userId ?? me.data.id
+      const userId = me.data.email
       const userName = me.data.name
 
       if (!userId || !userName) {

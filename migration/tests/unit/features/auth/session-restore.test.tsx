@@ -8,9 +8,10 @@ import { useAuthBootstrap } from '@/features/auth/model/use-auth-bootstrap'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { installMockStorage } from '../../../setup/auth-test-storage'
 
-const { mockGet, mockRefresh } = vi.hoisted(() => ({
+const { mockGet, mockRefresh, mockClearStoredTokens } = vi.hoisted(() => ({
   mockGet: vi.fn(),
   mockRefresh: vi.fn(),
+  mockClearStoredTokens: vi.fn(),
 }))
 
 vi.mock('@/shared/api/instance', () => ({
@@ -18,6 +19,7 @@ vi.mock('@/shared/api/instance', () => ({
   default: {
     get: mockGet,
   },
+  clearStoredTokens: mockClearStoredTokens,
   refreshAccessToken: mockRefresh,
 }))
 
@@ -36,6 +38,7 @@ describe('useAuthBootstrap', () => {
     installMockStorage()
     mockGet.mockReset()
     mockRefresh.mockReset()
+    mockClearStoredTokens.mockReset()
     useAuthUserStore.getState().clearUser()
     useAuthSessionStore.setState({
       status: 'checking',
@@ -57,7 +60,7 @@ describe('useAuthBootstrap', () => {
       data: {
         success: true,
         data: {
-          id: 'user-1',
+          email: 'user@test.com',
           name: 'Tester',
         },
       },

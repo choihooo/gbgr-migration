@@ -1,4 +1,7 @@
 import axios, { type AxiosError, type AxiosInstance } from 'axios'
+import { useAuthSessionStore } from '@/entities/session'
+import { useAuthUserStore } from '@/entities/user'
+import { clearAuthSession } from '@/features/auth/lib/session-persistence'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 
 interface RefreshResponse {
@@ -34,6 +37,20 @@ export const api: AxiosInstance = axios.create({
 export function clearStoredTokens() {
   localStorage.removeItem(AUTH_STORAGE_KEYS.accessToken)
   localStorage.removeItem(AUTH_STORAGE_KEYS.refreshToken)
+  delete api.defaults.headers.common.Authorization
+}
+
+export function setStoredTokens(accessToken: string, refreshToken: string) {
+  localStorage.setItem(AUTH_STORAGE_KEYS.accessToken, accessToken)
+  localStorage.setItem(AUTH_STORAGE_KEYS.refreshToken, refreshToken)
+  api.defaults.headers.common.Authorization = `Bearer ${accessToken}`
+}
+
+function resetAuthRuntimeState(errorCode?: string) {
+  clearStoredTokens()
+  clearAuthSession()
+  useAuthUserStore.getState().clearUser()
+  useAuthSessionStore.getState().markUnauthenticated(errorCode)
 }
 
 let refreshPromise: Promise<void> | null = null
@@ -64,9 +81,7 @@ export async function refreshAccessToken() {
       throw new Error(data.message ?? 'Refresh token expired')
     }
 
-    localStorage.setItem(AUTH_STORAGE_KEYS.accessToken, data.data.accessToken)
-    localStorage.setItem(AUTH_STORAGE_KEYS.refreshToken, data.data.refreshToken)
-    api.defaults.headers.common.Authorization = `Bearer ${data.data.accessToken}`
+    setStoredTokens(data.data.accessToken, data.data.refreshToken)
   })().finally(() => {
     refreshPromise = null
   })
@@ -113,7 +128,7 @@ api.interceptors.response.use(
 
         return api(originalRequest)
       } catch (refreshError) {
-        clearStoredTokens()
+        resetAuthRuntimeState('AUTH-102')
         return Promise.reject(refreshError)
       }
     }
