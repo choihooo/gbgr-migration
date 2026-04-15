@@ -11,11 +11,10 @@ export function getPostAuthRedirectPath(
     redirectPath.startsWith('/auth') ||
     redirectPath === '/widget'
   ) {
-    // TODO: 보정 게이트 분기 복원 (007 구현 완료 후)
-    // const userId = localStorage.getItem('userId')
-    // const gateState = getCalibrationGateState(userId)
-    // if (gateState === 'initial_required') return '/onboarding/init'
-    // if (gateState === 'reset_requested') return '/onboarding/calibration'
+    const userId = localStorage.getItem('userId')
+    const gateState = getCalibrationGateState(userId)
+    if (gateState === 'initial_required') return '/onboarding/init'
+    if (gateState === 'reset_requested') return '/onboarding/calibration'
 
     return '/main'
   }
