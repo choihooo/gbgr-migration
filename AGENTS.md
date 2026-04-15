@@ -17,6 +17,7 @@
 - N/A (정적 UI 패널, 신규 저장 없음) (008-character-panel-migration)
 - TypeScript 5.8, React 19.1, Rust 2021 (Tauri 런타임) + React Router DOM 7.14, TanStack Query 5, Tailwind CSS 4.2.2, clsx 2.1.1, tailwind-merge 3.3.0 (010-average-posture-panel)
 - N/A (조회형 UI 패널, 신규 저장 없음) (010-average-posture-panel)
+- TypeScript 5.8, React 19.1, Rust 2021(Tauri 런타임) + React Router DOM 7.14, TanStack Query 5, Recharts 3.8.1, Tailwind CSS 4.2.2, clsx 2.1.1, tailwind-merge 3.3.0 (014-average-graph-panel)
 
 ## Recent Changes
 - 003-auth-domain-implementation: Added TypeScript 5.8, React 19, Rust 2021(Tauri 런타임) + React Router 7, Zustand 5, TanStack Query 5, i18next 26, Tauri 2 플러그인
