@@ -10,7 +10,9 @@ export {
   useResumeSessionMutation,
   useStopSessionMutation,
 } from './model/use-session-mutations'
+export { useSessionReportQuery } from './model/use-session-report-query'
 export type {
   BackgroundNotificationDecision,
   BackgroundSessionMetrics,
+  SessionReportResponse,
 } from './types'

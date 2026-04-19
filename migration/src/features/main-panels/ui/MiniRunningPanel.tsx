@@ -1,47 +1,187 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
+import AngelRiniVideo from '@/assets/video/angel-rini.webm'
+import AngelRiniRestSvg from '@/assets/video/angel-rini-rest.svg'
+import BackgroundVideo from '@/assets/video/background.webm'
+import BugiVideo from '@/assets/video/bugi.webm'
+import BugiRestSvg from '@/assets/video/bugi-rest.svg'
+import PmRiniVideo from '@/assets/video/pm-rini.webm'
+import PmRiniRestSvg from '@/assets/video/pm-rini-rest.svg'
+import RiniSvg from '@/assets/video/rini.svg'
+import RiniVideo from '@/assets/video/rini.webm'
+import StoneBugiVideo from '@/assets/video/stone-bugi.webm'
+import StoneBugiRestSvg from '@/assets/video/stone-bugi-rest.svg'
+import TireBugiVideo from '@/assets/video/tire-bugi.webm'
+import TireBugiRestSvg from '@/assets/video/tire-bugi-rest.svg'
+import { useLevelQuery } from '@/entities/dashboard/model/use-dashboard-queries'
+import { usePostureEngineStore } from '@/entities/posture'
+import { useSessionReportQuery } from '@/entities/session'
 import { cn } from '@/shared/lib/cn'
+import { getScoreLevel } from '@/shared/lib/get-score-level'
 import { useCameraStore } from '../model/use-camera-store'
 
 function ExitPanel() {
-  const lastSessionId =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('lastSessionId') ||
-        localStorage.getItem('sessionId')
-      : null
+  const [sessionId, setSessionId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const id =
+      localStorage.getItem('sessionId') || localStorage.getItem('lastSessionId')
+    if (id && id !== sessionId) {
+      setSessionId(id)
+    }
+  }, [sessionId])
+
+  const { data, isLoading, error } = useSessionReportQuery(sessionId)
+  const { data: levelData } = useLevelQuery()
+
+  const getColor = (cssVar: string, fallback: string) => {
+    return (
+      getComputedStyle(document.documentElement)
+        .getPropertyValue(cssVar)
+        .trim() || fallback
+    )
+  }
+
+  const totalSeconds = data?.data.totalSeconds || 0
+  const goodSeconds = data?.data.goodSeconds || 0
+  const totalTime = Math.round(totalSeconds / 60)
+  const correctPosturePercentage =
+    totalSeconds > 0 ? Math.round((goodSeconds / totalSeconds) * 100) : 0
+  const score = data?.data.score || 0
+
+  const currentDistance = levelData?.data.current || 0
+  const startDistance = Number.parseInt(
+    localStorage.getItem('sessionStartDistance') || '0',
+    10,
+  )
+  const sessionDistance = Math.max(0, currentDistance - startDistance)
+
+  const colors = {
+    time: getColor('--color-yellow-400', '#ffcb31'),
+    background: getColor('--color-grey-25', '#e5e7eb'),
+    score: getColor('--color-yellow-400', '#fbbf24'),
+  }
+
+  const innerBackgroundData = useMemo(
+    () => [{ name: '배경', value: 100, color: colors.background }],
+    [colors.background],
+  )
+
+  const scoreProgressData = useMemo(
+    () => [
+      {
+        name: '바른 자세 비율',
+        value: correctPosturePercentage,
+        color: colors.score,
+      },
+    ],
+    [correctPosturePercentage, colors.score],
+  )
+
+  const formatTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    return `${hours}시간 ${mins}분`
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <p className="text-body-lg-medium text-grey-400">
+          리포트를 불러오는 중...
+        </p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <p className="text-body-lg-medium text-error-500">
+          리포트를 불러올 수 없습니다
+        </p>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <p className="text-body-lg-medium text-grey-400">
+          세션 데이터가 없습니다
+        </p>
+      </div>
+    )
+  }
 
   return (
-    <section className="py-6">
+    <div className="bg-grey-0 rounded-xl py-6">
       <div className="mb-12 flex flex-col">
         <h2 className="text-caption-sm-medium text-grey-400">오늘의 리포트</h2>
         <p className="text-headline-3xl-semibold text-grey-700">
-          오늘 총 0m 이동했어요
-        </p>
-        <p className="text-caption-xs-regular text-grey-300 mt-2">
-          {lastSessionId
-            ? `마지막 세션 ID: ${lastSessionId}`
-            : '아직 기록된 세션이 없어요'}
+          오늘 총 {sessionDistance.toLocaleString()}m 이동했어요
         </p>
       </div>
 
       <div className="relative mb-12 flex justify-center">
-        <div className="bg-grey-25 relative h-[212px] w-[212px] rounded-full">
-          <div className="bg-yellow-400 absolute inset-5 rounded-full opacity-90" />
-          <div className="bg-grey-0 absolute inset-10 flex flex-col items-center justify-center rounded-full">
-            <p className="text-caption-sm-regular text-grey-500">사용시간</p>
-            <p className="text-headline-2xl-semibold text-grey-600">
-              0시간 0분
-            </p>
-          </div>
+        <ResponsiveContainer width="100%" height={212.5}>
+          <PieChart>
+            <Pie
+              data={innerBackgroundData}
+              cx="50%"
+              cy="50%"
+              innerRadius={77.75}
+              outerRadius={92}
+              startAngle={450}
+              endAngle={90}
+              dataKey="value"
+              stroke="none"
+              paddingAngle={0}
+              cornerRadius={0}
+              isAnimationActive={false}
+            >
+              <Cell fill={innerBackgroundData[0].color} />
+            </Pie>
+
+            <Pie
+              data={scoreProgressData}
+              cx="50%"
+              cy="50%"
+              innerRadius={77.75}
+              outerRadius={92}
+              startAngle={450}
+              endAngle={450 - (correctPosturePercentage / 100) * 360}
+              dataKey="value"
+              stroke="none"
+              paddingAngle={0}
+              cornerRadius={10}
+            >
+              <Cell fill={scoreProgressData[0].color} />
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <p className="text-caption-sm-regular text-grey-500">사용시간</p>
+          <p className="text-headline-2xl-semibold text-grey-600">
+            {formatTime(totalTime)}
+          </p>
         </div>
       </div>
 
       <div className="flex flex-col gap-7">
         <div className="flex items-center">
-          <div className="bg-yellow-400 h-4 w-2 rounded-full" />
+          <div
+            className="h-4 w-2 rounded-full"
+            style={{ backgroundColor: colors.time }}
+          />
           <p className="ml-1 flex flex-1 items-center justify-between">
             <span className="text-body-md-medium text-grey-400">
               바른 자세 시간
             </span>
-            <span className="text-headline-2xl-semibold text-grey-600">0%</span>
+            <span className="text-headline-2xl-semibold text-grey-600">
+              {correctPosturePercentage}%
+            </span>
           </p>
         </div>
 
@@ -50,57 +190,176 @@ function ExitPanel() {
             <span className="text-body-sm-medium text-grey-400">
               바른 자세 점수
             </span>
-            <span className="text-body-xl-semibold text-grey-600">0점</span>
+            <span className="text-body-xl-semibold text-grey-600">
+              {score}점
+            </span>
           </p>
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
 function RunningPanel() {
+  const latestResult = usePostureEngineStore(state => state.latestResult)
+  const restoredResult = usePostureEngineStore(state => state.restoredResult)
   const cameraState = useCameraStore(state => state.cameraState)
-  const isVisible = cameraState === 'show'
+  const isCameraShow = cameraState === 'show'
+  const backgroundVideoRef = useRef<HTMLVideoElement>(null)
+
+  const score = latestResult?.score ?? restoredResult?.score ?? 0
+  const levelInfo = useMemo(() => getScoreLevel(score), [score])
+
+  const levelVideo = useMemo(() => {
+    switch (levelInfo.level) {
+      case 1:
+        return AngelRiniVideo
+      case 2:
+        return PmRiniVideo
+      case 3:
+        return RiniVideo
+      case 4:
+        return BugiVideo
+      case 5:
+        return StoneBugiVideo
+      case 6:
+        return TireBugiVideo
+      default:
+        return RiniVideo
+    }
+  }, [levelInfo.level])
+
+  const levelSvgSrc = useMemo(() => {
+    switch (levelInfo.level) {
+      case 1:
+        return AngelRiniRestSvg
+      case 2:
+        return PmRiniRestSvg
+      case 3:
+        return RiniSvg
+      case 4:
+        return BugiRestSvg
+      case 5:
+        return StoneBugiRestSvg
+      case 6:
+        return TireBugiRestSvg
+      default:
+        return RiniSvg
+    }
+  }, [levelInfo.level])
+
+  const gaugeWidth = useMemo(() => {
+    const widthMap: Record<number, string> = {
+      1: '100%',
+      2: '75%',
+      3: '50%',
+      4: '50%',
+      5: '75%',
+      6: '100%',
+    }
+    return widthMap[levelInfo.level] || '70%'
+  }, [levelInfo.level])
+
+  const gradient = useMemo(() => {
+    if (levelInfo.level <= 3) {
+      return 'linear-gradient(90deg, var(--color-olive-green) 0.18%, var(--color-success) 99.7%)'
+    }
+
+    return 'linear-gradient(90deg, var(--color-coral-red) 0%, var(--color-error) 100%)'
+  }, [levelInfo.level])
+
+  const runningStatus = useMemo(() => {
+    const statusMap: Record<number, string> = {
+      1: '최고 속도로 가는 중!',
+      2: '빠르게 가는 중!',
+      3: '씽씽 가는 중!',
+      4: '천천히 가는 중',
+      5: '느릿느릿 가는중..',
+      6: '엉금엉금 가는중..',
+    }
+    return statusMap[levelInfo.level] || '가는 중'
+  }, [levelInfo.level])
+
+  useEffect(() => {
+    const video = backgroundVideoRef.current
+    if (!video) return
+
+    if (isCameraShow) {
+      void video.play().catch(error => {
+        console.warn('배경 영상 재생 실패:', error)
+      })
+      return
+    }
+
+    video.pause()
+  }, [isCameraShow])
 
   return (
-    <section>
+    <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-caption-sm-medium text-grey-400">
-          {isVisible ? '씽씽 가는 중!' : '천천히 가는 중'}
-        </p>
+        <p className="text-caption-sm-medium text-grey-400">{runningStatus}</p>
       </div>
 
-      <div className="relative h-[421px] w-full overflow-hidden rounded-xl bg-[linear-gradient(180deg,#F9F8F7_0%,#EFEEED_100%)]">
+      <div className="relative h-[421px] w-full overflow-hidden rounded-xl">
+        <video
+          ref={backgroundVideoRef}
+          src={BackgroundVideo}
+          autoPlay
+          loop
+          muted
+          playsInline
+          disablePictureInPicture
+          controls={false}
+          controlsList="nofullscreen noplaybackrate nodownload noremoteplayback"
+          className="media-display pointer-events-none absolute inset-0 h-full w-full rounded-xl object-cover select-none"
+        />
+
         <div className="relative z-10 mx-4 mt-4">
           <div className="bg-grey-50 relative h-5 w-full rounded-full">
             <div
-              className={cn(
-                'flex h-full items-center justify-end rounded-full py-[3px] pr-[3px] transition-all duration-1000',
-                isVisible
-                  ? 'bg-[linear-gradient(90deg,var(--color-olive-green)_0.18%,var(--color-success)_99.7%)]'
-                  : 'bg-[linear-gradient(90deg,var(--color-coral-red)_0%,var(--color-error)_100%)]',
-              )}
-              style={{ width: isVisible ? '50%' : '75%' }}
+              className="flex h-full items-center justify-end rounded-full py-[3px] pr-[3px] transition-all duration-1000"
+              style={{
+                width: gaugeWidth,
+                background: gradient,
+              }}
             >
               <div className="bg-dot h-[14px] w-[14px] rounded-full opacity-50" />
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 mt-12 flex items-center justify-center px-4">
-          <div className="relative flex h-[280px] w-full items-end justify-center rounded-[32px] bg-white/60">
-            <div className="absolute inset-x-16 bottom-0 h-[168px] rounded-t-[999px] bg-yellow-100/90" />
-            <div className="absolute inset-x-24 bottom-0 h-[196px] rounded-t-[999px] bg-yellow-300/90" />
-            <div className="absolute left-1/2 bottom-[160px] h-[42px] w-[42px] -translate-x-1/2 rounded-full bg-yellow-400" />
-          </div>
+        <div
+          className={cn(
+            'relative z-10 mt-12 flex items-center justify-center px-4',
+          )}
+        >
+          {isCameraShow ? (
+            <video
+              src={levelVideo}
+              autoPlay
+              loop
+              muted
+              playsInline
+              disablePictureInPicture
+              controls={false}
+              controlsList="nofullscreen noplaybackrate nodownload noremoteplayback"
+              className="media-display pointer-events-none h-auto max-h-[320px] w-full rounded-lg bg-transparent object-contain select-none"
+            />
+          ) : (
+            <img
+              src={levelSvgSrc}
+              alt="레벨 이미지"
+              className="h-auto max-h-[320px] w-full rounded-lg bg-transparent object-contain"
+            />
+          )}
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
 export function MiniRunningPanel() {
-  const { cameraState } = useCameraStore()
+  const cameraState = useCameraStore(state => state.cameraState)
 
   return cameraState === 'exit' ? <ExitPanel /> : <RunningPanel />
 }
