@@ -2,6 +2,7 @@ pub mod events;
 pub mod notification_bridge;
 pub mod ownership;
 pub mod session_metrics;
+pub mod sidecar;
 
 #[cfg(test)]
 pub mod tests {

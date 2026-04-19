@@ -3,7 +3,7 @@
  */
 import { Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
-import { useAuthSessionStore } from '@/entities/session'
+import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { Header } from '@/features/layout/ui/Header'
 
 function RootLayout() {

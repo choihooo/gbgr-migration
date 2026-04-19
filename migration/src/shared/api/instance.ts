@@ -1,5 +1,5 @@
 import axios, { type AxiosError, type AxiosInstance } from 'axios'
-import { useAuthSessionStore } from '@/entities/session'
+import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { useAuthUserStore } from '@/entities/user'
 import { clearAuthSession } from '@/features/auth/lib/session-persistence'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
@@ -21,9 +21,7 @@ type RetriableConfig = {
 const DEFAULT_API_BASE_URL = 'https://api.bugi.co.kr'
 
 const baseURL = (
-  import.meta.env.VITE_API_BASE_URL ??
-  import.meta.env.VITE_BASE_URL ??
-  DEFAULT_API_BASE_URL
+  import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL
 ).replace(/\/+$/, '')
 
 export const api: AxiosInstance = axios.create({
@@ -33,6 +31,22 @@ export const api: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+/** refresh 재시도에서 제외할 인증 관련 엔드포인트 */
+const NON_RETRYABLE_PATHS = [
+  '/auth/login',
+  '/auth/check-email',
+  '/auth/verify-email',
+  '/auth/resend-verification-email',
+  '/auth/signup',
+  '/auth/refresh',
+]
+
+function isNonRetryablePath(url?: string): boolean {
+  if (!url) return false
+  const path = url.replace(baseURL, '').split('?')[0]
+  return NON_RETRYABLE_PATHS.some((p) => path.startsWith(p))
+}
 
 export function clearStoredTokens() {
   localStorage.removeItem(AUTH_STORAGE_KEYS.accessToken)
@@ -78,7 +92,11 @@ export async function refreshAccessToken() {
       !data.success ||
       !data.data
     ) {
-      throw new Error(data.message ?? 'Refresh token expired')
+      const err = new Error(data.message ?? 'Refresh token expired') as Error & {
+        code: string
+      }
+      err.code = data.code?.toUpperCase() ?? 'AUTH-102'
+      throw err
     }
 
     setStoredTokens(data.data.accessToken, data.data.refreshToken)
@@ -89,7 +107,7 @@ export async function refreshAccessToken() {
   return refreshPromise
 }
 
-api.interceptors.request.use(config => {
+api.interceptors.request.use((config) => {
   const accessToken = localStorage.getItem(AUTH_STORAGE_KEYS.accessToken)
 
   if (accessToken) {
@@ -100,12 +118,16 @@ api.interceptors.request.use(config => {
 })
 
 api.interceptors.response.use(
-  response => response,
+  (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosError['config'] &
       RetriableConfig
 
     if (!originalRequest) {
+      return Promise.reject(error)
+    }
+
+    if (isNonRetryablePath(originalRequest.url)) {
       return Promise.reject(error)
     }
 
@@ -128,7 +150,16 @@ api.interceptors.response.use(
 
         return api(originalRequest)
       } catch (refreshError) {
-        resetAuthRuntimeState('AUTH-102')
+        const errorCode =
+          refreshError instanceof Error && 'code' in refreshError
+            ? (refreshError as Error & { code: string }).code
+            : undefined
+
+        // 실제 AUTH-102(리프레시 토큰 만료)일 때만 세션 초기화
+        if (errorCode === 'AUTH-102') {
+          resetAuthRuntimeState('AUTH-102')
+        }
+
         return Promise.reject(refreshError)
       }
     }

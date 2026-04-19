@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 
+use crate::posture_engine::sidecar::SidecarHandle;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,13 +161,22 @@ pub struct PostureWarningEvent {
     pub occurred_at: String,
 }
 
-#[derive(Debug)]
+impl std::fmt::Debug for PostureEngineState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PostureEngineState")
+            .field("session", &self.session)
+            .field("engine_state", &self.engine_state)
+            .finish_non_exhaustive()
+    }
+}
+
 pub struct PostureEngineState {
     pub session: Mutex<Option<MeasurementSession>>,
     pub latest_result: Mutex<Option<PostureEngineResult>>,
     pub engine_state: Mutex<EngineStateEvent>,
     pub ownership: Mutex<CameraOwnershipState>,
     pub session_metrics: Mutex<SessionMetricsSnapshot>,
+    pub sidecar: Mutex<Option<SidecarHandle>>,
 }
 
 impl Default for PostureEngineState {
@@ -189,6 +199,7 @@ impl Default for PostureEngineState {
                 updated_at: now_iso(),
             }),
             session_metrics: Mutex::new(SessionMetricsSnapshot::default()),
+            sidecar: Mutex::new(None),
         }
     }
 }
