@@ -19,11 +19,11 @@ export const POSTURE_RESULT_EVENT = 'posture://result'
 export const POSTURE_ENGINE_STATUS_EVENT = 'posture://engine-status'
 export const POSTURE_WARNING_EVENT = 'posture://warning'
 
-const isTauriRuntime = () =>
+export const isTauriRuntimeAvailable = () =>
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
 export async function startPostureEngine() {
-  if (!isTauriRuntime()) {
+  if (!isTauriRuntimeAvailable()) {
     return {
       engineStatus: 'ready',
       sessionId: null,
@@ -35,7 +35,7 @@ export async function startPostureEngine() {
 }
 
 export async function stopPostureEngine() {
-  if (!isTauriRuntime()) {
+  if (!isTauriRuntimeAvailable()) {
     return {
       engineStatus: 'idle',
       releasedOwner: 'none',
@@ -46,7 +46,7 @@ export async function stopPostureEngine() {
 }
 
 export async function pushPostureFrame(payload: PushPostureFramePayload) {
-  if (!isTauriRuntime()) {
+  if (!isTauriRuntimeAvailable()) {
     return {
       accepted: false,
       reason: 'tauri_runtime_unavailable',
@@ -59,7 +59,7 @@ export async function pushPostureFrame(payload: PushPostureFramePayload) {
 export async function startBackgroundMeasurement(
   payload: StartBackgroundMeasurementPayload,
 ) {
-  if (!isTauriRuntime()) {
+  if (!isTauriRuntimeAvailable()) {
     return {
       engineStatus: 'switching',
       mode: 'background',
@@ -74,7 +74,7 @@ export async function startBackgroundMeasurement(
 export async function stopBackgroundMeasurement(
   payload: StopBackgroundMeasurementPayload,
 ) {
-  if (!isTauriRuntime()) {
+  if (!isTauriRuntimeAvailable()) {
     return {
       engineStatus: 'ready',
       mode: 'foreground',
@@ -87,7 +87,7 @@ export async function stopBackgroundMeasurement(
 }
 
 export async function getLatestPostureState() {
-  if (!isTauriRuntime()) {
+  if (!isTauriRuntimeAvailable()) {
     return {
       session: null,
       latestResult: null,
@@ -102,13 +102,24 @@ const listenWhenAvailable = async <T>(
   event: string,
   handler: (payload: T) => void,
 ) => {
-  if (!isTauriRuntime()) {
+  if (!isTauriRuntimeAvailable()) {
     return (() => {}) satisfies UnlistenFn
   }
 
-  return listen<T>(event, eventPayload => {
+  const unlisten = await listen<T>(event, eventPayload => {
     handler(eventPayload.payload)
   })
+
+  let disposed = false
+
+  return (() => {
+    if (disposed) return
+    disposed = true
+
+    void Promise.resolve(unlisten()).catch(error => {
+      console.warn(`[posture-engine] ${event} 이벤트 해제 실패:`, error)
+    })
+  }) satisfies UnlistenFn
 }
 
 export const subscribeToPostureResults = (

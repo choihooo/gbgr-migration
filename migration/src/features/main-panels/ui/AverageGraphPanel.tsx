@@ -32,7 +32,7 @@ export function AverageGraphPanel() {
   const showScroll = activePeriod === 'monthly' && data.length > 12
 
   return (
-    <section className="flex h-full flex-col rounded-2xl p-5">
+    <section className="flex h-full min-h-0 flex-col rounded-2xl p-5">
       <div className="mb-4 flex items-center justify-between">
         <PanelHeader>바른 자세 점수</PanelHeader>
         <ToggleSwitch
@@ -48,9 +48,14 @@ export function AverageGraphPanel() {
       </p>
 
       <div
-        className={`min-h-[220px] flex-1 ${showScroll ? 'overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden' : ''}`}
+        className={`min-h-[220px] min-w-0 flex-1 ${showScroll ? 'overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden' : ''}`}
       >
-        <ResponsiveContainer width={chartWidth} height="100%">
+        <ResponsiveContainer
+          width={chartWidth}
+          height="100%"
+          minWidth={0}
+          minHeight={0}
+        >
           <AreaChart
             data={data}
             margin={{ top: 20, left: 0, bottom: 0, right: 0 }}

@@ -22,11 +22,12 @@ const WebcamView = ({
   onResultChange,
 }: WebcamViewProps) => {
   const webcamRef = useRef<Webcam>(null)
-  const { overlayLandmarks, latestResult, engineState } = usePostureEngine({
-    active: isActive,
-    mode,
-    webcamRef,
-  })
+  const { overlayLandmarks, latestResult, engineState, runtimeAvailable } =
+    usePostureEngine({
+      active: isActive,
+      mode,
+      webcamRef,
+    })
 
   useEffect(() => {
     if (onVideoRefReady) {
@@ -43,6 +44,10 @@ const WebcamView = ({
     width: 760,
     height: 428,
   })
+  const [preferredDeviceId, setPreferredDeviceId] = useState(() =>
+    localStorage.getItem('preferred-camera-device'),
+  )
+  const [cameraError, setCameraError] = useState<string | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -54,17 +59,21 @@ const WebcamView = ({
     }
   }, [])
 
-  const preferredDeviceId = localStorage.getItem('preferred-camera-device')
-
   const videoConstraints = preferredDeviceId
     ? { deviceId: { exact: preferredDeviceId }, width: 1000, height: 563 }
     : { facingMode: 'user', width: 1000, height: 563 }
 
   const handleUserMedia = (stream: MediaStream | null) => {
+    setCameraError(null)
+
     if (stream) {
       const videoTrack = stream.getVideoTracks()[0]
       if (videoTrack) {
         const settings = videoTrack.getSettings()
+        if (settings.deviceId) {
+          localStorage.setItem('preferred-camera-device', settings.deviceId)
+          setPreferredDeviceId(settings.deviceId)
+        }
         setVideoDimensions({
           width: settings.width || 760,
           height: settings.height || 428,
@@ -73,7 +82,22 @@ const WebcamView = ({
     }
   }
 
-  const isEngineAvailable = engineState.engineStatus !== 'error'
+  const handleUserMediaError = (error: string | DOMException) => {
+    const message = typeof error === 'string' ? error : error.message
+    console.error('[WebcamView] 카메라 연결 실패:', error)
+
+    if (preferredDeviceId) {
+      localStorage.removeItem('preferred-camera-device')
+      setPreferredDeviceId(null)
+      setCameraError('저장된 카메라 정보를 다시 연결하는 중입니다')
+      return
+    }
+
+    setCameraError(message || '카메라를 연결할 수 없습니다')
+  }
+
+  const isEngineAvailable =
+    runtimeAvailable && engineState.engineStatus !== 'error'
 
   if (!isEngineAvailable) {
     return (
@@ -87,9 +111,27 @@ const WebcamView = ({
       >
         <div className="text-grey-300 flex flex-col items-center text-center">
           <div className="flex flex-col items-center gap-6">
-            카메라 뷰 영역
-            <br />
-            측정 엔진 연결 후 활성화됩니다
+            {runtimeAvailable ? (
+              cameraError ? (
+                <>
+                  카메라 뷰 영역
+                  <br />
+                  {cameraError}
+                </>
+              ) : (
+                <>
+                  카메라 뷰 영역
+                  <br />
+                  측정 엔진 연결 후 활성화됩니다
+                </>
+              )
+            ) : (
+              <>
+                브라우저 미리보기에서는
+                <br />
+                자세 측정 엔진이 동작하지 않습니다
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -105,6 +147,7 @@ const WebcamView = ({
           playsInline
           videoConstraints={videoConstraints}
           onUserMedia={handleUserMedia}
+          onUserMediaError={handleUserMediaError}
           className="h-full w-full scale-x-[-1] rounded-[24px] object-fill"
         />
         {overlayLandmarks.length > 0 ? (

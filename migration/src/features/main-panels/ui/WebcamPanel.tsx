@@ -40,6 +40,8 @@ export function WebcamPanel() {
     useCameraStore()
   const engineState = usePostureEngineStore(state => state.engineState)
   const latestResult = usePostureEngineStore(state => state.latestResult)
+  const isTauriRuntimeUnavailable =
+    engineState.message === 'tauri_runtime_unavailable'
   const isWebcamOn = cameraState === 'show'
   const isExit = cameraState === 'exit'
   const currentSessionId =
@@ -109,11 +111,13 @@ export function WebcamPanel() {
           <>
             <WebcamView isActive={true} mode={mode} />
             <div className="absolute bottom-2 left-2 rounded-full bg-black/40 px-3 py-1 text-[11px] text-white">
-              {engineState.engineStatus === 'error'
-                ? '엔진 오류'
-                : latestResult
-                  ? `자세 단계 ${latestResult.postureClass}`
-                  : '엔진 준비 중'}
+              {isTauriRuntimeUnavailable
+                ? 'Tauri 앱에서만 측정 가능'
+                : engineState.engineStatus === 'error'
+                  ? '엔진 오류'
+                  : latestResult
+                    ? `자세 단계 ${latestResult.postureClass}`
+                    : '엔진 준비 중'}
             </div>
           </>
         ) : cameraState === 'hide' ? (

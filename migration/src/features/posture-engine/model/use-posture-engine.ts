@@ -4,10 +4,12 @@ import type {
   EngineMode,
   MeasurementSession,
   PoseLandmark,
+  StartPostureEngineResponse,
 } from '@/entities/posture'
 import { usePostureEngineStore } from '@/entities/posture'
 import {
   getLatestPostureState,
+  isTauriRuntimeAvailable,
   pushPostureFrame,
   startBackgroundMeasurement,
   startPostureEngine,
@@ -58,6 +60,7 @@ export const usePostureEngine = ({
   mode = 'foreground',
   webcamRef,
 }: UsePostureEngineOptions) => {
+  const runtimeAvailable = isTauriRuntimeAvailable()
   const {
     engineState,
     latestResult,
@@ -74,8 +77,31 @@ export const usePostureEngine = ({
   const startedRef = useRef(false)
 
   useEffect(() => {
+    if (!runtimeAvailable) {
+      setEngineState({
+        engineStatus: 'idle',
+        mode: 'foreground',
+        cameraOwner: 'none',
+        updatedAt: new Date().toISOString(),
+        message: 'tauri_runtime_unavailable',
+        recoverable: true,
+      })
+      setLatestResult(null)
+      setRestoredResult(null)
+      setSession(null)
+      markHydratedFromCache()
+      return
+    }
+
     let isMounted = true
     const unlisteners: Array<() => void> = []
+
+    const cleanupListeners = () => {
+      while (unlisteners.length > 0) {
+        const unlisten = unlisteners.pop()
+        unlisten?.()
+      }
+    }
 
     void (async () => {
       const [unlistenResult, unlistenStatus, unlistenWarning] =
@@ -92,9 +118,9 @@ export const usePostureEngine = ({
         ])
 
       if (!isMounted) {
-        unlistenResult()
-        unlistenStatus()
         unlistenWarning()
+        unlistenStatus()
+        unlistenResult()
         return
       }
 
@@ -103,13 +129,21 @@ export const usePostureEngine = ({
 
     return () => {
       isMounted = false
-      for (const unlisten of unlisteners) {
-        unlisten()
-      }
+      cleanupListeners()
     }
-  }, [setEngineState, setLatestResult, setWarning])
+  }, [
+    markHydratedFromCache,
+    runtimeAvailable,
+    setEngineState,
+    setLatestResult,
+    setRestoredResult,
+    setSession,
+    setWarning,
+  ])
 
   useEffect(() => {
+    if (!runtimeAvailable) return
+
     void (async () => {
       const latestState = await getLatestPostureState()
       setSession(latestState.session)
@@ -120,6 +154,7 @@ export const usePostureEngine = ({
     })()
   }, [
     markHydratedFromCache,
+    runtimeAvailable,
     setEngineState,
     setLatestResult,
     setRestoredResult,
@@ -127,12 +162,19 @@ export const usePostureEngine = ({
   ])
 
   useEffect(() => {
+    if (!runtimeAvailable) return
     if (!active || startedRef.current) return
 
     let cancelled = false
 
     void (async () => {
-      const response = await startPostureEngine()
+      let response: StartPostureEngineResponse
+      try {
+        response = await startPostureEngine()
+      } catch (err) {
+        console.error('[posture-engine] startPostureEngine 실패:', err)
+        return
+      }
       if (cancelled) return
 
       startedRef.current = true
@@ -153,15 +195,22 @@ export const usePostureEngine = ({
     return () => {
       cancelled = true
     }
-  }, [active, setEngineState, setSession])
+  }, [active, runtimeAvailable, setEngineState, setSession])
 
   useEffect(() => {
+    if (!runtimeAvailable) return
     if (!active || !startedRef.current) return
 
     const currentSessionId =
       session?.sessionId ?? localStorage.getItem('sessionId') ?? 'local-session'
 
     void (async () => {
+      console.log(
+        '[posture-engine] mode change:',
+        mode,
+        'sessionId:',
+        currentSessionId,
+      )
       if (mode === 'background') {
         const response = await startBackgroundMeasurement({
           sessionId: currentSessionId,
@@ -192,9 +241,17 @@ export const usePostureEngine = ({
       })
       setSession(buildFallbackSession(currentSessionId, response.mode))
     })()
-  }, [active, mode, session?.sessionId, setEngineState, setSession])
+  }, [
+    active,
+    mode,
+    runtimeAvailable,
+    session?.sessionId,
+    setEngineState,
+    setSession,
+  ])
 
   useEffect(() => {
+    if (!runtimeAvailable) return
     if (!active || mode !== 'foreground' || !webcamRef?.current) return
 
     const interval = window.setInterval(() => {
@@ -220,15 +277,16 @@ export const usePostureEngine = ({
     return () => {
       window.clearInterval(interval)
     }
-  }, [active, mode, session?.sessionId, webcamRef])
+  }, [active, mode, runtimeAvailable, session?.sessionId, webcamRef])
 
   useEffect(() => {
+    if (!runtimeAvailable) return
     if (active) return
     if (!startedRef.current) return
 
     void stopPostureEngine()
     startedRef.current = false
-  }, [active])
+  }, [active, runtimeAvailable])
 
   const overlayLandmarks = useMemo<PoseLandmark[]>(
     () =>
@@ -243,6 +301,7 @@ export const usePostureEngine = ({
   )
 
   return {
+    runtimeAvailable,
     session,
     latestResult,
     restoredResult,
