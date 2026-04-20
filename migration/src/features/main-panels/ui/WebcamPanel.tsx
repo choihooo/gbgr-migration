@@ -10,11 +10,13 @@ import { useWindowVisibilitySync } from '@/features/posture-engine'
 import WebcamView from '@/pages/calibration-page/components/WebcamView'
 import { Button } from '@/shared/ui/button'
 import { HideIcon, ShowIcon, WidgetIcon } from '@/shared/ui/icons/ui-icons'
+import { useWidget } from '@/shared/hooks/use-widget'
 import { useCameraStore } from '../model/use-camera-store'
 
 export function WebcamPanel() {
   const [mode, setMode] = useState<'foreground' | 'background'>('foreground')
-  const { cameraState, setCameraState, toggleWidget } = useCameraStore()
+  const { cameraState, setCameraState } = useCameraStore()
+  const { toggleWidget } = useWidget()
   const isWebcamOn = cameraState === 'show'
   const isExit = cameraState === 'exit'
   const currentSessionId =

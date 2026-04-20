@@ -1,40 +1,111 @@
 import { usePostureEngineStore } from '@/entities/posture'
+import { useEffect, useState } from 'react'
+import { WidgetTitleBar } from './WidgetTitleBar'
+import { MediumWidgetContent } from './MediumWidgetContent'
+import { MiniWidgetContent } from './MiniWidgetContent'
+
+type WidgetSize = 'mini' | 'medium'
+
+const BREAKPOINT = {
+  height: 62,
+} as const
+
+const MAIN_WINDOW_ACTIVE_KEY = 'main-window-active'
+const MAIN_WINDOW_TIMEOUT_MS = 2000
 
 function WidgetPage() {
+  const [widgetSize, setWidgetSize] = useState<WidgetSize>('medium')
+  const [isMainWindowActive, setIsMainWindowActive] = useState(false)
+
   const latestResult = usePostureEngineStore(state => state.latestResult)
-  const engineState = usePostureEngineStore(state => state.engineState)
+  const restoredResult = usePostureEngineStore(state => state.restoredResult)
+  const postureClass = latestResult?.postureClass ?? restoredResult?.postureClass ?? 0
+
+  // 메인 창 활성화 상태 확인
+  useEffect(() => {
+    const checkMainWindowStatus = () => {
+      const lastUpdateTime = localStorage.getItem(MAIN_WINDOW_ACTIVE_KEY)
+      if (!lastUpdateTime) {
+        setIsMainWindowActive(false)
+        return
+      }
+
+      const timeSinceUpdate = Date.now() - Number.parseInt(lastUpdateTime, 10)
+      const isActive = timeSinceUpdate < MAIN_WINDOW_TIMEOUT_MS
+      setIsMainWindowActive(isActive)
+    }
+
+    checkMainWindowStatus()
+
+    const interval = setInterval(checkMainWindowStatus, 500)
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === MAIN_WINDOW_ACTIVE_KEY) {
+        checkMainWindowStatus()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [])
+
+  // 위젯 resize 이벤트
+  useEffect(() => {
+    let resizeTimeout: number
+
+    const handleResize = () => {
+      const isMedium = innerHeight > BREAKPOINT.height
+      setWidgetSize(isMedium ? 'medium' : 'mini')
+    }
+
+    const handleResizeDebounced = () => {
+      clearTimeout(resizeTimeout)
+      resizeTimeout = window.setTimeout(() => {
+        handleResize()
+      }, 10)
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResizeDebounced)
+
+    return () => {
+      window.removeEventListener('resize', handleResizeDebounced)
+      clearTimeout(resizeTimeout)
+    }
+  }, [])
+
+  // 위젯에서 메인 창 활성화 상태 주기적 업데이트
+  useEffect(() => {
+    if (!isMainWindowActive) {
+      const interval = setInterval(() => {
+        localStorage.setItem(MAIN_WINDOW_ACTIVE_KEY, Date.now().toString())
+      }, 500)
+      return () => clearInterval(interval)
+    }
+  }, [isMainWindowActive])
+
+  const isMini = widgetSize === 'mini'
+
+  const handleClose = () => {
+    window.close()
+  }
 
   return (
-    <main className="bg-grey-50 flex min-h-screen items-center justify-center p-6">
-      <section className="bg-grey-0 w-full max-w-[360px] rounded-[32px] p-6">
-        <p className="text-caption-sm-medium text-grey-500 mb-2">
-          자세 엔진 상태
-        </p>
-        <h1 className="text-title-xl-bold text-grey-900 mb-4">
-          {engineState.engineStatus === 'error'
-            ? '측정을 다시 확인해주세요'
-            : '최신 자세 상태'}
-        </h1>
-        <div className="flex flex-col gap-3">
-          <div className="bg-grey-50 rounded-[20px] px-4 py-3">
-            <p className="text-body-sm-medium text-grey-500">모드</p>
-            <p className="text-body-lg-semibold text-grey-900">
-              {engineState.mode === 'background'
-                ? '백그라운드 측정 중'
-                : '화면 표시 측정 중'}
-            </p>
-          </div>
-          <div className="bg-grey-50 rounded-[20px] px-4 py-3">
-            <p className="text-body-sm-medium text-grey-500">최신 단계</p>
-            <p className="text-body-lg-semibold text-grey-900">
-              {latestResult
-                ? `자세 단계 ${latestResult.postureClass}`
-                : '대기 중'}
-            </p>
-          </div>
-        </div>
-      </section>
-    </main>
+    <div className="bg-grey-0 h-screen w-screen overflow-hidden rounded-lg px-[4px] py-[3px]">
+      <div className={isMini ? 'flex h-full w-full' : 'h-full w-full'}>
+        <WidgetTitleBar isMini={isMini} onClose={handleClose} />
+
+        {isMini ? (
+          <MiniWidgetContent posture={postureClass} />
+        ) : (
+          <MediumWidgetContent posture={postureClass} />
+        )}
+      </div>
+    </div>
   )
 }
 
