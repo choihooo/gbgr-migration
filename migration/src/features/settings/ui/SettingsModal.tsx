@@ -19,6 +19,11 @@ import {
   clearRedirectPath,
 } from '@/features/auth/lib/session-persistence'
 import { clearStoredTokens } from '@/shared/api/instance'
+import {
+  fetchUpdate,
+  installUpdate,
+  type FetchUpdateResponse,
+} from '@/shared/lib/update-api'
 import { cn } from '@/shared/lib/cn'
 import { Button } from '@/shared/ui/button'
 import {
@@ -49,6 +54,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isStartupSaving, setIsStartupSaving] = useState(false)
   const [startupError, setStartupError] = useState('')
   const [isLanguageSaving, setIsLanguageSaving] = useState(false)
+  const [updateInfo, setUpdateInfo] = useState<FetchUpdateResponse | null>(null)
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+  const [isInstallingUpdate, setIsInstallingUpdate] = useState(false)
+  const [updateMessage, setUpdateMessage] = useState('')
+  const [updateError, setUpdateError] = useState('')
 
   const currentLanguage = normalizeLanguage(i18n.resolvedLanguage ?? i18n.language)
 
@@ -151,6 +161,72 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   }
 
+  const handleUpdateAction = async () => {
+    if (isCheckingUpdate || isInstallingUpdate) {
+      return
+    }
+
+    setUpdateError('')
+
+    try {
+      if (updateInfo?.configured && updateInfo.update) {
+        setIsInstallingUpdate(true)
+        const response = await installUpdate()
+
+        if (!response.configured) {
+          setUpdateInfo(null)
+          setUpdateMessage(t('settings.update.unconfigured'))
+          return
+        }
+
+        if (!response.installed) {
+          setUpdateInfo({
+            configured: true,
+            update: null,
+          })
+          setUpdateMessage(t('settings.update.noUpdate'))
+          return
+        }
+
+        setUpdateInfo({
+          configured: true,
+          update: null,
+        })
+        setUpdateMessage(
+          response.exitsOnInstall
+            ? t('settings.update.installingExit')
+            : t('settings.update.installedDescription'),
+        )
+        return
+      }
+
+      setIsCheckingUpdate(true)
+      const response = await fetchUpdate()
+      setUpdateInfo(response)
+
+      if (!response.configured) {
+        setUpdateMessage(t('settings.update.unconfigured'))
+      } else if (response.update) {
+        setUpdateMessage(
+          t('settings.update.availableDescription', {
+            version: response.update.version,
+          }),
+        )
+      } else {
+        setUpdateMessage(t('settings.update.noUpdate'))
+      }
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t('settings.update.errorFallback')
+      setUpdateError(message)
+    } finally {
+      setIsCheckingUpdate(false)
+      setIsInstallingUpdate(false)
+    }
+  }
+
   const startupDescription = isStartupLoading
     ? t('settings.startup.loading')
     : !isStartupSupported
@@ -158,6 +234,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       : isStartupSaving
         ? t('settings.startup.saving')
         : t('settings.startup.enabledDescription')
+
+  const updateDescription = isCheckingUpdate
+    ? t('settings.update.checking')
+    : isInstallingUpdate
+      ? t('settings.update.installing')
+      : updateMessage || t('settings.update.description')
+
+  const updateActionLabel =
+    updateInfo?.configured && updateInfo.update
+      ? t('settings.update.installAction')
+      : t('settings.update.checkAction')
 
   const actionItems = [
     {
@@ -235,6 +322,33 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             isDisabled={
               isStartupLoading || isStartupSaving || !isStartupSupported
             }
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="text-body-md-medium text-grey-900 dark:text-grey-100">
+              {t('settings.update.label')}
+            </span>
+            <span className="font-['Pretendard'] text-[11px] leading-[150%] text-grey-500">
+              {updateDescription}
+            </span>
+            {updateError ? (
+              <span className="font-['Pretendard'] text-[11px] leading-[150%] text-red-500">
+                {updateError}
+              </span>
+            ) : null}
+          </div>
+
+          <Button
+            text={updateActionLabel}
+            variant="grey"
+            size="xs"
+            onClick={() => {
+              void handleUpdateAction()
+            }}
+            disabled={isCheckingUpdate || isInstallingUpdate}
+            className="shrink-0"
           />
         </div>
 

@@ -7,6 +7,9 @@ export type AppLanguage = (typeof supportedLanguages)[number]
 export const resources = {
   ko: {
     translation: {
+      app: {
+        name: '거부기린',
+      },
       auth: {
         slogan: '세상 모든 거북목들이 기린이 될 때까지',
         login: {
@@ -265,6 +268,22 @@ export const resources = {
           enabledDescription: '컴퓨터 로그인 후 거부기린을 자동으로 실행해요.',
           errorFallback: '자동 실행 설정을 변경하지 못했습니다.',
         },
+        update: {
+          label: '앱 업데이트',
+          description: '새 버전이 있는지 확인하고 바로 설치할 수 있어요.',
+          checking: '새 버전을 확인하고 있어요.',
+          installing: '업데이트를 설치하고 있어요.',
+          unconfigured: '업데이트 서버가 아직 설정되지 않았어요.',
+          noUpdate: '최신 버전을 사용 중이에요.',
+          availableDescription: '{{version}} 버전 업데이트를 설치할 수 있어요.',
+          installedDescription:
+            '업데이트가 설치되었어요. 앱을 다시 시작해주세요.',
+          installingExit:
+            '업데이트 설치를 위해 앱이 종료되거나 재시작될 수 있어요.',
+          checkAction: '업데이트 확인',
+          installAction: '업데이트 설치',
+          errorFallback: '업데이트를 진행하지 못했습니다.',
+        },
         actions: {
           logout: '로그아웃',
           withdraw: '회원탈퇴',
@@ -283,6 +302,9 @@ export const resources = {
   },
   en: {
     translation: {
+      app: {
+        name: 'Posture turtle',
+      },
       auth: {
         slogan: 'Until every forward head posture stands tall like a giraffe',
         login: {
@@ -347,10 +369,10 @@ export const resources = {
           callbackFailed: 'This verification link is invalid or expired.',
           callbackMissingToken:
             'The verification token is missing, so verification cannot continue.',
-          callbackRetryLine1: 'Return to the GBGR app',
+          callbackRetryLine1: 'Return to the Posture turtle app',
           callbackRetryLine2: 'and request the verification email again.',
           callbackLine1: 'Your email has been verified.',
-          callbackLine2: 'Return to the GBGR app',
+          callbackLine2: 'Return to the Posture turtle app',
           callbackLine3: 'and log in to continue.',
         },
         validation: {
@@ -374,7 +396,7 @@ export const resources = {
           privacyNote:
             'Video is processed only on your PC and is never stored or transmitted anywhere else, so please rest assured.',
           greeting:
-            "Hello! I'm GBGR, your AI partner responsible for {{userName}}'s posture health.",
+            "Hello! I'm Posture turtle, your AI partner responsible for {{userName}}'s posture health.",
           steps: [
             {
               keypoint: 'Keypoint 1',
@@ -413,7 +435,7 @@ export const resources = {
         camera: {
           title: 'Camera Permission',
           description:
-            'GBGR analyzes your posture in real-time through your PC webcam.',
+            'Posture turtle analyzes your posture in real-time through your PC webcam.',
           privacyNote:
             'All analysis is done only on your PC, and video is never transmitted to the server.',
           button: 'Allow Camera Access',
@@ -436,7 +458,7 @@ export const resources = {
         completion: {
           title: 'Posture Registration Complete',
           description:
-            'Shall we start improving your forward head posture with GBGR?',
+            'Shall we start improving your forward head posture with Posture turtle?',
           button: 'Get Started',
           creatingSession: 'Creating session...',
         },
@@ -554,8 +576,26 @@ export const resources = {
           unsupported: 'This is not supported on the current operating system.',
           saving: 'Applying the setting.',
           enabledDescription:
-            'Automatically launches GBGR after you sign in to your computer.',
+            'Automatically launches Posture turtle after you sign in to your computer.',
           errorFallback: 'We could not update the startup setting.',
+        },
+        update: {
+          label: 'App updates',
+          description:
+            'Check whether a new version is available and install it right away.',
+          checking: 'Checking for a new version.',
+          installing: 'Installing the update.',
+          unconfigured: 'The update server has not been configured yet.',
+          noUpdate: 'You are already using the latest version.',
+          availableDescription:
+            'Version {{version}} is available to install.',
+          installedDescription:
+            'The update has been installed. Please restart the app.',
+          installingExit:
+            'The app may close or restart while the update is being installed.',
+          checkAction: 'Check updates',
+          installAction: 'Install update',
+          errorFallback: 'We could not complete the update.',
         },
         actions: {
           logout: 'Log out',

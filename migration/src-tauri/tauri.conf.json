@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "gbgr-app",
+  "productName": "GBGR",
   "version": "0.1.0",
-  "identifier": "com.gbgr.app",
+  "identifier": "co.kr.bugi.desktop",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:3000",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "gbgr-app",
+        "title": "거부기린",
         "width": 1280,
         "height": 800,
         "minWidth": 1280,
@@ -22,7 +22,7 @@
       },
       {
         "label": "widget",
-        "title": "widget",
+        "title": "거부기린",
         "url": "/widget",
         "create": false,
         "visible": false,

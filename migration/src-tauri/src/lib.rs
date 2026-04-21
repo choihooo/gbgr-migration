@@ -1,5 +1,8 @@
+use std::sync::Mutex;
+
 use tauri::Manager;
 
+mod app_updates;
 mod commands {
     pub mod posture_engine;
 }
@@ -39,8 +42,10 @@ pub fn run() {
 
     builder
         .manage(PostureEngineState::default())
+        .manage(app_updates::PendingUpdate(Mutex::new(None)))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -69,7 +74,9 @@ pub fn run() {
             get_latest_posture_state,
             open_widget_window,
             close_widget_window,
-            is_widget_open
+            is_widget_open,
+            app_updates::fetch_update,
+            app_updates::install_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

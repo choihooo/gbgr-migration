@@ -13,6 +13,7 @@ electron-dist/
 /renderer/
 /src/renderer/renderer/
 migration/src-tauri/target/
+migration/src-tauri/tauri.github-release.conf.json
 
 # Electron
 *.dmg
