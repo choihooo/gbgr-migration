@@ -1,4 +1,6 @@
 import { usePostureEngineStore } from '@/entities/posture'
+import { usePostureEngine } from '@/features/posture-engine'
+import { closeWidget } from '@/shared/lib/widget-api'
 import { useEffect, useState } from 'react'
 import { WidgetTitleBar } from './WidgetTitleBar'
 import { MediumWidgetContent } from './MediumWidgetContent'
@@ -10,48 +12,15 @@ const BREAKPOINT = {
   height: 62,
 } as const
 
-const MAIN_WINDOW_ACTIVE_KEY = 'main-window-active'
-const MAIN_WINDOW_TIMEOUT_MS = 2000
-
 function WidgetPage() {
   const [widgetSize, setWidgetSize] = useState<WidgetSize>('medium')
-  const [isMainWindowActive, setIsMainWindowActive] = useState(false)
+
+  usePostureEngine({ active: false })
 
   const latestResult = usePostureEngineStore(state => state.latestResult)
   const restoredResult = usePostureEngineStore(state => state.restoredResult)
-  const postureClass = latestResult?.postureClass ?? restoredResult?.postureClass ?? 0
-
-  // 메인 창 활성화 상태 확인
-  useEffect(() => {
-    const checkMainWindowStatus = () => {
-      const lastUpdateTime = localStorage.getItem(MAIN_WINDOW_ACTIVE_KEY)
-      if (!lastUpdateTime) {
-        setIsMainWindowActive(false)
-        return
-      }
-
-      const timeSinceUpdate = Date.now() - Number.parseInt(lastUpdateTime, 10)
-      const isActive = timeSinceUpdate < MAIN_WINDOW_TIMEOUT_MS
-      setIsMainWindowActive(isActive)
-    }
-
-    checkMainWindowStatus()
-
-    const interval = setInterval(checkMainWindowStatus, 500)
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === MAIN_WINDOW_ACTIVE_KEY) {
-        checkMainWindowStatus()
-      }
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-
-    return () => {
-      clearInterval(interval)
-      window.removeEventListener('storage', handleStorageChange)
-    }
-  }, [])
+  const postureClass =
+    latestResult?.postureClass ?? restoredResult?.postureClass ?? 0
 
   // 위젯 resize 이벤트
   useEffect(() => {
@@ -78,20 +47,14 @@ function WidgetPage() {
     }
   }, [])
 
-  // 위젯에서 메인 창 활성화 상태 주기적 업데이트
-  useEffect(() => {
-    if (!isMainWindowActive) {
-      const interval = setInterval(() => {
-        localStorage.setItem(MAIN_WINDOW_ACTIVE_KEY, Date.now().toString())
-      }, 500)
-      return () => clearInterval(interval)
-    }
-  }, [isMainWindowActive])
-
   const isMini = widgetSize === 'mini'
 
-  const handleClose = () => {
-    window.close()
+  const handleClose = async () => {
+    try {
+      await closeWidget()
+    } catch (error) {
+      console.error('위젯 창 닫기 실패:', error)
+    }
   }
 
   return (

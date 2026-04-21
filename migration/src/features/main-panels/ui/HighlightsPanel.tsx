@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Bar,
   BarChart,
@@ -38,6 +39,7 @@ function isCartesianViewBox(
 }
 
 export function HighlightsPanel() {
+  const { t } = useTranslation()
   const [activePeriod, setActivePeriod] = useState<HighlightPeriod>('weekly')
 
   const {
@@ -65,10 +67,10 @@ export function HighlightsPanel() {
   return (
     <div className="flex h-full min-h-0 flex-col rounded-2xl p-5">
       <div className="mb-4 flex items-center justify-between">
-        <PanelHeader>하이라이트</PanelHeader>
+        <PanelHeader>{t('dashboard.panels.highlights.title')}</PanelHeader>
         <ToggleSwitch
-          uncheckedLabel="주간"
-          checkedLabel="월간"
+          uncheckedLabel={t('dashboard.panels.highlights.weekly')}
+          checkedLabel={t('dashboard.panels.highlights.monthly')}
           checked={activePeriod === 'monthly'}
           onChange={handleToggleChange}
         />

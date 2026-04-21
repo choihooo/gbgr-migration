@@ -62,6 +62,7 @@ describe('usePostureEngine', () => {
       () => {},
     )
     vi.spyOn(bridge, 'subscribeToPostureWarnings').mockResolvedValue(() => {})
+    vi.spyOn(bridge, 'isTauriRuntimeAvailable').mockReturnValue(true)
 
     renderHook(() => usePostureEngine({ active: true }))
 

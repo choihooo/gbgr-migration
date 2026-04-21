@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLevelQuery } from '@/entities/dashboard/model/use-dashboard-queries'
 import {
   useCreateSessionMutation,
@@ -14,6 +15,7 @@ import { useWidget } from '@/shared/hooks/use-widget'
 import { useCameraStore } from '../model/use-camera-store'
 
 export function WebcamPanel() {
+  const { t } = useTranslation()
   const [mode, setMode] = useState<'foreground' | 'background'>('foreground')
   const { cameraState, setCameraState } = useCameraStore()
   const { toggleWidget } = useWidget()
@@ -104,12 +106,12 @@ export function WebcamPanel() {
           variant="primary"
           text={
             createSession.isPending
-              ? '세션 생성 중...'
+              ? t('dashboard.webcam.creatingSession')
               : stopSession.isPending
-                ? '세션 종료 중...'
+                ? t('dashboard.webcam.stoppingSession')
                 : isExit
-                  ? '시작하기'
-                  : '종료하기'
+                  ? t('dashboard.webcam.start')
+                  : t('dashboard.webcam.stop')
           }
           className="h-11 w-full max-w-[196px]"
           onClick={handleStartStop}
@@ -124,7 +126,7 @@ export function WebcamPanel() {
           text={
             <div className="text-body-md-medium flex items-center gap-1 text-yellow-500">
               <WidgetIcon className="h-6 w-6" />
-              위젯
+              {t('dashboard.webcam.widget')}
             </div>
           }
         />

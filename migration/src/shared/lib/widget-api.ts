@@ -9,5 +9,5 @@ export async function closeWidget(): Promise<void> {
 }
 
 export async function isWidgetOpen(): Promise<boolean> {
-  return await invoke('is_widget_open')
+  return invoke<boolean>('is_widget_open')
 }

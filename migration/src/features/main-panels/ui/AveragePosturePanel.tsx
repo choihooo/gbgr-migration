@@ -4,6 +4,7 @@ import stepOneCharacter from '@/assets/main/averagePosture/step_one_character.pn
 import stepThreeCharacter from '@/assets/main/averagePosture/step_three_character.png'
 import stepTwoCharacter from '@/assets/main/averagePosture/step_two_character.png'
 import { useAverageScoreQuery } from '@/entities/dashboard/model/use-dashboard-queries'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/shared/lib/cn'
 import type { PanelBaseProps } from '../model/types'
 
@@ -62,6 +63,7 @@ const getLevel = (score: number): number => {
 }
 
 export function AveragePosturePanel({ className }: PanelBaseProps) {
+  const { t } = useTranslation()
   const { data, isLoading } = useAverageScoreQuery()
   const score = data?.data.score ?? 0
   const level = getLevel(score)
@@ -80,14 +82,20 @@ export function AveragePosturePanel({ className }: PanelBaseProps) {
     >
       <div className="items center flex h-full justify-between">
         <p className="text-caption-sm-medium flex min-w-[120px] flex-col text-yellow-100">
-          <span>평균 자세 점수</span>
+          <span>{t('dashboard.panels.averagePosture.title')}</span>
           <span className="text-title-4xl-bold text-grey-0 mb-4">
-            {isLoading ? '-' : `${score}점`}
+            {isLoading
+              ? '-'
+              : t('dashboard.panels.averagePosture.score', { value: score })}
           </span>
           <span className="text-caption-xs-meidum whitespace-nowrap text-yellow-50">
-            목 평균 기울기 {levelInfo.tilt}
+            {t('dashboard.panels.averagePosture.neckTilt', {
+              value: levelInfo.tilt,
+            })}
             <br />
-            예상 하중 {levelInfo.weight}
+            {t('dashboard.panels.averagePosture.expectedWeight', {
+              value: levelInfo.weight,
+            })}
           </span>
         </p>
         <p className="flex flex-col items-end gap-1">

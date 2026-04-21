@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import AngelRiniVideo from '@/assets/video/angel-rini.webm'
 import AngelRiniRestSvg from '@/assets/video/angel-rini-rest.svg'
@@ -21,6 +22,7 @@ import { getScoreLevel } from '@/shared/lib/get-score-level'
 import { useCameraStore } from '../model/use-camera-store'
 
 function ExitPanel() {
+  const { t } = useTranslation()
   const [sessionId, setSessionId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -70,25 +72,28 @@ function ExitPanel() {
   const scoreProgressData = useMemo(
     () => [
       {
-        name: '바른 자세 비율',
+        name: t('dashboard.panels.report.postureTime'),
         value: correctPosturePercentage,
         color: colors.score,
       },
     ],
-    [correctPosturePercentage, colors.score],
+    [correctPosturePercentage, colors.score, t],
   )
 
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
-    return `${hours}시간 ${mins}분`
+    return t('dashboard.panels.report.hourMinute', {
+      hours,
+      minutes: mins,
+    })
   }
 
   if (isLoading) {
     return (
       <div className="flex h-[400px] items-center justify-center">
         <p className="text-body-lg-medium text-grey-400">
-          리포트를 불러오는 중...
+          {t('dashboard.panels.report.loading')}
         </p>
       </div>
     )
@@ -98,7 +103,7 @@ function ExitPanel() {
     return (
       <div className="flex h-[400px] items-center justify-center">
         <p className="text-body-lg-medium text-error-500">
-          리포트를 불러올 수 없습니다
+          {t('dashboard.panels.report.error')}
         </p>
       </div>
     )
@@ -108,7 +113,7 @@ function ExitPanel() {
     return (
       <div className="flex h-[400px] items-center justify-center">
         <p className="text-body-lg-medium text-grey-400">
-          세션 데이터가 없습니다
+          {t('dashboard.panels.report.empty')}
         </p>
       </div>
     )
@@ -117,9 +122,13 @@ function ExitPanel() {
   return (
     <div className="bg-grey-0 rounded-xl py-6">
       <div className="mb-12 flex flex-col">
-        <h2 className="text-caption-sm-medium text-grey-400">오늘의 리포트</h2>
+        <h2 className="text-caption-sm-medium text-grey-400">
+          {t('dashboard.panels.report.todayReport')}
+        </h2>
         <p className="text-headline-3xl-semibold text-grey-700">
-          오늘 총 {sessionDistance.toLocaleString()}m 이동했어요
+          {t('dashboard.panels.report.totalDistance', {
+            value: sessionDistance.toLocaleString(),
+          })}
         </p>
       </div>
 
@@ -162,7 +171,9 @@ function ExitPanel() {
         </ResponsiveContainer>
 
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <p className="text-caption-sm-regular text-grey-500">사용시간</p>
+          <p className="text-caption-sm-regular text-grey-500">
+            {t('dashboard.panels.report.usageTime')}
+          </p>
           <p className="text-headline-2xl-semibold text-grey-600">
             {formatTime(totalTime)}
           </p>
@@ -177,7 +188,7 @@ function ExitPanel() {
           />
           <p className="ml-1 flex flex-1 items-center justify-between">
             <span className="text-body-md-medium text-grey-400">
-              바른 자세 시간
+              {t('dashboard.panels.report.postureTime')}
             </span>
             <span className="text-headline-2xl-semibold text-grey-600">
               {correctPosturePercentage}%
@@ -188,10 +199,10 @@ function ExitPanel() {
         <div className="bg-grey-25 flex flex-col rounded-[24px] p-5">
           <p className="flex flex-col gap-2 px-5">
             <span className="text-body-sm-medium text-grey-400">
-              바른 자세 점수
+              {t('dashboard.panels.report.postureScore')}
             </span>
             <span className="text-body-xl-semibold text-grey-600">
-              {score}점
+              {t('dashboard.panels.report.score', { value: score })}
             </span>
           </p>
         </div>
@@ -201,6 +212,7 @@ function ExitPanel() {
 }
 
 function RunningPanel() {
+  const { t } = useTranslation()
   const latestResult = usePostureEngineStore(state => state.latestResult)
   const restoredResult = usePostureEngineStore(state => state.restoredResult)
   const cameraState = useCameraStore(state => state.cameraState)
@@ -270,15 +282,17 @@ function RunningPanel() {
 
   const runningStatus = useMemo(() => {
     const statusMap: Record<number, string> = {
-      1: '최고 속도로 가는 중!',
-      2: '빠르게 가는 중!',
-      3: '씽씽 가는 중!',
-      4: '천천히 가는 중',
-      5: '느릿느릿 가는중..',
-      6: '엉금엉금 가는중..',
+      1: t('dashboard.panels.report.runningBest'),
+      2: t('dashboard.panels.report.runningFast'),
+      3: t('dashboard.panels.report.runningGood'),
+      4: t('dashboard.panels.report.runningSlow'),
+      5: t('dashboard.panels.report.runningSlower'),
+      6: t('dashboard.panels.report.runningSlowest'),
     }
-    return statusMap[levelInfo.level] || '가는 중'
-  }, [levelInfo.level])
+    return (
+      statusMap[levelInfo.level] || t('dashboard.panels.report.runningFallback')
+    )
+  }, [levelInfo.level, t])
 
   useEffect(() => {
     const video = backgroundVideoRef.current
@@ -348,7 +362,7 @@ function RunningPanel() {
           ) : (
             <img
               src={levelSvgSrc}
-              alt="레벨 이미지"
+              alt={t('dashboard.panels.report.levelImageAlt')}
               className="h-auto max-h-[320px] w-full rounded-lg bg-transparent object-contain"
             />
           )}

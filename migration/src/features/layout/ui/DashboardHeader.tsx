@@ -3,6 +3,7 @@
  */
 
 import type { ComponentType, SVGProps } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/entities/theme'
 import { cn } from '@/shared/lib/cn'
 import { Button } from '@/shared/ui/button'
@@ -23,13 +24,6 @@ interface TabItem {
   disabled: boolean
 }
 
-const tabs: TabItem[] = [
-  { id: 'dashboard', label: '대시보드', icon: DashboardIcon, disabled: false },
-  { id: 'settings', label: '설정', icon: SettingIcon, disabled: false },
-  { id: 'report', label: '오류 제보', icon: TipOffIcon, disabled: false },
-  { id: 'review', label: '후기 등록', disabled: false },
-]
-
 interface DashboardHeaderProps {
   activeTab?: TabType
   onTabClick?: (tabId: TabType) => void
@@ -41,8 +35,31 @@ export function DashboardHeader({
   onTabClick,
   onOpenNotification,
 }: DashboardHeaderProps) {
+  const { t } = useTranslation()
   const isDark = useThemeStore(s => s.isDark)
   const setPreference = useThemeStore(s => s.setPreference)
+
+  const tabs: TabItem[] = [
+    {
+      id: 'dashboard',
+      label: t('dashboard.header.dashboard'),
+      icon: DashboardIcon,
+      disabled: false,
+    },
+    {
+      id: 'settings',
+      label: t('dashboard.header.settings'),
+      icon: SettingIcon,
+      disabled: false,
+    },
+    {
+      id: 'report',
+      label: t('dashboard.header.report'),
+      icon: TipOffIcon,
+      disabled: false,
+    },
+    { id: 'review', label: t('dashboard.header.review'), disabled: false },
+  ]
 
   return (
     <header

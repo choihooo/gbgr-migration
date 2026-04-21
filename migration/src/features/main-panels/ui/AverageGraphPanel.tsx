@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Area,
   AreaChart,
@@ -16,6 +17,7 @@ import {
 } from './AverageGraphPanel/hooks/useAverageGraphChart'
 
 export function AverageGraphPanel() {
+  const { t } = useTranslation()
   const [activePeriod, setActivePeriod] = useState<AverageGraphPeriod>('weekly')
   const { data, maxDomain, fillColor, strokeColor, gridColor, yAxisTicks } =
     useAverageGraphChart(activePeriod)
@@ -34,17 +36,19 @@ export function AverageGraphPanel() {
   return (
     <section className="flex h-full min-h-0 flex-col rounded-2xl p-5">
       <div className="mb-4 flex items-center justify-between">
-        <PanelHeader>바른 자세 점수</PanelHeader>
+        <PanelHeader>{t('dashboard.panels.averageGraph.title')}</PanelHeader>
         <ToggleSwitch
-          uncheckedLabel="주간"
-          checkedLabel="월간"
+          uncheckedLabel={t('dashboard.panels.averageGraph.weekly')}
+          checkedLabel={t('dashboard.panels.averageGraph.monthly')}
           checked={activePeriod === 'monthly'}
           onChange={handleToggleChange}
         />
       </div>
       <p className="ml-auto flex items-center gap-1">
         <span className="h-2 w-2 rounded-full bg-yellow-500" />
-        <span className="text-caption-2xs-medium text-grey-300">점수</span>
+        <span className="text-caption-2xs-medium text-grey-300">
+          {t('dashboard.panels.averageGraph.score')}
+        </span>
       </p>
 
       <div
