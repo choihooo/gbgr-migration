@@ -10,6 +10,13 @@ export function AppI18nProvider({ children }: I18nProviderProps) {
   useEffect(() => {
     const applyLanguageToDocument = (language: string) => {
       document.documentElement.lang = normalizeLanguage(language)
+      document.title = i18n.t('app.name', { lng: language })
+
+      if ('__TAURI_INTERNALS__' in window) {
+        void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
+          void getCurrentWindow().setTitle(i18n.t('app.name', { lng: language }))
+        })
+      }
     }
 
     applyLanguageToDocument(i18n.resolvedLanguage ?? i18n.language)
