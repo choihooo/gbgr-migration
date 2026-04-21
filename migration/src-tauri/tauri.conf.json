@@ -19,6 +19,23 @@
         "height": 800,
         "minWidth": 1280,
         "minHeight": 800
+      },
+      {
+        "label": "widget",
+        "title": "widget",
+        "url": "/widget",
+        "create": false,
+        "visible": false,
+        "width": 200,
+        "height": 320,
+        "minWidth": 160,
+        "minHeight": 45,
+        "maxWidth": 260,
+        "maxHeight": 348,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "resizable": true,
+        "skipTaskbar": true
       }
     ],
     "security": {

@@ -29,11 +29,23 @@ export function WidgetTitleBar({
         aria-label="닫기"
       />
       {isMini ? (
-        <img src={MiniDragIcon} alt="" className="my-auto" draggable={false} />
+        <img
+          src={MiniDragIcon}
+          alt=""
+          className="my-auto"
+          draggable={false}
+          data-tauri-drag-region
+        />
       ) : (
         <>
-          <img src={MediumDragIcon} alt="" className="mx-auto" draggable={false} />
-          <span className="bg-grey-0 inline-block w-2" />
+          <img
+            src={MediumDragIcon}
+            alt=""
+            className="mx-auto"
+            draggable={false}
+            data-tauri-drag-region
+          />
+          <span className="bg-grey-0 inline-block w-2" data-tauri-drag-region />
         </>
       )}
     </div>

@@ -1,8 +1,9 @@
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager, WebviewWindowBuilder, WebviewUrl};
+use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder};
 
 const WIDGET_STATE_FILE: &str = "widget-window-state.json";
+const DEBUG_IGNORE_SAVED_WIDGET_POSITION: bool = false;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 struct WidgetWindowState {
@@ -22,8 +23,10 @@ fn get_state_file_path(app: &AppHandle) -> PathBuf {
 fn load_widget_state(app: &AppHandle) -> Option<WidgetWindowState> {
     let path = get_state_file_path(app);
     if !path.exists() {
+        println!("[widget] saved state not found: {}", path.display());
         return None;
     }
+    println!("[widget] loading saved state: {}", path.display());
     fs::read_to_string(path)
         .ok()
         .and_then(|raw| serde_json::from_str(&raw).ok())
@@ -33,91 +36,175 @@ fn save_widget_state(app: &AppHandle, state: &WidgetWindowState) {
     let path = get_state_file_path(app);
     if let Ok(raw) = serde_json::to_string(state) {
         fs::write(path, raw).ok();
+        println!(
+            "[widget] saved state: x={}, y={}, width={}, height={}",
+            state.x, state.y, state.width, state.height
+        );
     }
 }
 
-#[tauri::command]
-pub fn open_widget_window(app: AppHandle) -> Result<(), String> {
-    // 이미 위젯 창이 있으면 포커스
-    if let Some(existing) = app.get_webview_window("widget") {
-        let _ = existing.show();
-        let _ = existing.set_focus();
-        return Ok(());
+fn save_current_widget_state(app: &AppHandle, window: &tauri::WebviewWindow) {
+    if let (Ok(pos), Ok(size)) = (window.outer_position(), window.inner_size()) {
+        save_widget_state(app, &WidgetWindowState {
+            x: pos.x,
+            y: pos.y,
+            width: size.width,
+            height: size.height,
+        });
     }
+}
 
-    let saved = load_widget_state(&app);
+fn apply_saved_widget_bounds(
+    app: &AppHandle,
+    window: &WebviewWindow,
+) -> Result<(), tauri::Error> {
+    let saved = if DEBUG_IGNORE_SAVED_WIDGET_POSITION {
+        println!("[widget] ignoring saved position for debug session");
+        None
+    } else {
+        load_widget_state(app)
+    };
+
     let (x, y, width, height) = match saved {
         Some(s) => (Some(s.x), Some(s.y), s.width, s.height),
         None => (None, None, 200, 320),
     };
 
-    let mut builder = WebviewWindowBuilder::new(&app, "widget", WebviewUrl::App("/widget".into()))
-        .title("widget")
-        .inner_size(width as f64, height as f64)
-        .min_inner_size(160.0, 45.0)
-        .max_inner_size(260.0, 348.0)
-        .decorations(false)
-        .always_on_top(true)
-        .resizable(true)
-        .skip_taskbar(true)
-        .visible(false);
+    println!(
+        "[widget] applying bounds: x={:?}, y={:?}, width={}, height={}",
+        x, y, width, height
+    );
+
+    window.set_size(tauri::Size::Logical(tauri::LogicalSize {
+        width: width as f64,
+        height: height as f64,
+    }))?;
 
     if let (Some(sx), Some(sy)) = (x, y) {
-        builder = builder.position(sx as f64, sy as f64);
+        window.set_position(tauri::Position::Logical(tauri::LogicalPosition {
+            x: sx as f64,
+            y: sy as f64,
+        }))?;
+    } else {
+        println!("[widget] centering window");
+        window.center()?;
     }
 
-    let win = builder.build().map_err(|e| e.to_string())?;
+    Ok(())
+}
 
-    // 창 이동/리사이즈 시 상태 저장
+fn attach_widget_window_events(app: &AppHandle, window: &WebviewWindow) {
     let app_clone = app.clone();
-    win.on_window_event(move |event| {
-        match event {
-            tauri::WindowEvent::Moved(pos) => {
-                let state = load_widget_state(&app_clone).unwrap_or(WidgetWindowState {
-                    x: pos.x,
-                    y: pos.y,
-                    width: 200,
-                    height: 320,
-                });
-                save_widget_state(&app_clone, &WidgetWindowState {
-                    x: pos.x,
-                    y: pos.y,
-                    ..state
-                });
-            }
-            tauri::WindowEvent::Resized(size) => {
-                let state = load_widget_state(&app_clone).unwrap_or(WidgetWindowState {
-                    x: 0,
-                    y: 0,
-                    width: size.width,
-                    height: size.height,
-                });
-                save_widget_state(&app_clone, &WidgetWindowState {
-                    width: size.width,
-                    height: size.height,
-                    ..state
-                });
-            }
-            _ => {}
+    let win_for_events = window.clone();
+    window.on_window_event(move |event| match event {
+        tauri::WindowEvent::Moved(pos) => {
+            println!("[widget] moved: x={}, y={}", pos.x, pos.y);
+            save_current_widget_state(&app_clone, &win_for_events);
         }
+        tauri::WindowEvent::Resized(size) => {
+            println!("[widget] resized: width={}, height={}", size.width, size.height);
+            save_current_widget_state(&app_clone, &win_for_events);
+        }
+        tauri::WindowEvent::Destroyed => {
+            println!("[widget] destroyed");
+        }
+        tauri::WindowEvent::Focused(focused) => {
+            println!("[widget] focused: {}", focused);
+        }
+        _ => {}
     });
+}
 
-    let _ = win.show();
+pub fn ensure_widget_window(app: &AppHandle) -> Result<(), String> {
+    if app.get_webview_window("widget").is_some() {
+        println!("[widget] ensure skipped: widget window already exists");
+        return Ok(());
+    }
+
+    let widget_config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|window| window.label == "widget")
+        .ok_or_else(|| "widget window config not found".to_string())?;
+
+    println!("[widget] ensure build start");
+    let window = WebviewWindowBuilder::from_config(app, widget_config)
+        .map_err(|error| {
+            eprintln!("[widget] ensure from_config failed: {}", error);
+            error.to_string()
+        })?
+        .build()
+        .map_err(|error| {
+            eprintln!("[widget] ensure build failed: {}", error);
+            error.to_string()
+        })?;
+    println!("[widget] ensure build success");
+
+    attach_widget_window_events(app, &window);
+    apply_saved_widget_bounds(app, &window).map_err(|error| {
+        eprintln!("[widget] ensure apply bounds failed: {}", error);
+        error.to_string()
+    })?;
+
+    window.hide().map_err(|error| {
+        eprintln!("[widget] ensure hide failed: {}", error);
+        error.to_string()
+    })?;
+    println!("[widget] ensure hide success");
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn open_widget_window(app: AppHandle) -> Result<(), String> {
+    println!("[widget] open_widget_window:start");
+    // 이미 위젯 창이 있으면 포커스
+    if let Some(existing) = app.get_webview_window("widget") {
+        println!("[widget] existing window found, focusing");
+        let _ = existing.show();
+        let _ = existing.set_focus();
+        return Ok(());
+    }
+
+    ensure_widget_window(&app)?;
+
+    let win = app
+        .get_webview_window("widget")
+        .ok_or_else(|| "widget window not found after ensure".to_string())?;
+
+    if let Err(error) = apply_saved_widget_bounds(&app, &win) {
+        eprintln!("[widget] apply bounds before show failed: {}", error);
+    }
+
+    if let Err(error) = win.show() {
+        eprintln!("[widget] show failed: {}", error);
+        return Err(error.to_string());
+    }
+    println!("[widget] show success");
+
+    if let Err(error) = win.set_focus() {
+        eprintln!("[widget] set_focus failed: {}", error);
+    } else {
+        println!("[widget] set_focus success");
+    }
+
     Ok(())
 }
 
 #[tauri::command]
 pub fn close_widget_window(app: AppHandle) -> Result<(), String> {
+    println!("[widget] close_widget_window:start");
     if let Some(win) = app.get_webview_window("widget") {
-        if let (Ok(pos), Ok(size)) = (win.outer_position(), win.inner_size()) {
-            save_widget_state(&app, &WidgetWindowState {
-                x: pos.x,
-                y: pos.y,
-                width: size.width,
-                height: size.height,
-            });
+        save_current_widget_state(&app, &win);
+        if let Err(error) = win.hide() {
+            eprintln!("[widget] hide failed: {}", error);
+            return Err(error.to_string());
         }
-        let _ = win.close();
+        println!("[widget] hide success");
+    } else {
+        println!("[widget] close skipped: window not found");
     }
     Ok(())
 }
@@ -127,5 +214,6 @@ pub fn is_widget_open(app: AppHandle) -> Result<bool, String> {
     let open = app.get_webview_window("widget")
         .map(|w| w.is_visible().unwrap_or(false))
         .unwrap_or(false);
+    println!("[widget] is_widget_open -> {}", open);
     Ok(open)
 }

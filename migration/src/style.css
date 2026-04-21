@@ -5,6 +5,14 @@
 @import "./shared/styles/scrollbar.css";
 @import "./shared/styles/animations.css";
 
+[data-tauri-drag-region] {
+  app-region: drag;
+}
+
+button {
+  app-region: no-drag;
+}
+
 .media-display {
   -webkit-user-select: none;
   user-select: none;

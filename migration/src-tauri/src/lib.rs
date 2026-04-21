@@ -15,7 +15,7 @@ use commands::posture_engine::{
     stop_background_measurement, stop_posture_engine,
 };
 use state::posture_engine_state::PostureEngineState;
-use widget::{close_widget_window, is_widget_open, open_widget_window};
+use widget::{close_widget_window, ensure_widget_window, is_widget_open, open_widget_window};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -52,6 +52,10 @@ pub fn run() {
 
                 app.deep_link().register_all()?;
             }
+
+            ensure_widget_window(app.handle()).map_err(|error| {
+                std::io::Error::new(std::io::ErrorKind::Other, format!("widget setup failed: {error}"))
+            })?;
 
             Ok(())
         })
