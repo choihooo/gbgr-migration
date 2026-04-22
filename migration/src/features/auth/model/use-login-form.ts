@@ -1,7 +1,7 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { useAuthSessionStore } from '@/entities/session'
+import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { useAuthEmailStore, useAuthUserStore } from '@/entities/user'
 import { fetchCurrentUser } from '@/features/auth/api/auth-api'
 import { useLoginMutation } from '@/features/auth/api/use-login-mutation'

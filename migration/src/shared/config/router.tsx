@@ -1,30 +1,20 @@
-import { lazy } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import RootLayout from '@/app/layouts/RootLayout'
+import CalibrationPage from '@/pages/calibration-page'
+import EmailVerificationCallbackPage from '@/pages/email-verification-callback-page'
+import EmailVerificationPage from '@/pages/email-verification-page'
+import LoginPage from '@/pages/login-page'
+import MainPage from '@/pages/main-page'
+import OnboardingCompletionPage from '@/pages/onboarding-completion-page'
+import OnboardingInitPage from '@/pages/onboarding-init-page'
+import OnboardingPage from '@/pages/onboarding-page'
+import ResendVerificationPage from '@/pages/resend-verification-page'
+import SignupPage from '@/pages/signup-page'
+import WidgetPage from '@/pages/widget-page'
 import { ProtectedRoute, PublicOnlyRoute } from '@/shared/config/auth-routes'
 
 // TODO: 보정 게이트 복원 (007 구현 완료 후)
 // import { CalibrationRouteGuard } from '@/shared/lib/calibration-route-guard'
-
-const LoginPage = lazy(() => import('@/pages/login-page'))
-const SignupPage = lazy(() => import('@/pages/signup-page'))
-const EmailVerificationPage = lazy(
-  () => import('@/pages/email-verification-page'),
-)
-const EmailVerificationCallbackPage = lazy(
-  () => import('@/pages/email-verification-callback-page'),
-)
-const ResendVerificationPage = lazy(
-  () => import('@/pages/resend-verification-page'),
-)
-const MainPage = lazy(() => import('@/pages/main-page'))
-const OnboardingPage = lazy(() => import('@/pages/onboarding-page'))
-const OnboardingInitPage = lazy(() => import('@/pages/onboarding-init-page'))
-const CalibrationPage = lazy(() => import('@/pages/calibration-page'))
-const OnboardingCompletionPage = lazy(
-  () => import('@/pages/onboarding-completion-page'),
-)
-const WidgetPage = lazy(() => import('@/pages/widget-page'))
 
 export const router = createBrowserRouter([
   {

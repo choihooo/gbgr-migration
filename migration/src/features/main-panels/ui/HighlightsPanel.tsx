@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Bar,
   BarChart,
@@ -38,6 +39,7 @@ function isCartesianViewBox(
 }
 
 export function HighlightsPanel() {
+  const { t } = useTranslation()
   const [activePeriod, setActivePeriod] = useState<HighlightPeriod>('weekly')
 
   const {
@@ -63,12 +65,12 @@ export function HighlightsPanel() {
   }
 
   return (
-    <div className="flex h-full flex-col rounded-2xl p-5">
+    <div className="flex h-full min-h-0 flex-col rounded-2xl p-5">
       <div className="mb-4 flex items-center justify-between">
-        <PanelHeader>하이라이트</PanelHeader>
+        <PanelHeader>{t('dashboard.panels.highlights.title')}</PanelHeader>
         <ToggleSwitch
-          uncheckedLabel="주간"
-          checkedLabel="월간"
+          uncheckedLabel={t('dashboard.panels.highlights.weekly')}
+          checkedLabel={t('dashboard.panels.highlights.monthly')}
           checked={activePeriod === 'monthly'}
           onChange={handleToggleChange}
         />
@@ -80,13 +82,18 @@ export function HighlightsPanel() {
         </span>
       </div>
 
-      <div className="mt-6 min-h-[220px] flex-1">
+      <div className="mt-6 min-h-[220px] min-w-0 flex-1">
         {isLoading ? (
           <div className="flex h-full items-center justify-center">
             <LoadingSpinner size="md" />
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            minWidth={0}
+            minHeight={0}
+          >
             <BarChart
               data={data}
               barSize={barSize}

@@ -4,7 +4,6 @@
 
 import { useMainPage } from '@/features/dashboard/model/use-main-page'
 import { MainContent } from '@/features/dashboard/ui/MainContent'
-import { DashboardHeader } from '@/features/layout/ui/DashboardHeader'
 import { NotificationModal } from '@/features/notification-settings/ui/NotificationModal'
 import { SettingsModal } from '@/features/settings/ui/SettingsModal'
 
@@ -20,14 +19,13 @@ export default function DashboardPage() {
   } = useMainPage()
 
   return (
-    <>
-      <DashboardHeader
-        activeTab={activeTab}
-        onTabClick={onTabClick}
-        onOpenNotification={openNotification}
-      />
-      <main className="bg-grey-25 flex h-screen flex-col overflow-hidden p-4">
-        <MainContent />
+    <div className="bg-grey-25 flex h-screen min-h-0 flex-col overflow-hidden">
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+        <MainContent
+          activeTab={activeTab}
+          onTabClick={onTabClick}
+          onOpenNotification={openNotification}
+        />
       </main>
 
       <SettingsModal isOpen={isSettingsOpen} onClose={closeSettings} />
@@ -35,6 +33,6 @@ export default function DashboardPage() {
         isOpen={isNotificationOpen}
         onClose={closeNotification}
       />
-    </>
+    </div>
   )
 }

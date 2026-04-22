@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLevelQuery } from '@/entities/dashboard/model/use-dashboard-queries'
 import {
   useCreateSessionMutation,
@@ -5,34 +7,18 @@ import {
   useResumeSessionMutation,
   useStopSessionMutation,
 } from '@/entities/session/model/use-session-mutations'
-import { cn } from '@/shared/lib/cn'
+import { useWindowVisibilitySync } from '@/features/posture-engine'
+import WebcamView from '@/pages/calibration-page/components/WebcamView'
 import { Button } from '@/shared/ui/button'
 import { HideIcon, ShowIcon, WidgetIcon } from '@/shared/ui/icons/ui-icons'
+import { useWidget } from '@/shared/hooks/use-widget'
 import { useCameraStore } from '../model/use-camera-store'
 
-function StatusCard({
-  title,
-  description,
-}: {
-  title: string
-  description: string
-}) {
-  return (
-    <div className="flex h-full flex-col justify-between rounded-[24px] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.24),_rgba(255,255,255,0.08))] p-6 text-grey-0">
-      <div>
-        <p className="text-caption-sm-medium text-yellow-100">{title}</p>
-        <p className="text-headline-2xl-semibold mt-2 whitespace-pre-line">
-          {description}
-        </p>
-      </div>
-      <div className="bg-white/16 h-14 rounded-full" />
-    </div>
-  )
-}
-
 export function WebcamPanel() {
-  const { cameraState, widgetState, setCameraState, toggleWidget } =
-    useCameraStore()
+  const { t } = useTranslation()
+  const [mode, setMode] = useState<'foreground' | 'background'>('foreground')
+  const { cameraState, setCameraState } = useCameraStore()
+  const { toggleWidget } = useWidget()
   const isWebcamOn = cameraState === 'show'
   const isExit = cameraState === 'exit'
   const currentSessionId =
@@ -43,6 +29,8 @@ export function WebcamPanel() {
   const stopSession = useStopSessionMutation()
   const pauseSession = usePauseSessionMutation()
   const resumeSession = useResumeSessionMutation()
+
+  useWindowVisibilitySync(setMode)
 
   const handleStartStop = () => {
     if (isExit) {
@@ -94,25 +82,9 @@ export function WebcamPanel() {
   }
 
   return (
-    <section className="flex w-full flex-col gap-3">
-      <div className="relative aspect-video max-h-[198px] max-w-[352px] overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,#4B4A48_0%,#232323_100%)]">
-        {cameraState === 'show' ? (
-          <StatusCard
-            title="카메라 활성화"
-            description={'실시간 분석 화면이\n이곳에 표시됩니다'}
-          />
-        ) : cameraState === 'hide' ? (
-          <StatusCard
-            title="카메라 일시 숨김"
-            description={'세션은 유지한 채\n화면만 잠시 숨겼습니다'}
-          />
-        ) : (
-          <StatusCard
-            title="세션 대기"
-            description={'시작하기를 누르면\n웹캠 세션이 연결됩니다'}
-          />
-        )}
-
+    <div className="flex w-full flex-col gap-3">
+      <div className="relative aspect-video max-h-[198px] max-w-[352px]">
+        <WebcamView isActive={true} mode={mode} />
         <Button
           size="md"
           variant="grey"
@@ -128,19 +100,18 @@ export function WebcamPanel() {
           className="absolute top-2 right-2 h-[30px] w-[30px] px-0"
         />
       </div>
-
       <div className="flex gap-2">
         <Button
           size="md"
           variant="primary"
           text={
             createSession.isPending
-              ? '세션 생성 중...'
+              ? t('dashboard.webcam.creatingSession')
               : stopSession.isPending
-                ? '세션 종료 중...'
+                ? t('dashboard.webcam.stoppingSession')
                 : isExit
-                  ? '시작하기'
-                  : '종료하기'
+                  ? t('dashboard.webcam.start')
+                  : t('dashboard.webcam.stop')
           }
           className="h-11 w-full max-w-[196px]"
           onClick={handleStartStop}
@@ -151,20 +122,15 @@ export function WebcamPanel() {
           variant="sub"
           onClick={toggleWidget}
           disabled={isExit}
-          className="h-11 w-[110px] px-[12px] py-[10px]"
+          className="h-11 w-[110px] px-[12px] py-[10px] disabled:pointer-events-none"
           text={
-            <div
-              className={cn(
-                'text-body-md-medium flex items-center gap-1',
-                widgetState === 'show' ? 'text-yellow-600' : 'text-yellow-500',
-              )}
-            >
+            <div className="text-body-md-medium flex items-center gap-1 text-yellow-500">
               <WidgetIcon className="h-6 w-6" />
-              위젯
+              {t('dashboard.webcam.widget')}
             </div>
           }
         />
       </div>
-    </section>
+    </div>
   )
 }

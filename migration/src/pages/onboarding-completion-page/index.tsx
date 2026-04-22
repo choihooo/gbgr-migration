@@ -7,7 +7,7 @@
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import CompletionCharacter from '@/assets/common/icons/completion.svg?react'
-import { useCreateSessionMutation } from '@/entities/session'
+import { useCreateSessionMutation } from '@/entities/session/model/use-session-mutations'
 import { Button } from '@/shared/ui/button'
 
 const OnboardingCompletionPage = () => {

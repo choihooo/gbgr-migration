@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useAuthSessionStore } from '@/entities/session'
+import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { persistRedirectPath } from '@/features/auth/lib/session-persistence'
 import { getPostAuthRedirectPath } from '@/features/auth/model/use-auth-redirect'
 

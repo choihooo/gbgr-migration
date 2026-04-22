@@ -44,4 +44,5 @@ export function changeAppLanguage(language: AppLanguage) {
   return i18n.changeLanguage(language)
 }
 
+export type { AppLanguage }
 export { i18n }

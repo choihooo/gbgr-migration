@@ -4,14 +4,26 @@
 
 import { disable, enable, isEnabled } from '@tauri-apps/plugin-autostart'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { useAuthSessionStore } from '@/entities/session'
+import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { useAuthUserStore } from '@/entities/user'
+import {
+  changeAppLanguage,
+  i18n,
+  normalizeLanguage,
+  type AppLanguage,
+} from '@/shared/lib/i18n'
 import {
   clearAuthSession,
   clearRedirectPath,
 } from '@/features/auth/lib/session-persistence'
 import { clearStoredTokens } from '@/shared/api/instance'
+import {
+  fetchUpdate,
+  installUpdate,
+  type FetchUpdateResponse,
+} from '@/shared/lib/update-api'
 import { cn } from '@/shared/lib/cn'
 import { Button } from '@/shared/ui/button'
 import {
@@ -20,7 +32,10 @@ import {
   WithdrawIcon,
 } from '@/shared/ui/icons/option-icons'
 import { Modal } from '@/shared/ui/modal'
-import { NotificationToggleSwitch } from '@/shared/ui/toggle-switch'
+import {
+  NotificationToggleSwitch,
+  ToggleSwitch,
+} from '@/shared/ui/toggle-switch'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -28,6 +43,7 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const markUnauthenticated = useAuthSessionStore(s => s.markUnauthenticated)
   const clearUser = useAuthUserStore(s => s.clearUser)
@@ -37,6 +53,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [isStartupLoading, setIsStartupLoading] = useState(true)
   const [isStartupSaving, setIsStartupSaving] = useState(false)
   const [startupError, setStartupError] = useState('')
+  const [isLanguageSaving, setIsLanguageSaving] = useState(false)
+  const [updateInfo, setUpdateInfo] = useState<FetchUpdateResponse | null>(null)
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+  const [isInstallingUpdate, setIsInstallingUpdate] = useState(false)
+  const [updateMessage, setUpdateMessage] = useState('')
+  const [updateError, setUpdateError] = useState('')
+
+  const currentLanguage = normalizeLanguage(i18n.resolvedLanguage ?? i18n.language)
 
   useEffect(() => {
     let isMounted = true
@@ -86,7 +110,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       const message =
         error instanceof Error
           ? error.message
-          : '자동 실행 설정을 변경하지 못했습니다.'
+          : t('settings.startup.errorFallback')
       setStartupError(message)
       setIsStartupEnabled(!nextEnabled)
     } finally {
@@ -109,7 +133,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }
 
   const handleWithdraw = () => {
-    const shouldProceed = window.confirm('정말 회원탈퇴 하시겠어요?')
+    const shouldProceed = window.confirm(t('settings.actions.withdrawConfirm'))
     if (!shouldProceed) return
 
     // TODO: 회원탈퇴 API 연동 (withdrawMutation)
@@ -124,19 +148,117 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     navigate('/onboarding/init')
   }
 
+  const handleLanguageChange = async (language: AppLanguage) => {
+    if (isLanguageSaving || currentLanguage === language) {
+      return
+    }
+
+    setIsLanguageSaving(true)
+    try {
+      await changeAppLanguage(language)
+    } finally {
+      setIsLanguageSaving(false)
+    }
+  }
+
+  const handleUpdateAction = async () => {
+    if (isCheckingUpdate || isInstallingUpdate) {
+      return
+    }
+
+    setUpdateError('')
+
+    try {
+      if (updateInfo?.configured && updateInfo.update) {
+        setIsInstallingUpdate(true)
+        const response = await installUpdate()
+
+        if (!response.configured) {
+          setUpdateInfo(null)
+          setUpdateMessage(t('settings.update.unconfigured'))
+          return
+        }
+
+        if (!response.installed) {
+          setUpdateInfo({
+            configured: true,
+            update: null,
+          })
+          setUpdateMessage(t('settings.update.noUpdate'))
+          return
+        }
+
+        setUpdateInfo({
+          configured: true,
+          update: null,
+        })
+        setUpdateMessage(
+          response.exitsOnInstall
+            ? t('settings.update.installingExit')
+            : t('settings.update.installedDescription'),
+        )
+        return
+      }
+
+      setIsCheckingUpdate(true)
+      const response = await fetchUpdate()
+      setUpdateInfo(response)
+
+      if (!response.configured) {
+        setUpdateMessage(t('settings.update.unconfigured'))
+      } else if (response.update) {
+        setUpdateMessage(
+          t('settings.update.availableDescription', {
+            version: response.update.version,
+          }),
+        )
+      } else {
+        setUpdateMessage(t('settings.update.noUpdate'))
+      }
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t('settings.update.errorFallback')
+      setUpdateError(message)
+    } finally {
+      setIsCheckingUpdate(false)
+      setIsInstallingUpdate(false)
+    }
+  }
+
   const startupDescription = isStartupLoading
-    ? '현재 상태를 확인하고 있어요.'
+    ? t('settings.startup.loading')
     : !isStartupSupported
-      ? '현재 운영체제에서는 지원하지 않아요.'
+      ? t('settings.startup.unsupported')
       : isStartupSaving
-        ? '설정을 적용하고 있어요.'
-        : '컴퓨터 로그인 후 거부기린을 자동으로 실행해요.'
+        ? t('settings.startup.saving')
+        : t('settings.startup.enabledDescription')
+
+  const updateDescription = isCheckingUpdate
+    ? t('settings.update.checking')
+    : isInstallingUpdate
+      ? t('settings.update.installing')
+      : updateMessage || t('settings.update.description')
+
+  const updateActionLabel =
+    updateInfo?.configured && updateInfo.update
+      ? t('settings.update.installAction')
+      : t('settings.update.checkAction')
 
   const actionItems = [
-    { label: '로그아웃', icon: <LogoutIcon />, onClick: handleLogout },
-    { label: '회원탈퇴', icon: <WithdrawIcon />, onClick: handleWithdraw },
     {
-      label: '캘리브레이션 재설정',
+      label: t('settings.actions.logout'),
+      icon: <LogoutIcon />,
+      onClick: handleLogout,
+    },
+    {
+      label: t('settings.actions.withdraw'),
+      icon: <WithdrawIcon />,
+      onClick: handleWithdraw,
+    },
+    {
+      label: t('settings.actions.calibrationReset'),
       icon: <CalibrationResetIcon />,
       onClick: handleCalibrationReset,
     },
@@ -147,14 +269,42 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       <div className="flex flex-col gap-4 rounded-[24px] border border-grey-0 bg-white p-4 shadow-[0_0_24px_rgba(0,0,0,0.12)] dark:bg-grey-1000">
         <div className="rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
           <h2 className="text-body-lg-semibold text-grey-900 dark:text-grey-100">
-            설정
+            {t('settings.title')}
           </h2>
         </div>
 
         <div className="flex items-center justify-between gap-3 rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-body-md-medium text-grey-900 dark:text-grey-100">
-              OS 시작 시 자동 실행
+              {t('settings.language.label')}
+            </span>
+            <span className="font-['Pretendard'] text-[11px] leading-[150%] text-grey-500">
+              {t('settings.language.description')}
+            </span>
+          </div>
+
+          <div
+            className={cn(
+              'shrink-0',
+              isLanguageSaving ? 'pointer-events-none opacity-70' : '',
+            )}
+          >
+            <ToggleSwitch
+              checked={currentLanguage === 'en'}
+              onChange={checked => {
+                const nextLanguage: AppLanguage = checked ? 'en' : 'ko'
+                void handleLanguageChange(nextLanguage)
+              }}
+              uncheckedLabel={t('settings.language.optionKo')}
+              checkedLabel={t('settings.language.optionEn')}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="text-body-md-medium text-grey-900 dark:text-grey-100">
+              {t('settings.startup.label')}
             </span>
             <span className="font-['Pretendard'] text-[11px] leading-[150%] text-grey-500">
               {startupDescription}
@@ -172,6 +322,33 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             isDisabled={
               isStartupLoading || isStartupSaving || !isStartupSupported
             }
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="text-body-md-medium text-grey-900 dark:text-grey-100">
+              {t('settings.update.label')}
+            </span>
+            <span className="font-['Pretendard'] text-[11px] leading-[150%] text-grey-500">
+              {updateDescription}
+            </span>
+            {updateError ? (
+              <span className="font-['Pretendard'] text-[11px] leading-[150%] text-red-500">
+                {updateError}
+              </span>
+            ) : null}
+          </div>
+
+          <Button
+            text={updateActionLabel}
+            variant="grey"
+            size="xs"
+            onClick={() => {
+              void handleUpdateAction()
+            }}
+            disabled={isCheckingUpdate || isInstallingUpdate}
+            className="shrink-0"
           />
         </div>
 
@@ -198,7 +375,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
         <Button
           onClick={onClose}
-          text="닫기"
+          text={t('settings.close')}
           variant="primary"
           size="md"
           className="text-body-md-medium h-[43px] w-full"

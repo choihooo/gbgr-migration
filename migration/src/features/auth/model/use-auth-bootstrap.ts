@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useAuthSessionStore } from '@/entities/session'
+import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { type MeResponse, useAuthUserStore } from '@/entities/user'
 import { classifyAuthError } from '@/features/auth/lib/auth-error'
 import {

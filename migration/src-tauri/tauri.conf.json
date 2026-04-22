@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "gbgr-app",
+  "productName": "GBGR",
   "version": "0.1.0",
-  "identifier": "com.gbgr.app",
+  "identifier": "co.kr.bugi.desktop",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:3000",
@@ -10,13 +10,32 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "gbgr-app",
+        "label": "main",
+        "title": "거부기린",
         "width": 1280,
         "height": 800,
         "minWidth": 1280,
         "minHeight": 800
+      },
+      {
+        "label": "widget",
+        "title": "거부기린",
+        "url": "/widget",
+        "create": false,
+        "visible": false,
+        "width": 200,
+        "height": 320,
+        "minWidth": 160,
+        "minHeight": 45,
+        "maxWidth": 260,
+        "maxHeight": 348,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "resizable": true,
+        "skipTaskbar": true
       }
     ],
     "security": {
@@ -26,6 +45,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "macOS": {
+      "infoPlist": "Info.plist"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

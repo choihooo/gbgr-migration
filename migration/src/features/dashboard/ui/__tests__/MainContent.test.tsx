@@ -8,7 +8,11 @@ describe('MainContent', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <MainContent />
+        <MainContent
+          activeTab="dashboard"
+          onTabClick={() => {}}
+          onOpenNotification={() => {}}
+        />
       </QueryClientProvider>,
     )
 

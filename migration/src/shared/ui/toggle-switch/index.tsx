@@ -40,7 +40,7 @@ export const ToggleSwitch = forwardRef<HTMLButtonElement, ToggleSwitchProps>(
 
       const timeoutId = setTimeout(updateIndicator, 0)
       return () => clearTimeout(timeoutId)
-    }, [checked])
+    }, [uncheckedLabel, checkedLabel, checked])
 
     return (
       <button

@@ -4,3 +4,42 @@
 @import "./shared/styles/breakpoint.css";
 @import "./shared/styles/scrollbar.css";
 @import "./shared/styles/animations.css";
+
+[data-tauri-drag-region] {
+  app-region: drag;
+}
+
+button {
+  app-region: no-drag;
+}
+
+.media-display {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.media-display::-webkit-media-controls {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+.media-display::-webkit-media-controls-enclosure {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+.media-display::-webkit-media-controls-panel {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+.media-display::-webkit-media-controls-play-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+.media-display::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+}

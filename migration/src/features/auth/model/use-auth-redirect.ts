@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useAuthSessionStore } from '@/entities/session'
+import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { clearRedirectPath } from '@/features/auth/lib/session-persistence'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { getCalibrationGateState } from '@/shared/lib/calibration-gate'

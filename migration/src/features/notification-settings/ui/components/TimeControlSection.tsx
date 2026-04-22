@@ -3,6 +3,7 @@
  */
 
 import type { SVGProps } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/shared/lib/cn'
 import { NotificationToggleSwitch } from '@/shared/ui/toggle-switch'
 import type { useTimeEditor } from '../../lib/use-time-editor'
@@ -70,6 +71,8 @@ export function TimeControlSection({
   isDisabled = false,
   timeEditor,
 }: TimeControlSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <div
       className={cn(
@@ -110,7 +113,10 @@ export function TimeControlSection({
           disabled={isDisabled || !isEnabled || timeEditor.time <= 1}
           className="flex h-10 w-10 cursor-pointer items-center justify-center bg-white disabled:cursor-not-allowed disabled:opacity-20 dark:bg-grey-800"
         >
-          <MinusIcon className="text-grey-500" />
+          <MinusIcon
+            className="text-grey-500"
+            aria-label={t('dashboard.notification.decreaseTime')}
+          />
         </button>
 
         {/* 시간 표시/입력 */}
@@ -131,7 +137,7 @@ export function TimeControlSection({
             onClick={timeEditor.handlers.handleTimeClick}
             className="flex h-10 flex-1 cursor-pointer items-center justify-center text-body-md-meidum text-grey-900 dark:text-grey-100"
           >
-            {timeEditor.time}분
+            {t('dashboard.notification.minutes', { value: timeEditor.time })}
           </button>
         )}
 
@@ -141,7 +147,10 @@ export function TimeControlSection({
           disabled={isDisabled || !isEnabled || timeEditor.time >= 300}
           className="flex h-10 w-10 cursor-pointer items-center justify-center bg-white disabled:cursor-not-allowed disabled:opacity-20 dark:bg-grey-800"
         >
-          <PlusIcon className="text-grey-400" />
+          <PlusIcon
+            className="text-grey-400"
+            aria-label={t('dashboard.notification.increaseTime')}
+          />
         </button>
       </div>
     </div>

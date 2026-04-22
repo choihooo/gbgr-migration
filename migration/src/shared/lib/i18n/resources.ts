@@ -7,6 +7,9 @@ export type AppLanguage = (typeof supportedLanguages)[number]
 export const resources = {
   ko: {
     translation: {
+      app: {
+        name: '거부기린',
+      },
       auth: {
         slogan: '세상 모든 거북목들이 기린이 될 때까지',
         login: {
@@ -158,12 +161,139 @@ export const resources = {
       },
       dashboard: {
         pageTitle: '메인 페이지',
+        lastUpdatedAt: '마지막 갱신일: {{value}}',
+        header: {
+          dashboard: '대시보드',
+          settings: '설정',
+          report: '오류 제보',
+          review: '후기 등록',
+        },
+        notification: {
+          allow: '알림 허용',
+          save: '저장하기',
+          stretchingTitle: '맞춤 스트레칭 주기',
+          stretchingDescription:
+            '나만의 스트레칭 타이밍이에요. 뽀모도로 타이머처럼 휴식 구간으로 설정해도 좋아요',
+          turtleTitle: '거북목 경고',
+          turtleDescription: '거북목 자세가 지속되면 자세 교정 알림이 울려요',
+          decreaseTime: '시간 감소',
+          increaseTime: '시간 증가',
+          minutes: '{{value}}분',
+        },
+        webcam: {
+          creatingSession: '세션 생성 중...',
+          stoppingSession: '세션 종료 중...',
+          start: '시작하기',
+          stop: '종료하기',
+          widget: '위젯',
+        },
+        panels: {
+          averageGraph: {
+            title: '바른 자세 점수',
+            weekly: '주간',
+            monthly: '월간',
+            score: '점수',
+          },
+          highlights: {
+            title: '하이라이트',
+            weekly: '주간',
+            monthly: '월간',
+            unit: '단위: 분/일',
+            previousWeek: '저번 주',
+            currentWeek: '이번 주',
+            previousMonth: '저번 달',
+            currentMonth: '이번 달',
+          },
+          averagePosture: {
+            title: '평균 자세 점수',
+            score: '{{value}}점',
+            neckTilt: '목 평균 기울기 {{value}}',
+            expectedWeight: '예상 하중 {{value}}',
+          },
+          attendance: {
+            title: '출석 현황',
+            month: '{{value}}월',
+            previousMonth: '이전 달',
+            nextMonth: '다음 달',
+            weekly: '월간',
+            yearly: '연간',
+            less: 'Less',
+            more: 'More',
+            fallbackTitle: '잘하고 있어요!',
+            fallbackMessage:
+              '당신은 매일 골든리트리버 한 마리를 목에 업고 작업한 것과 같아요 🥺',
+            level1: '뚠뚠한 골든리트리버 한 마리를 매일 목에 업고 있어요 🐶',
+            level2: '기내용 캐리어를 목 위에 올려두고 앉아 있는 셈이에요 🧳',
+            level3: '무거운 볼링공을 목에 걸고 일하는 중이에요 🎳',
+            level4: '작은 수박 한 통 정도를 목에 얹은 상태예요 🍉',
+            level5: '머리 본연의 무게만 딱! 지금 아주 좋아요 🌸',
+            sunday: '일',
+            monday: '월',
+            tuesday: '화',
+            wednesday: '수',
+            thursday: '목',
+            friday: '금',
+            saturday: '토',
+          },
+          report: {
+            loading: '리포트를 불러오는 중...',
+            error: '리포트를 불러올 수 없습니다',
+            empty: '세션 데이터가 없습니다',
+            todayReport: '오늘의 리포트',
+            totalDistance: '오늘 총 {{value}}m 이동했어요',
+            usageTime: '사용시간',
+            postureTime: '바른 자세 시간',
+            postureScore: '바른 자세 점수',
+            score: '{{value}}점',
+            hourMinute: '{{hours}}시간 {{minutes}}분',
+            runningBest: '최고 속도로 가는 중!',
+            runningFast: '빠르게 가는 중!',
+            runningGood: '씽씽 가는 중!',
+            runningSlow: '천천히 가는 중',
+            runningSlower: '느릿느릿 가는중..',
+            runningSlowest: '엉금엉금 가는중..',
+            runningFallback: '가는 중',
+            levelImageAlt: '레벨 이미지',
+          },
+        },
       },
       settings: {
+        title: '설정',
+        close: '닫기',
+        startup: {
+          label: 'OS 시작 시 자동 실행',
+          loading: '현재 상태를 확인하고 있어요.',
+          unsupported: '현재 운영체제에서는 지원하지 않아요.',
+          saving: '설정을 적용하고 있어요.',
+          enabledDescription: '컴퓨터 로그인 후 거부기린을 자동으로 실행해요.',
+          errorFallback: '자동 실행 설정을 변경하지 못했습니다.',
+        },
+        update: {
+          label: '앱 업데이트',
+          description: '새 버전이 있는지 확인하고 바로 설치할 수 있어요.',
+          checking: '새 버전을 확인하고 있어요.',
+          installing: '업데이트를 설치하고 있어요.',
+          unconfigured: '업데이트 서버가 아직 설정되지 않았어요.',
+          noUpdate: '최신 버전을 사용 중이에요.',
+          availableDescription: '{{version}} 버전 업데이트를 설치할 수 있어요.',
+          installedDescription:
+            '업데이트가 설치되었어요. 앱을 다시 시작해주세요.',
+          installingExit:
+            '업데이트 설치를 위해 앱이 종료되거나 재시작될 수 있어요.',
+          checkAction: '업데이트 확인',
+          installAction: '업데이트 설치',
+          errorFallback: '업데이트를 진행하지 못했습니다.',
+        },
+        actions: {
+          logout: '로그아웃',
+          withdraw: '회원탈퇴',
+          calibrationReset: '캘리브레이션 재설정',
+          withdrawConfirm: '정말 회원탈퇴 하시겠어요?',
+        },
         language: {
           sectionTitle: '언어',
           label: '앱 언어',
-          description: '설정 모달에서 앱 표시 언어를 변경할 수 있습니다.',
+          description: '설정 모달에서 앱 표시 언어를 바로 변경할 수 있습니다.',
           optionKo: '한국어',
           optionEn: '영어',
         },
@@ -172,6 +302,9 @@ export const resources = {
   },
   en: {
     translation: {
+      app: {
+        name: 'Posture turtle',
+      },
       auth: {
         slogan: 'Until every forward head posture stands tall like a giraffe',
         login: {
@@ -236,10 +369,10 @@ export const resources = {
           callbackFailed: 'This verification link is invalid or expired.',
           callbackMissingToken:
             'The verification token is missing, so verification cannot continue.',
-          callbackRetryLine1: 'Return to the GBGR app',
+          callbackRetryLine1: 'Return to the Posture turtle app',
           callbackRetryLine2: 'and request the verification email again.',
           callbackLine1: 'Your email has been verified.',
-          callbackLine2: 'Return to the GBGR app',
+          callbackLine2: 'Return to the Posture turtle app',
           callbackLine3: 'and log in to continue.',
         },
         validation: {
@@ -263,7 +396,7 @@ export const resources = {
           privacyNote:
             'Video is processed only on your PC and is never stored or transmitted anywhere else, so please rest assured.',
           greeting:
-            "Hello! I'm GBGR, your AI partner responsible for {{userName}}'s posture health.",
+            "Hello! I'm Posture turtle, your AI partner responsible for {{userName}}'s posture health.",
           steps: [
             {
               keypoint: 'Keypoint 1',
@@ -302,7 +435,7 @@ export const resources = {
         camera: {
           title: 'Camera Permission',
           description:
-            'GBGR analyzes your posture in real-time through your PC webcam.',
+            'Posture turtle analyzes your posture in real-time through your PC webcam.',
           privacyNote:
             'All analysis is done only on your PC, and video is never transmitted to the server.',
           button: 'Allow Camera Access',
@@ -325,20 +458,156 @@ export const resources = {
         completion: {
           title: 'Posture Registration Complete',
           description:
-            'Shall we start improving your forward head posture with GBGR?',
+            'Shall we start improving your forward head posture with Posture turtle?',
           button: 'Get Started',
           creatingSession: 'Creating session...',
         },
       },
       dashboard: {
         pageTitle: 'Main Page',
+        lastUpdatedAt: 'Last updated: {{value}}',
+        header: {
+          dashboard: 'Dashboard',
+          settings: 'Settings',
+          report: 'Report issue',
+          review: 'Leave review',
+        },
+        notification: {
+          allow: 'Allow notifications',
+          save: 'Save',
+          stretchingTitle: 'Custom stretching interval',
+          stretchingDescription:
+            'Choose your own stretching timing. It also works well as a Pomodoro-style break reminder.',
+          turtleTitle: 'Forward head posture warning',
+          turtleDescription:
+            'A posture correction notification will sound if poor posture continues.',
+          decreaseTime: 'Decrease time',
+          increaseTime: 'Increase time',
+          minutes: '{{value}} min',
+        },
+        webcam: {
+          creatingSession: 'Creating session...',
+          stoppingSession: 'Stopping session...',
+          start: 'Start',
+          stop: 'Stop',
+          widget: 'Widget',
+        },
+        panels: {
+          averageGraph: {
+            title: 'Correct posture score',
+            weekly: 'Weekly',
+            monthly: 'Monthly',
+            score: 'Score',
+          },
+          highlights: {
+            title: 'Highlights',
+            weekly: 'Weekly',
+            monthly: 'Monthly',
+            unit: 'Unit: min/day',
+            previousWeek: 'Last week',
+            currentWeek: 'This week',
+            previousMonth: 'Last month',
+            currentMonth: 'This month',
+          },
+          averagePosture: {
+            title: 'Average posture score',
+            score: '{{value}} pts',
+            neckTilt: 'Average neck tilt {{value}}',
+            expectedWeight: 'Estimated load {{value}}',
+          },
+          attendance: {
+            title: 'Attendance',
+            month: '{{value}}',
+            previousMonth: 'Previous month',
+            nextMonth: 'Next month',
+            weekly: 'Monthly',
+            yearly: 'Yearly',
+            less: 'Less',
+            more: 'More',
+            fallbackTitle: 'You are doing great!',
+            fallbackMessage:
+              'It is like carrying a golden retriever on your neck every day while you work 🥺',
+            level1:
+              'It is like carrying a chubby golden retriever on your neck every day 🐶',
+            level2:
+              'It is like sitting with a carry-on suitcase resting on your neck 🧳',
+            level3:
+              'It is like working with a heavy bowling ball hanging from your neck 🎳',
+            level4:
+              'It is like balancing a small watermelon on your neck 🍉',
+            level5:
+              'Only the natural weight of your head. You are doing great 🌸',
+            sunday: 'Sun',
+            monday: 'Mon',
+            tuesday: 'Tue',
+            wednesday: 'Wed',
+            thursday: 'Thu',
+            friday: 'Fri',
+            saturday: 'Sat',
+          },
+          report: {
+            loading: 'Loading report...',
+            error: 'Unable to load the report',
+            empty: 'No session data available',
+            todayReport: "Today's report",
+            totalDistance: 'Moved {{value}}m in total today',
+            usageTime: 'Usage time',
+            postureTime: 'Correct posture time',
+            postureScore: 'Correct posture score',
+            score: '{{value}} pts',
+            hourMinute: '{{hours}}h {{minutes}}m',
+            runningBest: 'Moving at top speed!',
+            runningFast: 'Moving fast!',
+            runningGood: 'Moving smoothly!',
+            runningSlow: 'Moving slowly',
+            runningSlower: 'Moving very slowly..',
+            runningSlowest: 'Crawling along..',
+            runningFallback: 'Moving',
+            levelImageAlt: 'Level image',
+          },
+        },
       },
       settings: {
+        title: 'Settings',
+        close: 'Close',
+        startup: {
+          label: 'Run on OS startup',
+          loading: 'Checking the current status.',
+          unsupported: 'This is not supported on the current operating system.',
+          saving: 'Applying the setting.',
+          enabledDescription:
+            'Automatically launches Posture turtle after you sign in to your computer.',
+          errorFallback: 'We could not update the startup setting.',
+        },
+        update: {
+          label: 'App updates',
+          description:
+            'Check whether a new version is available and install it right away.',
+          checking: 'Checking for a new version.',
+          installing: 'Installing the update.',
+          unconfigured: 'The update server has not been configured yet.',
+          noUpdate: 'You are already using the latest version.',
+          availableDescription:
+            'Version {{version}} is available to install.',
+          installedDescription:
+            'The update has been installed. Please restart the app.',
+          installingExit:
+            'The app may close or restart while the update is being installed.',
+          checkAction: 'Check updates',
+          installAction: 'Install update',
+          errorFallback: 'We could not complete the update.',
+        },
+        actions: {
+          logout: 'Log out',
+          withdraw: 'Delete account',
+          calibrationReset: 'Reset calibration',
+          withdrawConfirm: 'Are you sure you want to delete your account?',
+        },
         language: {
           sectionTitle: 'Language',
           label: 'App language',
           description:
-            'You will be able to change the app display language in the settings modal.',
+            'Change the app display language directly from the settings modal.',
           optionKo: 'Korean',
           optionEn: 'English',
         },

@@ -5,11 +5,12 @@
  */
 
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { useThemeApplied } from '@/shared/hooks/use-theme-applied'
 import { getColor } from '@/shared/lib/get-color'
 
-import { type HighlightDatum, MONTHLY_DATA, WEEKLY_DATA } from '../data'
+import type { HighlightDatum } from '../data'
 
 export type HighlightPeriod = 'weekly' | 'monthly'
 
@@ -41,12 +42,37 @@ export type ChartConfig = {
 }
 
 export function useHighlightsChart(activePeriod: HighlightPeriod): ChartConfig {
+  const { t } = useTranslation()
   const isDarkApplied = useThemeApplied()
   void isDarkApplied
 
   const chartData = useMemo<HighlightDatum[]>(() => {
-    return activePeriod === 'weekly' ? WEEKLY_DATA : MONTHLY_DATA
-  }, [activePeriod])
+    return activePeriod === 'weekly'
+      ? [
+          {
+            periodLabel: t('dashboard.panels.highlights.previousWeek'),
+            value: 257,
+            barKey: 'previous',
+          },
+          {
+            periodLabel: t('dashboard.panels.highlights.currentWeek'),
+            value: 321,
+            barKey: 'current',
+          },
+        ]
+      : [
+          {
+            periodLabel: t('dashboard.panels.highlights.previousMonth'),
+            value: 210,
+            barKey: 'previous',
+          },
+          {
+            periodLabel: t('dashboard.panels.highlights.currentMonth'),
+            value: 225,
+            barKey: 'current',
+          },
+        ]
+  }, [activePeriod, t])
 
   const chartColors: ChartColors = {
     previous: getColor('--color-grey-100', '#e3e1df'),
@@ -74,7 +100,7 @@ export function useHighlightsChart(activePeriod: HighlightPeriod): ChartConfig {
 
   const chartConfig: ChartConfig = {
     data: chartData,
-    unitLabel: '단위: 분/일',
+    unitLabel: t('dashboard.panels.highlights.unit'),
     maxDomain: maxValue,
     barSize: 130,
     barRadius: [8, 8, 0, 0],

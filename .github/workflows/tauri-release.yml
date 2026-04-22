@@ -1,0 +1,135 @@
+name: Tauri Release
+
+on:
+  push:
+    tags:
+      - 'tauri-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tauri-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-tauri:
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-13
+            target: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin --config src-tauri/tauri.github-release.conf.json
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin --config src-tauri/tauri.github-release.conf.json
+          - platform: windows-latest
+            target: ''
+            args: --config src-tauri/tauri.github-release.conf.json
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: migration/package-lock.json
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Validate release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        working-directory: migration
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          EXPECTED_TAG="tauri-v${VERSION}"
+          if [ "${GITHUB_REF_NAME}" != "${EXPECTED_TAG}" ]; then
+            echo "현재 migration/package.json 버전은 ${VERSION} 입니다."
+            echo "푸시된 태그(${GITHUB_REF_NAME})는 ${EXPECTED_TAG} 와 일치해야 합니다."
+            exit 1
+          fi
+
+      - name: Install frontend dependencies
+        working-directory: migration
+        run: npm ci
+
+      - name: Validate updater secrets
+        shell: bash
+        env:
+          TAURI_UPDATER_PUBLIC_KEY: ${{ secrets.TAURI_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TAURI_UPDATER_PUBLIC_KEY}" ]; then
+            echo "TAURI_UPDATER_PUBLIC_KEY secret 이 필요합니다."
+            exit 1
+          fi
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY}" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY secret 이 필요합니다."
+            exit 1
+          fi
+
+      - name: Create updater release config
+        shell: bash
+        env:
+          UPDATER_ENDPOINT: https://github.com/${{ github.repository }}/releases/latest/download/latest.json
+          TAURI_UPDATER_PUBLIC_KEY: ${{ secrets.TAURI_UPDATER_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const targetPath = path.join(
+            process.cwd(),
+            'migration',
+            'src-tauri',
+            'tauri.github-release.conf.json',
+          );
+
+          const config = {
+            build: {
+              beforeBuildCommand: 'npm run build',
+            },
+            bundle: {
+              createUpdaterArtifacts: true,
+            },
+            plugins: {
+              updater: {
+                pubkey: process.env.TAURI_UPDATER_PUBLIC_KEY,
+                endpoints: [process.env.UPDATER_ENDPOINT],
+              },
+            },
+          };
+
+          fs.writeFileSync(targetPath, `${JSON.stringify(config, null, 2)}\n`);
+          NODE
+
+      - name: Build and publish Tauri release
+        uses: tauri-apps/tauri-action@v0.6.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          VITE_UPDATER_ENDPOINTS: https://github.com/${{ github.repository }}/releases/latest/download/latest.json
+          VITE_UPDATER_PUBLIC_KEY: ${{ secrets.TAURI_UPDATER_PUBLIC_KEY }}
+        with:
+          projectPath: migration
+          tauriScript: npm run tauri
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'tauri-v__VERSION__' }}
+          releaseName: 거부기린 Tauri v__VERSION__
+          releaseBody: |
+            거부기린 Tauri 데스크톱 앱 배포본입니다.
+          generateReleaseNotes: true
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

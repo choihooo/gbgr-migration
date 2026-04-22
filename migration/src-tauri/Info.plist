@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSCameraUsageDescription</key>
+  <string>자세 측정을 위해 카메라 접근 권한이 필요합니다.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>웹캠 세션 동작 중 시스템 권한 경고를 피하기 위해 마이크 접근 권한 설명을 제공합니다.</string>
+</dict>
+</plist>
