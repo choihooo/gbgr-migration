@@ -33,6 +33,7 @@
         "maxWidth": 260,
         "maxHeight": 348,
         "decorations": false,
+        "transparent": true,
         "alwaysOnTop": true,
         "resizable": true,
         "skipTaskbar": true

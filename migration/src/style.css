@@ -5,6 +5,12 @@
 @import "./shared/styles/scrollbar.css";
 @import "./shared/styles/animations.css";
 
+html,
+body,
+#root {
+  background: transparent;
+}
+
 [data-tauri-drag-region] {
   app-region: drag;
 }
