@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import time
+from dataclasses import asdict, dataclass
 
+from .posture_stabilizer import PostureStabilizer
 from .score_processor import ScoreProcessor
 
 
@@ -35,7 +37,10 @@ class PostureClassifier:
     def __init__(self) -> None:
         self._ema_value: float | None = None
         self._processor = ScoreProcessor()
+        self._stabilizer = PostureStabilizer()
         self._state = "normal"
+        self._mu: float = 0.0
+        self._sigma: float = 1.0
 
     def _next_ema(self, value: float, alpha: float = 0.25) -> float:
         if self._ema_value is None:
@@ -44,14 +49,30 @@ class PostureClassifier:
             self._ema_value = alpha * value + (1 - alpha) * self._ema_value
         return self._ema_value
 
-    def classify(self, pi_raw: float, mu: float, sigma: float) -> Classification:
-        if sigma == 0:
+    def set_calibration(self, mu: float, sigma: float) -> None:
+        """캘리브레이션 결과(mu, sigma)를 설정한다."""
+        self._mu = mu
+        self._sigma = sigma
+
+    def classify(self, pi_raw: float) -> Classification:
+        if self._sigma == 0:
             return Classification("측정중", 0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
 
         pi_ema = self._next_ema(pi_raw)
-        z_pi = (pi_ema - mu) / (sigma + 1e-6)
+        z_pi = (pi_ema - self._mu) / (self._sigma + 1e-6)
         gamma = 1.0
-        score = self._processor.next(gamma * z_pi)
+        raw_score = self._processor.next(gamma * z_pi)
+
+        # PostureStabilizer 적용
+        timestamp_ms = int(time.time() * 1000)
+        self._stabilizer.add_score(raw_score, timestamp_ms)
+
+        if self._stabilizer.should_update(raw_score):
+            score = raw_score
+        else:
+            score = self._stabilizer.last_stable_score
+
+        self._stabilizer.last_stable_score = score
 
         events: list[str] = []
         if self._state == "normal" and score >= 1.2:
@@ -68,3 +89,4 @@ class PostureClassifier:
         self._ema_value = None
         self._state = "normal"
         self._processor.reset()
+        self._stabilizer.reset()

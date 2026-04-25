@@ -1,6 +1,8 @@
 use crate::{
     commands::posture_engine::{apply_mode_change, ingest_background_result_with_notification},
-    state::posture_engine_state::{EngineMode, MeasurementSession, PostureEngineResult, PostureEngineState},
+    state::posture_engine_state::{
+        EngineMode, MeasurementSession, PostureEngineResult, PostureEngineState,
+    },
 };
 
 fn build_session(session_id: &str) -> MeasurementSession {
@@ -38,8 +40,8 @@ fn background_transition_updates_mode_and_latest_cache() {
     let response = apply_mode_change(&state, "session-1", EngineMode::Background).unwrap();
     assert!(matches!(response.mode, EngineMode::Background));
 
-    let message = ingest_background_result_with_notification(&state, build_result("session-1"))
-        .unwrap();
+    let message =
+        ingest_background_result_with_notification(&state, build_result("session-1")).unwrap();
 
     let session = state.session.lock().unwrap().clone().unwrap();
     let latest_result = state.latest_result.lock().unwrap().clone().unwrap();

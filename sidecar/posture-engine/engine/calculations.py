@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from math import atan2, degrees, sqrt
-from typing import Iterable
+from typing import Any, Iterable
 
 
 def _midpoint(a: dict, b: dict) -> dict[str, float]:
@@ -63,4 +63,70 @@ def check_frontality(landmarks: list[dict]) -> dict[str, float | bool]:
         "pass": roll <= 10 and center_ratio <= 0.15,
         "roll": roll,
         "centerRatio": center_ratio,
+    }
+
+
+def trimmed_stats(values: list[float], trim_percent: float = 0.05) -> dict[str, float]:
+    """상하 trim_percent 만큼 절사한 평균과 표준편차를 반환한다."""
+    if not values:
+        return {"mean": 0.0, "std": 0.0}
+
+    sorted_vals = sorted(values)
+    trim_count = int(len(sorted_vals) * trim_percent)
+    trimmed = sorted_vals[trim_count : len(sorted_vals) - trim_count]
+
+    if not trimmed:
+        return {"mean": 0.0, "std": 0.0}
+
+    mean = sum(trimmed) / len(trimmed)
+    variance = sum((v - mean) ** 2 for v in trimmed) / len(trimmed)
+    return {"mean": mean, "std": sqrt(variance)}
+
+
+def process_calibration_data(
+    frames: list[dict[str, Any]],
+    skip_frontal_check: bool = False,
+) -> dict[str, Any]:
+    """캘리브레이션 프레임들을 처리하여 mu/sigma를 계산한다."""
+    n_total = len(frames)
+    n_pass = 0
+    pi_values: list[float] = []
+
+    for frame in frames:
+        frontality = check_frontality(frame.get("lms", []))
+        should_include = skip_frontal_check or frontality["pass"]
+
+        if should_include and frame.get("pi") is not None:
+            pi_value = frame.get("pi_ema", frame["pi"]["PI_raw"])
+            pi_values.append(pi_value)
+            n_pass += 1
+
+    if len(pi_values) < 5:
+        pass_rate = (n_pass / n_total * 100) if n_total > 0 else 0
+        return {
+            "success": False,
+            "message": (
+                f"정면성 통과 프레임이 너무 적습니다.\n"
+                f"통과: {n_pass}/{n_total} ({pass_rate:.1f}%)\n\n"
+                "💡 팁:\n- 정면을 바라보세요\n- 고개를 살짝 움직여보세요"
+            ),
+        }
+
+    stats = trimmed_stats(pi_values, 0.05)
+    pass_rate = n_pass / n_total
+
+    quality = "poor"
+    if pass_rate >= 0.5 and stats["std"] < 0.2:
+        quality = "good"
+    elif pass_rate >= 0.3 and stats["std"] < 0.3:
+        quality = "medium"
+
+    return {
+        "success": True,
+        "nTotal": n_total,
+        "nPass": n_pass,
+        "mu_PI": stats["mean"],
+        "sigma_PI": stats["std"],
+        "quality": quality,
+        "passRate": pass_rate,
     }

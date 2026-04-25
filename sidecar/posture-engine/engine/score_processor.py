@@ -25,20 +25,20 @@ def _apply_ema(scores: list[float], window: int) -> list[float]:
 class ScoreProcessor:
     def __init__(self) -> None:
         self.score_buffer: list[float] = []
-        self.buffer_size = 100
+        self.buffer_size = 60
 
     def next(self, score: float) -> float:
         self.score_buffer.append(score)
         if len(self.score_buffer) > self.buffer_size:
             self.score_buffer.pop(0)
 
-        if len(self.score_buffer) < 30:
+        if len(self.score_buffer) < 15:
             return max(-10.0, min(40.0, score))
 
         filtered_scores = [max(-10.0, min(40.0, value)) for value in self.score_buffer]
-        smoothed = _apply_moving_average(filtered_scores, 15)
-        ema_30 = _apply_ema(smoothed, 30)
-        final_scores = _apply_ema(ema_30, 70)
+        smoothed = _apply_moving_average(filtered_scores, 7)
+        ema_12 = _apply_ema(smoothed, 12)
+        final_scores = _apply_ema(ema_12, 24)
         return max(-10.0, min(40.0, final_scores[-1]))
 
     def reset(self) -> None:

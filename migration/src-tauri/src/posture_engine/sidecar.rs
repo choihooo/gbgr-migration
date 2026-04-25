@@ -24,10 +24,7 @@ impl SidecarHandle {
             .map_err(|e| format!("sidecar spawn 실패: {e}"))?;
 
         let stdin = child.stdin.take().ok_or("stdin 파이프 획득 실패")?;
-        let stdout = child
-            .stdout
-            .take()
-            .ok_or("stdout 파이프 획득 실패")?;
+        let stdout = child.stdout.take().ok_or("stdout 파이프 획득 실패")?;
 
         Ok(Self {
             child,
@@ -37,7 +34,10 @@ impl SidecarHandle {
     }
 
     /// JSON 명령을 stdin에 쓰고 stdout에서 한 줄을 읽는다.
-    pub fn send_and_recv(&mut self, payload: &serde_json::Value) -> Result<serde_json::Value, String> {
+    pub fn send_and_recv(
+        &mut self,
+        payload: &serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
         let line = serde_json::to_string(payload).map_err(|e| format!("JSON 직렬화 실패: {e}"))?;
 
         self.stdin
@@ -75,7 +75,9 @@ impl SidecarHandle {
 
     /// sidecar 프로세스를 종료한다.
     pub fn kill(&mut self) -> Result<(), String> {
-        self.child.kill().map_err(|e| format!("sidecar kill 실패: {e}"))
+        self.child
+            .kill()
+            .map_err(|e| format!("sidecar kill 실패: {e}"))
     }
 
     /// sidecar 프로세스가 아직 실행 중인지 확인한다.
@@ -94,36 +96,49 @@ impl Drop for SidecarHandle {
 /// Python sidecar 스크립트 경로를 찾는다.
 /// 개발 중에는 프로젝트 루트 기준 sidecar/posture-engine/main.py를 사용한다.
 fn resolve_sidecar_path() -> Result<PathBuf, String> {
-    // 절대 경로 시도 (마이그레이션 프로젝트 루트/sidecar)
-    let abs_path = PathBuf::from("/Users/choiho/coding/gbgr/gbgr-migration/sidecar/posture-engine/main.py");
-    if abs_path.exists() {
-        return Ok(abs_path);
+    if let Ok(path) = std::env::var("GBGR_POSTURE_ENGINE_PATH") {
+        let env_path = PathBuf::from(path);
+        if env_path.exists() {
+            return Ok(env_path);
+        }
     }
 
-    // 개발 모드: current_dir 기준 상대 경로
-    let cwd = std::env::current_dir()
-        .map_err(|e| format!("현재 디렉토리 조회 실패: {e}"))?;
+    let cwd = std::env::current_dir().map_err(|e| format!("현재 디렉토리 조회 실패: {e}"))?;
 
-    // migration/src-tauri → migration → 프로젝트 루트
-    let dev_path = cwd
+    let mut candidates: Vec<PathBuf> = cwd
         .ancestors()
-        .nth(2)
         .map(|p| p.join("sidecar").join("posture-engine").join("main.py"))
-        .unwrap_or_default();
+        .collect();
 
-    if dev_path.exists() {
-        return Ok(dev_path);
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            candidates.extend([
+                exe_dir
+                    .join("sidecar")
+                    .join("posture-engine")
+                    .join("main.py"),
+                exe_dir
+                    .join("resources")
+                    .join("sidecar")
+                    .join("posture-engine")
+                    .join("main.py"),
+                exe_dir
+                    .join("../Resources")
+                    .join("sidecar")
+                    .join("posture-engine")
+                    .join("main.py"),
+            ]);
+        }
     }
 
-    // fallback: sidecar/posture-engine/main.py 상대 경로
-    let fallback = PathBuf::from("sidecar/posture-engine/main.py");
-    if fallback.exists() {
-        return Ok(fallback);
+    for candidate in &candidates {
+        if candidate.exists() {
+            return Ok(candidate.clone());
+        }
     }
 
     Err(format!(
-        "sidecar 스크립트를 찾을 수 없음: abs={:?}, dev={:?}, cwd={:?}",
-        abs_path, dev_path, cwd
+        "sidecar 스크립트를 찾을 수 없음: cwd={cwd:?}, candidates={candidates:?}"
     ))
 }
 

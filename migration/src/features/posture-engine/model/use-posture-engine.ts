@@ -11,6 +11,7 @@ import {
   getLatestPostureState,
   isTauriRuntimeAvailable,
   pushPostureFrame,
+  setCalibration,
   startBackgroundMeasurement,
   startPostureEngine,
   stopBackgroundMeasurement,
@@ -24,6 +25,7 @@ interface UsePostureEngineOptions {
   active: boolean
   mode?: EngineMode
   webcamRef?: React.RefObject<Webcam | null>
+  disableFramePush?: boolean
 }
 
 const buildFallbackSession = (
@@ -59,6 +61,7 @@ export const usePostureEngine = ({
   active,
   mode = 'foreground',
   webcamRef,
+  disableFramePush = false,
 }: UsePostureEngineOptions) => {
   const runtimeAvailable = isTauriRuntimeAvailable()
   const {
@@ -190,6 +193,19 @@ export const usePostureEngine = ({
       if (response.sessionId) {
         setSession(buildFallbackSession(response.sessionId, response.mode))
       }
+
+      // 캘리브레이션 결과 복원
+      try {
+        const calibRaw = localStorage.getItem('calibration_result_v1')
+        if (calibRaw) {
+          const calib = JSON.parse(calibRaw)
+          if (calib.mu_PI != null && calib.sigma_PI != null) {
+            await setCalibration({ mu: calib.mu_PI, sigma: calib.sigma_PI })
+          }
+        }
+      } catch {
+        // 캘리브레이션 복원 실패는 치명적이지 않음
+      }
     })()
 
     return () => {
@@ -252,7 +268,14 @@ export const usePostureEngine = ({
 
   useEffect(() => {
     if (!runtimeAvailable) return
-    if (!active || mode !== 'foreground' || !webcamRef?.current) return
+    if (
+      !active ||
+      disableFramePush ||
+      mode !== 'foreground' ||
+      !webcamRef?.current
+    ) {
+      return
+    }
 
     const interval = window.setInterval(() => {
       const video = webcamRef.current?.video
@@ -277,7 +300,14 @@ export const usePostureEngine = ({
     return () => {
       window.clearInterval(interval)
     }
-  }, [active, mode, runtimeAvailable, session?.sessionId, webcamRef])
+  }, [
+    active,
+    disableFramePush,
+    mode,
+    runtimeAvailable,
+    session?.sessionId,
+    webcamRef,
+  ])
 
   useEffect(() => {
     if (!runtimeAvailable) return

@@ -1,20 +1,32 @@
-use std::thread;
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    thread,
+    time::Duration,
+};
 use tauri::{AppHandle, Emitter, Manager, State};
 use uuid::Uuid;
 
 use crate::{
     posture_engine::{
-        events::{POSTURE_ENGINE_STATUS_EVENT, POSTURE_WARNING_EVENT},
-        notification_bridge::build_warning_event,
+        events::{POSTURE_ENGINE_STATUS_EVENT, POSTURE_RESULT_EVENT, POSTURE_WARNING_EVENT},
+        notification_bridge::{build_warning_event, evaluate_background_notification},
+        session_metrics::record_session_result,
         sidecar::SidecarHandle,
     },
     state::posture_engine_state::{
-        now_iso, BackgroundMeasurementPayload, BackgroundMeasurementResponse, CameraOwner, EngineMode,
-        MeasurementSession, PostureEngineResult, PostureEngineState,
-        PushPostureFramePayload, PushPostureFrameResponse, StartPostureEngineResponse,
+        now_iso, BackgroundMeasurementPayload, BackgroundMeasurementResponse,
+        CalibrateFinishResponse, CalibrateFramePayload, CalibrateFrameResponse,
+        CalibrateStartResponse, CameraOwner, EngineMode, MeasurementSession, PostureEngineResult,
+        PostureEngineState, PushPostureFramePayload, PushPostureFrameResponse,
+        SetCalibrationPayload, SetCalibrationResponse, StartPostureEngineResponse,
         StopPostureEngineResponse,
     },
 };
+
+const BACKGROUND_FRAME_INTERVAL: Duration = Duration::from_millis(200);
 
 /// sidecar에 명령을 보내고 응답을 받는 헬퍼
 fn sidecar_send(
@@ -22,10 +34,28 @@ fn sidecar_send(
     payload: &serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     let mut sidecar_guard = state.sidecar.lock().map_err(|e| e.to_string())?;
-    let handle = sidecar_guard
-        .as_mut()
-        .ok_or("sidecar가 실행 중이 아님")?;
+    let handle = sidecar_guard.as_mut().ok_or("sidecar가 실행 중이 아님")?;
     handle.send_and_recv(payload)
+}
+
+fn sidecar_error(response: &serde_json::Value) -> Option<String> {
+    response
+        .get("error")
+        .and_then(|v| v.as_str())
+        .map(String::from)
+        .or_else(|| {
+            let is_error = response
+                .get("engine_status")
+                .and_then(|v| v.as_str())
+                .is_some_and(|status| status == "error");
+            is_error.then(|| {
+                response
+                    .get("message")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("sidecar_error")
+                    .to_string()
+            })
+        })
 }
 
 /// sidecar에 명령만 보내는 헬퍼 (응답 대기 없음)
@@ -35,9 +65,7 @@ fn sidecar_send_only(
     payload: &serde_json::Value,
 ) -> Result<(), String> {
     let mut sidecar_guard = state.sidecar.lock().map_err(|e| e.to_string())?;
-    let handle = sidecar_guard
-        .as_mut()
-        .ok_or("sidecar가 실행 중이 아님")?;
+    let handle = sidecar_guard.as_mut().ok_or("sidecar가 실행 중이 아님")?;
     handle.send_only(payload)
 }
 
@@ -46,7 +74,12 @@ fn emit_engine_status(app: &AppHandle, state: &PostureEngineState) -> tauri::Res
     app.emit(POSTURE_ENGINE_STATUS_EVENT, engine_state)
 }
 
-fn emit_warning(app: &AppHandle, code: &str, session_id: Option<String>, message: &str) -> tauri::Result<()> {
+fn emit_warning(
+    app: &AppHandle,
+    code: &str,
+    session_id: Option<String>,
+    message: &str,
+) -> tauri::Result<()> {
     app.emit(
         POSTURE_WARNING_EVENT,
         build_warning_event(code, session_id, message.to_string()),
@@ -54,7 +87,7 @@ fn emit_warning(app: &AppHandle, code: &str, session_id: Option<String>, message
 }
 
 fn emit_result(app: &AppHandle, result: &PostureEngineResult) -> tauri::Result<()> {
-    app.emit("posture://result", result)
+    app.emit(POSTURE_RESULT_EVENT, result)
 }
 
 #[allow(dead_code)]
@@ -65,6 +98,109 @@ fn set_engine_error(state: &PostureEngineState, message: &str) {
         guard.recoverable = true;
         guard.updated_at = now_iso();
     }
+}
+
+fn parse_result(
+    result: &serde_json::Value,
+    default_mode: EngineMode,
+) -> Option<PostureEngineResult> {
+    let posture_class = result.get("posture_class").and_then(|v| v.as_u64())?;
+    let engine_mode = match result.get("engine_mode").and_then(|v| v.as_str()) {
+        Some("background") => EngineMode::Background,
+        Some("foreground") => EngineMode::Foreground,
+        _ => default_mode,
+    };
+
+    Some(PostureEngineResult {
+        result_id: result
+            .get("result_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        session_id: result
+            .get("session_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        timestamp: result
+            .get("timestamp")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        posture_class: posture_class as u8,
+        score: result.get("score").and_then(|v| v.as_f64()).unwrap_or(0.0),
+        pi: result.get("pi").and_then(|v| v.as_f64()),
+        landmarks: result
+            .get("landmarks")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| {
+                        Some(crate::state::posture_engine_state::PoseLandmark {
+                            x: v.get("x")?.as_f64()?,
+                            y: v.get("y")?.as_f64()?,
+                            z: v.get("z")?.as_f64()?,
+                            visibility: v.get("visibility").and_then(|v| v.as_f64()),
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
+        source: result
+            .get("source")
+            .and_then(|v| v.as_str())
+            .unwrap_or("python_engine")
+            .to_string(),
+        engine_mode,
+        events: result
+            .get("events")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default(),
+    })
+}
+
+pub(crate) fn ingest_background_result_with_notification(
+    state: &PostureEngineState,
+    result: PostureEngineResult,
+) -> Result<Option<String>, String> {
+    {
+        let mut session_guard = state.session.lock().map_err(|e| e.to_string())?;
+        if let Some(session) = session_guard.as_mut() {
+            session.last_result_at = Some(result.timestamp.clone());
+            session.latest_result_id = Some(result.result_id.clone());
+            session.mode = result.engine_mode.clone();
+        }
+    }
+
+    {
+        let mut latest = state.latest_result.lock().map_err(|e| e.to_string())?;
+        *latest = Some(result.clone());
+    }
+
+    {
+        let mut metrics = state.session_metrics.lock().map_err(|e| e.to_string())?;
+        record_session_result(&mut metrics, &result);
+    }
+
+    {
+        let mut engine = state.engine_state.lock().map_err(|e| e.to_string())?;
+        engine.mode = result.engine_mode.clone();
+        engine.engine_status = "measuring".to_string();
+        engine.camera_owner = CameraOwner::Python;
+        engine.updated_at = now_iso();
+        engine.message = None;
+        engine.recoverable = true;
+    }
+
+    let decision = evaluate_background_notification(&result);
+    Ok(decision
+        .should_notify
+        .then(|| decision.message.unwrap_or_default()))
 }
 
 pub(crate) fn apply_mode_change(
@@ -83,8 +219,10 @@ pub(crate) fn apply_mode_change(
         drop(session_guard);
 
         let mut engine_guard = state.engine_state.lock().map_err(|e| e.to_string())?;
-        let ownership =
-            crate::posture_engine::ownership::transition_ownership(engine_guard.camera_owner.clone(), &mode_clone);
+        let ownership = crate::posture_engine::ownership::transition_ownership(
+            engine_guard.camera_owner.clone(),
+            &mode_clone,
+        );
 
         engine_guard.engine_status = match &mode_clone {
             EngineMode::Background => "switching".to_string(),
@@ -129,6 +267,11 @@ pub fn start_posture_engine(
 
     // 2. sidecar에 start 명령 전송
     let sidecar_response = sidecar_send(&state, &serde_json::json!({"command": "start"}))?;
+    if let Some(error) = sidecar_error(&sidecar_response) {
+        set_engine_error(&state, &error);
+        emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
+        return Err(error);
+    }
 
     // 3. 세션 생성
     let session_id = {
@@ -178,6 +321,16 @@ pub fn stop_posture_engine(
     app: AppHandle,
     state: State<'_, PostureEngineState>,
 ) -> Result<StopPostureEngineResponse, String> {
+    {
+        let mut worker_guard = state
+            .background_worker_stop
+            .lock()
+            .map_err(|e| e.to_string())?;
+        if let Some(stop_flag) = worker_guard.take() {
+            stop_flag.store(true, Ordering::SeqCst);
+        }
+    }
+
     // 1. sidecar에 stop 명령 전송
     {
         let _ = sidecar_send(&state, &serde_json::json!({"command": "stop"}));
@@ -212,6 +365,10 @@ pub fn stop_posture_engine(
     {
         let mut metrics_guard = state.session_metrics.lock().map_err(|e| e.to_string())?;
         *metrics_guard = Default::default();
+    }
+    {
+        let mut inflight_guard = state.frame_inflight.lock().map_err(|e| e.to_string())?;
+        *inflight_guard = false;
     }
     {
         let mut ownership_guard = state.ownership.lock().map_err(|e| e.to_string())?;
@@ -266,6 +423,17 @@ pub fn push_posture_frame(
         });
     }
 
+    {
+        let mut inflight = state.frame_inflight.lock().map_err(|e| e.to_string())?;
+        if *inflight {
+            return Ok(PushPostureFrameResponse {
+                accepted: false,
+                reason: Some("inference_busy".to_string()),
+            });
+        }
+        *inflight = true;
+    }
+
     // 비동기로 sidecar에 프레임 전송 + 결과 수신
     let app_clone = app.clone();
     let session_id = payload.session_id.clone();
@@ -288,60 +456,34 @@ pub fn push_posture_frame(
         let result: serde_json::Value = {
             let mut sidecar_guard = match state.sidecar.lock() {
                 Ok(g) => g,
-                Err(_) => return,
+                Err(_) => {
+                    if let Ok(mut inflight) = state.frame_inflight.lock() {
+                        *inflight = false;
+                    }
+                    return;
+                }
             };
             let handle: &mut SidecarHandle = match sidecar_guard.as_mut() {
                 Some(h) => h,
-                None => return,
+                None => {
+                    if let Ok(mut inflight) = state.frame_inflight.lock() {
+                        *inflight = false;
+                    }
+                    return;
+                }
             };
             match handle.send_and_recv(&payload) {
                 Ok(r) => r,
-                Err(_) => return,
+                Err(_) => {
+                    if let Ok(mut inflight) = state.frame_inflight.lock() {
+                        *inflight = false;
+                    }
+                    return;
+                }
             }
         };
 
-        // 결과 파싱
-        if let Some(posture_class) = result.get("posture_class").and_then(|v: &serde_json::Value| v.as_u64()) {
-            let result_data = PostureEngineResult {
-                result_id: result
-                    .get("result_id")
-                    .and_then(|v: &serde_json::Value| v.as_str())
-                    .unwrap_or("")
-                    .to_string(),
-                session_id: result
-                    .get("session_id")
-                    .and_then(|v: &serde_json::Value| v.as_str())
-                    .unwrap_or("")
-                    .to_string(),
-                timestamp: result
-                    .get("timestamp")
-                    .and_then(|v: &serde_json::Value| v.as_str())
-                    .unwrap_or("")
-                    .to_string(),
-                posture_class: posture_class as u8,
-                score: result
-                    .get("score")
-                    .and_then(|v: &serde_json::Value| v.as_f64())
-                    .unwrap_or(0.0),
-                pi: result.get("pi").and_then(|v: &serde_json::Value| v.as_f64()),
-                landmarks: vec![],
-                source: result
-                    .get("source")
-                    .and_then(|v: &serde_json::Value| v.as_str())
-                    .unwrap_or("python_engine")
-                    .to_string(),
-                engine_mode: EngineMode::Foreground,
-                events: result
-                    .get("events")
-                    .and_then(|v: &serde_json::Value| v.as_array())
-                    .map(|arr: &Vec<serde_json::Value>| {
-                        arr.iter()
-                            .filter_map(|v: &serde_json::Value| v.as_str().map(String::from))
-                            .collect()
-                    })
-                    .unwrap_or_default(),
-            };
-
+        if let Some(result_data) = parse_result(&result, EngineMode::Foreground) {
             {
                 let mut latest = state.latest_result.lock().unwrap();
                 *latest = Some(result_data.clone());
@@ -349,6 +491,10 @@ pub fn push_posture_frame(
 
             let _ = emit_result(&app_clone, &result_data);
         }
+
+        if let Ok(mut inflight) = state.frame_inflight.lock() {
+            *inflight = false;
+        };
     });
 
     Ok(PushPostureFrameResponse {
@@ -364,13 +510,18 @@ pub fn start_background_measurement(
     state: State<'_, PostureEngineState>,
 ) -> Result<BackgroundMeasurementResponse, String> {
     // sidecar에 명령 전송
-    let _ = sidecar_send(
+    let sidecar_response = sidecar_send(
         &state,
         &serde_json::json!({
             "command": "start_background",
             "session_id": payload.session_id
         }),
-    );
+    )?;
+    if let Some(error) = sidecar_error(&sidecar_response) {
+        set_engine_error(&state, &error);
+        emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
+        return Err(error);
+    }
 
     let response = match apply_mode_change(&state, &payload.session_id, EngineMode::Background) {
         Ok(response) => response,
@@ -387,6 +538,61 @@ pub fn start_background_measurement(
 
     emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
 
+    let stop_flag = Arc::new(AtomicBool::new(false));
+    {
+        let mut worker_guard = state
+            .background_worker_stop
+            .lock()
+            .map_err(|e| e.to_string())?;
+        if let Some(previous) = worker_guard.replace(stop_flag.clone()) {
+            previous.store(true, Ordering::SeqCst);
+        }
+    }
+
+    let app_clone = app.clone();
+    let session_id = payload.session_id.clone();
+    thread::spawn(move || {
+        while !stop_flag.load(Ordering::SeqCst) {
+            let command = serde_json::json!({
+                "command": "background_tick",
+                "session_id": session_id
+            });
+
+            let state: State<'_, PostureEngineState> = app_clone.state::<PostureEngineState>();
+            let result = {
+                let mut sidecar_guard = match state.sidecar.lock() {
+                    Ok(guard) => guard,
+                    Err(_) => break,
+                };
+                let handle = match sidecar_guard.as_mut() {
+                    Some(handle) => handle,
+                    None => break,
+                };
+                match handle.send_and_recv(&command) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                }
+            };
+
+            if let Some(result_data) = parse_result(&result, EngineMode::Background) {
+                let notification =
+                    ingest_background_result_with_notification(&state, result_data.clone())
+                        .unwrap_or(None);
+                let _ = emit_result(&app_clone, &result_data);
+                if let Some(message) = notification {
+                    let _ = emit_warning(
+                        &app_clone,
+                        "bad_posture_detected",
+                        Some(result_data.session_id.clone()),
+                        &message,
+                    );
+                }
+            }
+
+            thread::sleep(BACKGROUND_FRAME_INTERVAL);
+        }
+    });
+
     Ok(response)
 }
 
@@ -396,14 +602,29 @@ pub fn stop_background_measurement(
     payload: BackgroundMeasurementPayload,
     state: State<'_, PostureEngineState>,
 ) -> Result<BackgroundMeasurementResponse, String> {
+    {
+        let mut worker_guard = state
+            .background_worker_stop
+            .lock()
+            .map_err(|e| e.to_string())?;
+        if let Some(stop_flag) = worker_guard.take() {
+            stop_flag.store(true, Ordering::SeqCst);
+        }
+    }
+
     // sidecar에 명령 전송
-    let _ = sidecar_send(
+    let sidecar_response = sidecar_send(
         &state,
         &serde_json::json!({
             "command": "stop_background",
             "session_id": payload.session_id
         }),
-    );
+    )?;
+    if let Some(error) = sidecar_error(&sidecar_response) {
+        set_engine_error(&state, &error);
+        emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
+        return Err(error);
+    }
 
     let response = match apply_mode_change(&state, &payload.session_id, EngineMode::Foreground) {
         Ok(response) => response,
@@ -428,12 +649,162 @@ pub fn get_latest_posture_state(
     state: State<'_, PostureEngineState>,
 ) -> Result<crate::state::posture_engine_state::LatestPostureStateResponse, String> {
     let session = state.session.lock().map_err(|e| e.to_string())?.clone();
-    let latest_result = state.latest_result.lock().map_err(|e| e.to_string())?.clone();
-    let engine_state = state.engine_state.lock().map_err(|e| e.to_string())?.clone();
+    let latest_result = state
+        .latest_result
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone();
+    let engine_state = state
+        .engine_state
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone();
 
-    Ok(crate::state::posture_engine_state::LatestPostureStateResponse {
-        session,
-        latest_result,
-        engine_state,
+    Ok(
+        crate::state::posture_engine_state::LatestPostureStateResponse {
+            session,
+            latest_result,
+            engine_state,
+        },
+    )
+}
+
+// ── 캘리브레이션 커맨드 ──────────────────────────────────
+
+#[tauri::command]
+pub fn calibrate_start(
+    state: State<'_, PostureEngineState>,
+) -> Result<CalibrateStartResponse, String> {
+    // 사이드카가 없으면 시작
+    {
+        let mut sidecar_guard = state.sidecar.lock().map_err(|e| e.to_string())?;
+        if sidecar_guard.is_none() {
+            let handle = SidecarHandle::spawn()?;
+            *sidecar_guard = Some(handle);
+        }
+    }
+
+    let result = sidecar_send(&state, &serde_json::json!({"command": "calibrate_start"}))?;
+    if let Some(error) = sidecar_error(&result) {
+        return Err(error);
+    }
+
+    Ok(CalibrateStartResponse {
+        status: result
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("error")
+            .to_string(),
+    })
+}
+
+#[tauri::command]
+pub fn calibrate_frame(
+    payload: CalibrateFramePayload,
+    state: State<'_, PostureEngineState>,
+) -> Result<CalibrateFrameResponse, String> {
+    let result = sidecar_send(
+        &state,
+        &serde_json::json!({
+            "command": "calibrate_frame",
+            "session_id": payload.session_id,
+            "image_payload": payload.image_payload,
+            "captured_at": payload.captured_at,
+            "frame_size": {"width": payload.frame_size.width, "height": payload.frame_size.height}
+        }),
+    )?;
+    if let Some(error) = sidecar_error(&result) {
+        return Err(error);
+    }
+
+    Ok(CalibrateFrameResponse {
+        status: result
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("error")
+            .to_string(),
+        frame_count: result
+            .get("frame_count")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32,
+        step1_error: result
+            .get("step1_error")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        step2_error: result
+            .get("step2_error")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+    })
+}
+
+#[tauri::command]
+pub fn calibrate_finish(
+    state: State<'_, PostureEngineState>,
+) -> Result<CalibrateFinishResponse, String> {
+    let result = sidecar_send(&state, &serde_json::json!({"command": "calibrate_finish"}))?;
+    if let Some(error) = sidecar_error(&result) {
+        return Err(error);
+    }
+
+    let success = result
+        .get("success")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+
+    Ok(CalibrateFinishResponse {
+        status: result
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("error")
+            .to_string(),
+        success,
+        mu_pi: result.get("mu_PI").and_then(|v| v.as_f64()),
+        sigma_pi: result.get("sigma_PI").and_then(|v| v.as_f64()),
+        quality: result
+            .get("quality")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        n_total: result
+            .get("nTotal")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as u32),
+        n_pass: result
+            .get("nPass")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as u32),
+        pass_rate: result.get("passRate").and_then(|v| v.as_f64()),
+        message: result
+            .get("message")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+    })
+}
+
+#[tauri::command]
+pub fn set_calibration(
+    payload: SetCalibrationPayload,
+    state: State<'_, PostureEngineState>,
+) -> Result<SetCalibrationResponse, String> {
+    let result = sidecar_send(
+        &state,
+        &serde_json::json!({
+            "command": "set_calibration",
+            "mu": payload.mu,
+            "sigma": payload.sigma,
+        }),
+    )?;
+    if let Some(error) = sidecar_error(&result) {
+        return Err(error);
+    }
+
+    Ok(SetCalibrationResponse {
+        status: result
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("error")
+            .to_string(),
+        mu: result.get("mu").and_then(|v| v.as_f64()).unwrap_or(0.0),
+        sigma: result.get("sigma").and_then(|v| v.as_f64()).unwrap_or(1.0),
     })
 }

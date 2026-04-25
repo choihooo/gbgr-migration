@@ -89,10 +89,7 @@ pub async fn fetch_update(
         current_version: current_version.clone(),
     });
 
-    let mut pending = pending_update
-        .0
-        .lock()
-        .map_err(|error| error.to_string())?;
+    let mut pending = pending_update.0.lock().map_err(|error| error.to_string())?;
     *pending = update;
 
     Ok(FetchUpdateResponse {
@@ -119,10 +116,7 @@ pub async fn install_update(
     };
 
     let pending = {
-        let mut pending = pending_update
-            .0
-            .lock()
-            .map_err(|error| error.to_string())?;
+        let mut pending = pending_update.0.lock().map_err(|error| error.to_string())?;
         pending.take()
     };
 

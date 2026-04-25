@@ -19,6 +19,7 @@
     "core:window:allow-set-always-on-top",
     "core:window:allow-set-size",
     "core:window:allow-set-position",
+    "core:window:allow-start-dragging",
     "core:window:allow-get-all-windows",
     "core:window:allow-create",
     "core:window:allow-center",
@@ -26,6 +27,7 @@
     "core:window:allow-outer-size",
     "core:window:allow-inner-position",
     "core:window:allow-outer-position",
-    "core:window:allow-is-visible"
+    "core:window:allow-is-visible",
+    "core:window:allow-set-title"
   ]
 }

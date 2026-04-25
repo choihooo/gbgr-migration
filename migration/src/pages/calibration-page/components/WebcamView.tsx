@@ -13,6 +13,8 @@ interface WebcamViewProps {
   isActive?: boolean
   mode?: 'foreground' | 'background'
   onResultChange?: (result: PostureEngineResult | null) => void
+  /** true면 usePostureEngine의 프레임 전송(120ms)을 비활성화 */
+  disableFramePush?: boolean
 }
 
 const WebcamView = ({
@@ -22,6 +24,7 @@ const WebcamView = ({
   isActive = true,
   mode = 'foreground',
   onResultChange,
+  disableFramePush = false,
 }: WebcamViewProps) => {
   const webcamRef = useRef<Webcam>(null)
   const { overlayLandmarks, latestResult, engineState, runtimeAvailable } =
@@ -29,6 +32,7 @@ const WebcamView = ({
       active: isActive,
       mode,
       webcamRef,
+      disableFramePush,
     })
   const { cameraState, setShow } = useCameraStore()
 

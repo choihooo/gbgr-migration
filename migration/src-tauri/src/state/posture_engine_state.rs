@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
 use crate::posture_engine::sidecar::SidecarHandle;
 use serde::{Deserialize, Serialize};
@@ -161,6 +161,61 @@ pub struct PostureWarningEvent {
     pub occurred_at: String,
 }
 
+// ── 캘리브레이션 관련 타입 ──────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalibrateStartResponse {
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalibrateFramePayload {
+    pub session_id: String,
+    pub image_payload: String,
+    pub captured_at: String,
+    pub frame_size: FrameSize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalibrateFrameResponse {
+    pub status: String,
+    pub frame_count: u32,
+    pub step1_error: Option<String>,
+    pub step2_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalibrateFinishResponse {
+    pub status: String,
+    pub success: bool,
+    pub mu_pi: Option<f64>,
+    pub sigma_pi: Option<f64>,
+    pub quality: Option<String>,
+    pub n_total: Option<u32>,
+    pub n_pass: Option<u32>,
+    pub pass_rate: Option<f64>,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetCalibrationPayload {
+    pub mu: f64,
+    pub sigma: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetCalibrationResponse {
+    pub status: String,
+    pub mu: f64,
+    pub sigma: f64,
+}
+
 impl std::fmt::Debug for PostureEngineState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PostureEngineState")
@@ -177,6 +232,8 @@ pub struct PostureEngineState {
     pub ownership: Mutex<CameraOwnershipState>,
     pub session_metrics: Mutex<SessionMetricsSnapshot>,
     pub sidecar: Mutex<Option<SidecarHandle>>,
+    pub frame_inflight: Mutex<bool>,
+    pub background_worker_stop: Mutex<Option<Arc<AtomicBool>>>,
 }
 
 impl Default for PostureEngineState {
@@ -200,6 +257,8 @@ impl Default for PostureEngineState {
             }),
             session_metrics: Mutex::new(SessionMetricsSnapshot::default()),
             sidecar: Mutex::new(None),
+            frame_inflight: Mutex::new(false),
+            background_worker_stop: Mutex::new(None),
         }
     }
 }

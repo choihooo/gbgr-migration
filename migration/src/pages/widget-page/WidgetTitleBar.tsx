@@ -1,5 +1,7 @@
 import MediumDragIcon from '@/assets/widget/drag_icon.svg'
 import MiniDragIcon from '@/assets/widget/mini_drag_icon.svg'
+import { getCurrentWindow } from '@tauri-apps/api/window'
+import type { PointerEvent } from 'react'
 
 interface WidgetTitleBarProps {
   onClose?: () => void
@@ -14,6 +16,14 @@ export function WidgetTitleBar({
     onClose?.()
   }
 
+  const handleDragStart = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return
+
+    void getCurrentWindow().startDragging().catch(error => {
+      console.error('위젯 창 드래그 시작 실패:', error)
+    })
+  }
+
   return (
     <div
       className={`bg-grey-0 flex ${
@@ -22,8 +32,10 @@ export function WidgetTitleBar({
           : 'mt-[-1px] h-5 w-full items-center justify-center pb-1'
       }`}
       data-tauri-drag-region
+      onPointerDown={handleDragStart}
     >
       <button
+        onPointerDown={event => event.stopPropagation()}
         onClick={handleClose}
         className="mini:mt-[2px] h-[10px] w-[10px] rounded-full bg-[#FF5154] hover:bg-red-600"
         aria-label="닫기"

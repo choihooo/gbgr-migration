@@ -1,4 +1,6 @@
-use crate::state::posture_engine_state::{now_iso, EngineMode, PostureEngineResult, PostureWarningEvent};
+use crate::state::posture_engine_state::{
+    now_iso, EngineMode, PostureEngineResult, PostureWarningEvent,
+};
 
 // TODO: 백그라운드 결과 수신 기능 구현 시 사용
 #[allow(dead_code)]

@@ -1,19 +1,12 @@
 from __future__ import annotations
 
 import base64
+import os
+from pathlib import Path
 from typing import Any
 
 import cv2
 import numpy as np
-
-# MediaPipe Pose Landmarker
-try:
-    import mediapipe as mp
-    from mediapipe.tasks.python import BaseOptions
-    from mediapipe.tasks.python.vision import PoseLandmarker, PoseLandmarkerOptions, RunningMode
-    HAS_MEDIAPIPE = True
-except ImportError:
-    HAS_MEDIAPIPE = False
 
 # 레거시 PoseDetection.tsx와 동일한 키 랜드마크 인덱스
 KEY_INDICES = [
@@ -32,27 +25,42 @@ KEY_INDICES = [
     12,  # RIGHT_SHOULDER
 ]
 
-MODEL_URL = (
-    "https://storage.googleapis.com/mediapipe-models/"
-    "pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task"
-)
+MODEL_FILENAME = "pose_landmarker_full.task"
 
 
 class PoseDetector:
     """MediaPipe Pose Landmarker를 사용한 포즈 감지."""
 
     def __init__(self) -> None:
-        self._landmarker: PoseLandmarker | None = None
+        self._mp: Any | None = None
+        self._landmarker: Any | None = None
         self._frame_timestamp_ms: int = 0
+        self.last_error: str | None = None
 
     def initialize(self) -> bool:
         """MediaPipe PoseLandmarker를 초기화한다."""
-        if not HAS_MEDIAPIPE:
+        self.last_error = None
+
+        model_path = _resolve_model_path()
+        if model_path is None:
+            self.last_error = f"pose_model_not_found: {MODEL_FILENAME}"
+            return False
+
+        try:
+            import mediapipe as mp
+            from mediapipe.tasks.python import BaseOptions
+            from mediapipe.tasks.python.vision import (
+                PoseLandmarker,
+                PoseLandmarkerOptions,
+                RunningMode,
+            )
+        except ImportError:
+            self.last_error = "mediapipe_not_installed"
             return False
 
         try:
             options = PoseLandmarkerOptions(
-                base_options=BaseOptions(model_asset_path=MODEL_URL),
+                base_options=BaseOptions(model_asset_path=str(model_path)),
                 running_mode=RunningMode.VIDEO,
                 num_poses=1,
                 min_pose_detection_confidence=0.2,
@@ -60,8 +68,10 @@ class PoseDetector:
                 min_tracking_confidence=0.2,
             )
             self._landmarker = PoseLandmarker.create_from_options(options)
+            self._mp = mp
             return True
-        except Exception:
+        except Exception as exc:
+            self.last_error = f"mediapipe_initialization_failed: {exc}"
             return False
 
     def detect(self, image_b64: str) -> dict[str, Any] | None:
@@ -90,7 +100,9 @@ class PoseDetector:
             return None
 
         rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
+        if self._mp is None:
+            return None
+        mp_image = self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=rgb_image)
 
         self._frame_timestamp_ms += 50  # 50ms 간격 (20fps)
         results = self._landmarker.detect_for_video(mp_image, self._frame_timestamp_ms)
@@ -117,6 +129,7 @@ class PoseDetector:
         return {
             "landmarks": key_landmarks,
             "world_landmarks": world_landmarks,
+            "bgr_image": bgr_image,
         }
 
     def close(self) -> None:
@@ -140,3 +153,24 @@ def _extract_key(landmarks: list) -> list[dict]:
         else:
             result.append({"x": 0, "y": 0, "z": 0, "visibility": 0})
     return result
+
+
+def _resolve_model_path() -> Path | None:
+    env_path = os.environ.get("GBGR_POSE_MODEL_PATH")
+    candidates = []
+    if env_path:
+        candidates.append(Path(env_path))
+
+    current_dir = Path(__file__).resolve().parent
+    candidates.extend([
+        current_dir / ".." / "models" / MODEL_FILENAME,
+        current_dir / ".." / MODEL_FILENAME,
+        Path.cwd() / "sidecar" / "posture-engine" / "models" / MODEL_FILENAME,
+    ])
+
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved.exists():
+            return resolved
+
+    return None
