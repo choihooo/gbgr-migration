@@ -3,6 +3,7 @@
  * @legacy src/renderer/src/features/dashboard/ui/MainHeader.tsx (레이아웃)
  */
 import { useEffect, useState } from 'react'
+import { useNotificationScheduler } from '@/features/notification-settings/model/use-notification-scheduler'
 import { useWindowVisibilitySync } from '@/features/posture-engine'
 import DashboardPage from '@/pages/dashboard-page'
 
@@ -12,6 +13,7 @@ function MainPage() {
   const [, setMode] = useState<'foreground' | 'background'>('foreground')
 
   useWindowVisibilitySync(setMode)
+  useNotificationScheduler()
 
   useEffect(() => {
     const heartbeat = () => {

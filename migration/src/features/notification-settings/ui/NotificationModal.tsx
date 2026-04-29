@@ -3,6 +3,7 @@
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { requestNotificationPermission } from '@/shared/lib/notification-api'
 import { Button } from '@/shared/ui/button'
 import { Modal } from '@/shared/ui/modal'
 import { NotificationToggleSwitch } from '@/shared/ui/toggle-switch'
@@ -41,7 +42,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
   })
 
   /* 저장하기 핸들러 */
-  const handleSave = () => {
+  const handleSave = async () => {
     store.setSettings({
       isAllow,
       stretching: {
@@ -53,6 +54,11 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         interval: turtleNeck.time,
       },
     })
+
+    if (isAllow) {
+      await requestNotificationPermission()
+    }
+
     onClose()
   }
 
