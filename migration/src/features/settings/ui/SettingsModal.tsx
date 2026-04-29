@@ -9,22 +9,24 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { useAuthUserStore } from '@/entities/user'
 import {
-  changeAppLanguage,
-  i18n,
-  normalizeLanguage,
-  type AppLanguage,
-} from '@/shared/lib/i18n'
-import {
   clearAuthSession,
   clearRedirectPath,
 } from '@/features/auth/lib/session-persistence'
 import { clearStoredTokens } from '@/shared/api/instance'
+import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
+import { requestCalibrationReset } from '@/shared/lib/calibration-gate'
+import { cn } from '@/shared/lib/cn'
 import {
+  type AppLanguage,
+  changeAppLanguage,
+  i18n,
+  normalizeLanguage,
+} from '@/shared/lib/i18n'
+import {
+  type FetchUpdateResponse,
   fetchUpdate,
   installUpdate,
-  type FetchUpdateResponse,
 } from '@/shared/lib/update-api'
-import { cn } from '@/shared/lib/cn'
 import { Button } from '@/shared/ui/button'
 import {
   CalibrationResetIcon,
@@ -60,7 +62,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [updateMessage, setUpdateMessage] = useState('')
   const [updateError, setUpdateError] = useState('')
 
-  const currentLanguage = normalizeLanguage(i18n.resolvedLanguage ?? i18n.language)
+  const currentLanguage = normalizeLanguage(
+    i18n.resolvedLanguage ?? i18n.language,
+  )
 
   useEffect(() => {
     let isMounted = true
@@ -143,9 +147,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   }
 
   const handleCalibrationReset = () => {
-    // TODO: 캘리브레이션 재설정 로직 연동 (requestCalibrationReset)
+    const userId = localStorage.getItem(AUTH_STORAGE_KEYS.userId)
+    requestCalibrationReset(userId)
     onClose()
-    navigate('/onboarding/init')
+    navigate('/onboarding/calibration')
   }
 
   const handleLanguageChange = async (language: AppLanguage) => {

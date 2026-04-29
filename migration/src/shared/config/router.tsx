@@ -12,9 +12,7 @@ import ResendVerificationPage from '@/pages/resend-verification-page'
 import SignupPage from '@/pages/signup-page'
 import WidgetPage from '@/pages/widget-page'
 import { ProtectedRoute, PublicOnlyRoute } from '@/shared/config/auth-routes'
-
-// TODO: 보정 게이트 복원 (007 구현 완료 후)
-// import { CalibrationRouteGuard } from '@/shared/lib/calibration-route-guard'
+import { CalibrationRouteGuard } from '@/shared/lib/calibration-route-guard'
 
 export const router = createBrowserRouter([
   {
@@ -57,10 +55,15 @@ export const router = createBrowserRouter([
         path: '/onboarding',
         element: <ProtectedRoute />,
         children: [
-          { index: true, element: <OnboardingPage /> },
-          { path: 'init', element: <OnboardingInitPage /> },
-          { path: 'calibration', element: <CalibrationPage /> },
-          { path: 'completion', element: <OnboardingCompletionPage /> },
+          {
+            element: <CalibrationRouteGuard />,
+            children: [
+              { index: true, element: <OnboardingPage /> },
+              { path: 'init', element: <OnboardingInitPage /> },
+              { path: 'calibration', element: <CalibrationPage /> },
+              { path: 'completion', element: <OnboardingCompletionPage /> },
+            ],
+          },
         ],
       },
       {
