@@ -81,6 +81,10 @@ Thumbs.db
 *.tmp
 __pycache__/
 *.pyc
+sidecar/posture-engine/posture-engine
+sidecar/posture-engine/posture-engine.exe
+sidecar/posture-engine/.pyinstaller-build/
+sidecar/posture-engine/.pyinstaller-spec/
 
 .vscode/
 .vercel

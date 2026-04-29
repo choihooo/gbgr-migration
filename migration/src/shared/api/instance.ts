@@ -45,7 +45,7 @@ const NON_RETRYABLE_PATHS = [
 function isNonRetryablePath(url?: string): boolean {
   if (!url) return false
   const path = url.replace(baseURL, '').split('?')[0]
-  return NON_RETRYABLE_PATHS.some((p) => path.startsWith(p))
+  return NON_RETRYABLE_PATHS.some(p => path.startsWith(p))
 }
 
 export function clearStoredTokens() {
@@ -92,7 +92,9 @@ export async function refreshAccessToken() {
       !data.success ||
       !data.data
     ) {
-      const err = new Error(data.message ?? 'Refresh token expired') as Error & {
+      const err = new Error(
+        data.message ?? 'Refresh token expired',
+      ) as Error & {
         code: string
       }
       err.code = data.code?.toUpperCase() ?? 'AUTH-102'
@@ -107,7 +109,7 @@ export async function refreshAccessToken() {
   return refreshPromise
 }
 
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(config => {
   const accessToken = localStorage.getItem(AUTH_STORAGE_KEYS.accessToken)
 
   if (accessToken) {
@@ -118,7 +120,7 @@ api.interceptors.request.use((config) => {
 })
 
 api.interceptors.response.use(
-  (response) => response,
+  response => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosError['config'] &
       RetriableConfig
