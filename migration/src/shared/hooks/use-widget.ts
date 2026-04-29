@@ -1,5 +1,5 @@
-import { isWidgetOpen, openWidget, closeWidget } from '@/shared/lib/widget-api'
 import { useEffect, useState } from 'react'
+import { closeWidget, isWidgetOpen, openWidget } from '@/shared/lib/widget-api'
 
 export function useWidget() {
   const [isWidgetVisible, setIsWidgetVisible] = useState(false)

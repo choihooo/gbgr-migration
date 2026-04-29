@@ -40,9 +40,17 @@ export function MiniWidgetContent({ posture }: MiniWidgetContentProps) {
       />
       <div className="absolute flex h-full">
         {isGiraffe ? (
-          <img src={MiniGiraffe} alt="" className="h-full w-full object-contain" />
+          <img
+            src={MiniGiraffe}
+            alt=""
+            className="h-full w-full object-contain"
+          />
         ) : (
-          <img src={MiniTurtle} alt="" className="h-full w-full object-contain" />
+          <img
+            src={MiniTurtle}
+            alt=""
+            className="h-full w-full object-contain"
+          />
         )}
       </div>
     </div>

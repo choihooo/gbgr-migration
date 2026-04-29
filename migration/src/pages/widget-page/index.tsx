@@ -1,10 +1,10 @@
+import { useEffect, useState } from 'react'
 import { usePostureEngineStore } from '@/entities/posture'
 import { usePostureEngine } from '@/features/posture-engine'
 import { closeWidget } from '@/shared/lib/widget-api'
-import { useEffect, useState } from 'react'
-import { WidgetTitleBar } from './WidgetTitleBar'
 import { MediumWidgetContent } from './MediumWidgetContent'
 import { MiniWidgetContent } from './MiniWidgetContent'
+import { WidgetTitleBar } from './WidgetTitleBar'
 
 type WidgetSize = 'mini' | 'medium'
 

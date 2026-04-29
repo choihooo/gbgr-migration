@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import type Webcam from 'react-webcam'
 import CalibrationGuide from '@/assets/common/images/calibration_guide.svg?react'
 import type { PostureEngineResult } from '@/entities/posture'
-import { useWindowVisibilitySync } from '@/features/posture-engine'
-import { calibrateFinish, calibrateFrame, calibrateStart } from '@/features/posture-engine'
 import { usePostureEngineStore } from '@/entities/posture'
-import type Webcam from 'react-webcam'
-import { lockCalibrationGate } from '@/shared/lib/calibration-gate'
+import {
+  calibrateFinish,
+  calibrateFrame,
+  calibrateStart,
+  useWindowVisibilitySync,
+} from '@/features/posture-engine'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
+import { lockCalibrationGate } from '@/shared/lib/calibration-gate'
 import MeasuringPanel from './components/MeasuringPanel'
 import WebcamView from './components/WebcamView'
 import WelcomePanel from './components/WelcomePanel'
@@ -34,9 +38,13 @@ const captureVideoFrame = (video: HTMLVideoElement) => {
 const CalibrationPage = () => {
   const navigate = useNavigate()
   const [mode, setMode] = useState<'foreground' | 'background'>('foreground')
-  const [latestResult, setLatestResult] = useState<PostureEngineResult | null>(null)
+  const [latestResult, setLatestResult] = useState<PostureEngineResult | null>(
+    null,
+  )
   const [isCalibrating, setIsCalibrating] = useState(false)
-  const [remainingTime, setRemainingTime] = useState(CALIBRATION_DURATION_MS / 1000)
+  const [remainingTime, setRemainingTime] = useState(
+    CALIBRATION_DURATION_MS / 1000,
+  )
   const [step1Error, setStep1Error] = useState<string | null>(
     '화면 가이드 안으로 들어오면 측정을 시작할 수 있어요',
   )
@@ -102,7 +110,10 @@ const CalibrationPage = () => {
 
         if (result.step1Error) {
           setStep1Error(result.step1Error)
-        } else if (result.status !== 'no_detection' && result.status !== 'no_pi') {
+        } else if (
+          result.status !== 'no_detection' &&
+          result.status !== 'no_pi'
+        ) {
           setStep1Error(null)
         }
 
@@ -177,7 +188,9 @@ const CalibrationPage = () => {
           // 보정 완료 후 레거시와 동일하게 완료 페이지로 이동
           navigate('/onboarding/completion', { replace: true })
         } else {
-          setStep2Error(result.message ?? '캘리브레이션에 실패했어요. 다시 시도해주세요.')
+          setStep2Error(
+            result.message ?? '캘리브레이션에 실패했어요. 다시 시도해주세요.',
+          )
           setIsCalibrating(false)
           setRemainingTime(CALIBRATION_DURATION_MS / 1000)
         }
@@ -227,7 +240,7 @@ const CalibrationPage = () => {
               showTimer={isCalibrating}
               remainingTime={remainingTime}
               onResultChange={setLatestResult}
-              onVideoRefReady={(ref) => {
+              onVideoRefReady={ref => {
                 webcamRef.current = ref.current
               }}
               disableFramePush={isCalibrating}

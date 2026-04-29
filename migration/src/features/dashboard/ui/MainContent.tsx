@@ -1,5 +1,5 @@
-import type { TabType } from '@/features/layout/model/use-navigation-tabs'
 import { useTranslation } from 'react-i18next'
+import type { TabType } from '@/features/layout/model/use-navigation-tabs'
 import { DashboardHeader } from '@/features/layout/ui/DashboardHeader'
 import { LeftPanelArea } from './LeftPanelArea'
 import { RightPanelArea } from './RightPanelArea'

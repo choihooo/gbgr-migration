@@ -1,6 +1,6 @@
+import { spawn } from 'node:child_process'
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { spawn } from 'node:child_process'
 
 const manager = process.argv[2]
 

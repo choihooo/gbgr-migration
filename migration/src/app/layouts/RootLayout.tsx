@@ -12,9 +12,7 @@ function RootLayout() {
   const isAuthenticated = authStatus === 'authenticated'
   const isWidgetRoute = location.pathname.startsWith('/widget')
   const shouldShowGlobalHeader =
-    isAuthenticated &&
-    !location.pathname.startsWith('/main') &&
-    !isWidgetRoute
+    isAuthenticated && !location.pathname.startsWith('/main') && !isWidgetRoute
 
   return (
     <div

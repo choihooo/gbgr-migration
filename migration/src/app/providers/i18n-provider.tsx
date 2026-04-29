@@ -14,7 +14,9 @@ export function AppI18nProvider({ children }: I18nProviderProps) {
 
       if ('__TAURI_INTERNALS__' in window) {
         void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
-          void getCurrentWindow().setTitle(i18n.t('app.name', { lng: language }))
+          void getCurrentWindow().setTitle(
+            i18n.t('app.name', { lng: language }),
+          )
         })
       }
     }

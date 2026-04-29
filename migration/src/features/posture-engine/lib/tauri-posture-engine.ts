@@ -153,7 +153,12 @@ export async function calibrateFrame(
   payload: CalibrateFramePayload,
 ): Promise<CalibrateFrameResponse> {
   if (!isTauriRuntimeAvailable()) {
-    return { status: 'no_detection', frameCount: 0, step1Error: null, step2Error: null }
+    return {
+      status: 'no_detection',
+      frameCount: 0,
+      step1Error: null,
+      step2Error: null,
+    }
   }
   return invoke<CalibrateFrameResponse>('calibrate_frame', { payload })
 }

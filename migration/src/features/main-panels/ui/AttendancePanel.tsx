@@ -33,7 +33,10 @@ function getLevelFromMinutes(minutes?: number | null) {
   return 5
 }
 
-function getMessage(subContent: string | undefined, t: (key: string) => string) {
+function getMessage(
+  subContent: string | undefined,
+  t: (key: string) => string,
+) {
   if (!subContent) {
     return t('dashboard.panels.attendance.fallbackMessage')
   }

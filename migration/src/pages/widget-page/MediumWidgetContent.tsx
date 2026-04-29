@@ -1,6 +1,6 @@
+import { useEffect, useState } from 'react'
 import MediumGiraffe from '@/assets/widget/medium_giraffe.svg'
 import MediumTurtle from '@/assets/widget/medium_turtle.svg'
-import { useEffect, useState } from 'react'
 import messages from './data.json'
 
 type PostureState = 0 | 1 | 2 | 3 | 4 | 5 | 6
@@ -64,7 +64,11 @@ export function MediumWidgetContent({ posture }: MediumWidgetContentProps) {
         style={{ background: gradient }}
       >
         {isGiraffe ? (
-          <img src={MediumGiraffe} alt="" className="ml-[-10px] h-full object-contain" />
+          <img
+            src={MediumGiraffe}
+            alt=""
+            className="ml-[-10px] h-full object-contain"
+          />
         ) : (
           <img src={MediumTurtle} alt="" className="h-full object-contain" />
         )}

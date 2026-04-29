@@ -1,10 +1,10 @@
+import { useTranslation } from 'react-i18next'
 import stepFiveCharacter from '@/assets/main/averagePosture/step_five_character.png'
 import stepFourCharacter from '@/assets/main/averagePosture/step_four_character.png'
 import stepOneCharacter from '@/assets/main/averagePosture/step_one_character.png'
 import stepThreeCharacter from '@/assets/main/averagePosture/step_three_character.png'
 import stepTwoCharacter from '@/assets/main/averagePosture/step_two_character.png'
 import { useAverageScoreQuery } from '@/entities/dashboard/model/use-dashboard-queries'
-import { useTranslation } from 'react-i18next'
 import { cn } from '@/shared/lib/cn'
 import type { PanelBaseProps } from '../model/types'
 

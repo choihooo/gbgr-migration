@@ -533,8 +533,7 @@ export const resources = {
               'It is like sitting with a carry-on suitcase resting on your neck 🧳',
             level3:
               'It is like working with a heavy bowling ball hanging from your neck 🎳',
-            level4:
-              'It is like balancing a small watermelon on your neck 🍉',
+            level4: 'It is like balancing a small watermelon on your neck 🍉',
             level5:
               'Only the natural weight of your head. You are doing great 🌸',
             sunday: 'Sun',
@@ -587,8 +586,7 @@ export const resources = {
           installing: 'Installing the update.',
           unconfigured: 'The update server has not been configured yet.',
           noUpdate: 'You are already using the latest version.',
-          availableDescription:
-            'Version {{version}} is available to install.',
+          availableDescription: 'Version {{version}} is available to install.',
           installedDescription:
             'The update has been installed. Please restart the app.',
           installingExit:
