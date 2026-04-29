@@ -1,6 +1,11 @@
 use std::io::{BufRead, BufReader, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+
+enum SidecarCommand {
+    Binary(PathBuf),
+    PythonScript { python: String, script: PathBuf },
+}
 
 /// Python sidecar 프로세스 핸들
 pub struct SidecarHandle {
@@ -12,16 +17,22 @@ pub struct SidecarHandle {
 impl SidecarHandle {
     /// Python sidecar 프로세스를 실행한다.
     pub fn spawn() -> Result<Self, String> {
-        let script = resolve_sidecar_path()?;
-        let python = find_python()?;
+        let command = resolve_sidecar_command()?;
+        let mut process = match command {
+            SidecarCommand::Binary(binary) => Command::new(binary),
+            SidecarCommand::PythonScript { python, script } => {
+                let mut command = Command::new(python);
+                command.arg(script);
+                command
+            }
+        };
 
-        let mut child = Command::new(python)
-            .arg(&script)
+        let mut child = process
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
-            .map_err(|e| format!("sidecar spawn 실패: {e}"))?;
+            .map_err(|e| format!("자세 엔진 sidecar 실행 실패: {e}"))?;
 
         let stdin = child.stdin.take().ok_or("stdin 파이프 획득 실패")?;
         let stdout = child.stdout.take().ok_or("stdout 파이프 획득 실패")?;
@@ -93,6 +104,79 @@ impl Drop for SidecarHandle {
     }
 }
 
+fn resolve_sidecar_command() -> Result<SidecarCommand, String> {
+    if let Some(binary) = resolve_sidecar_binary()? {
+        return Ok(SidecarCommand::Binary(binary));
+    }
+
+    let script = resolve_sidecar_path()?;
+    let python = find_python()?;
+    Ok(SidecarCommand::PythonScript { python, script })
+}
+
+/// 프로덕션 패키징에서는 PyInstaller/Nuitka 등으로 만든 플랫폼별 실행 파일을 우선 사용한다.
+fn resolve_sidecar_binary() -> Result<Option<PathBuf>, String> {
+    if let Ok(path) = std::env::var("GBGR_POSTURE_ENGINE_BIN") {
+        let env_path = PathBuf::from(path);
+        if env_path.exists() {
+            return Ok(Some(env_path));
+        }
+        return Err(format!(
+            "GBGR_POSTURE_ENGINE_BIN이 존재하지 않는 경로를 가리킴: {env_path:?}"
+        ));
+    }
+
+    for candidate in sidecar_binary_candidates()? {
+        if candidate.exists() {
+            return Ok(Some(candidate));
+        }
+    }
+
+    Ok(None)
+}
+
+fn sidecar_binary_candidates() -> Result<Vec<PathBuf>, String> {
+    let executable_names = if cfg!(windows) {
+        vec!["posture-engine.exe"]
+    } else {
+        vec!["posture-engine"]
+    };
+
+    let mut base_dirs = Vec::new();
+    base_dirs.push(std::env::current_dir().map_err(|e| format!("현재 디렉토리 조회 실패: {e}"))?);
+
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            base_dirs.push(exe_dir.to_path_buf());
+            base_dirs.push(exe_dir.join("resources"));
+            base_dirs.push(exe_dir.join("../Resources"));
+        }
+    }
+
+    let mut candidates = Vec::new();
+    for base_dir in base_dirs {
+        for ancestor in base_dir.ancestors() {
+            for executable_name in &executable_names {
+                candidates.push(ancestor.join("sidecar").join(executable_name));
+                candidates.push(
+                    ancestor
+                        .join("sidecar")
+                        .join("posture-engine-bin")
+                        .join(executable_name),
+                );
+                candidates.push(
+                    ancestor
+                        .join("sidecar")
+                        .join("posture-engine")
+                        .join(executable_name),
+                );
+            }
+        }
+    }
+
+    Ok(candidates)
+}
+
 /// Python sidecar 스크립트 경로를 찾는다.
 /// 개발 중에는 프로젝트 루트 기준 sidecar/posture-engine/main.py를 사용한다.
 fn resolve_sidecar_path() -> Result<PathBuf, String> {
@@ -105,28 +189,14 @@ fn resolve_sidecar_path() -> Result<PathBuf, String> {
 
     let cwd = std::env::current_dir().map_err(|e| format!("현재 디렉토리 조회 실패: {e}"))?;
 
-    let mut candidates: Vec<PathBuf> = cwd
-        .ancestors()
-        .map(|p| p.join("sidecar").join("posture-engine").join("main.py"))
-        .collect();
+    let mut candidates: Vec<PathBuf> = cwd.ancestors().map(sidecar_script_path).collect();
 
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             candidates.extend([
-                exe_dir
-                    .join("sidecar")
-                    .join("posture-engine")
-                    .join("main.py"),
-                exe_dir
-                    .join("resources")
-                    .join("sidecar")
-                    .join("posture-engine")
-                    .join("main.py"),
-                exe_dir
-                    .join("../Resources")
-                    .join("sidecar")
-                    .join("posture-engine")
-                    .join("main.py"),
+                sidecar_script_path(exe_dir),
+                sidecar_script_path(&exe_dir.join("resources")),
+                sidecar_script_path(&exe_dir.join("../Resources")),
             ]);
         }
     }
@@ -138,8 +208,15 @@ fn resolve_sidecar_path() -> Result<PathBuf, String> {
     }
 
     Err(format!(
-        "sidecar 스크립트를 찾을 수 없음: cwd={cwd:?}, candidates={candidates:?}"
+        "자세 엔진 sidecar를 찾을 수 없음: cwd={cwd:?}, candidates={candidates:?}"
     ))
+}
+
+fn sidecar_script_path(base_dir: &Path) -> PathBuf {
+    base_dir
+        .join("sidecar")
+        .join("posture-engine")
+        .join("main.py")
 }
 
 /// 사용 가능한 Python 실행 파일을 찾는다.
@@ -155,5 +232,8 @@ fn find_python() -> Result<String, String> {
             return Ok(cmd.to_string());
         }
     }
-    Err("python3/python 실행 파일을 찾을 수 없음".to_string())
+    Err(
+        "Python 실행 파일을 찾을 수 없음. 개발 모드는 python3/python과 MediaPipe 의존성이 필요하며, 배포 모드는 플랫폼별 자세 엔진 실행 파일이 필요함"
+            .to_string(),
+    )
 }

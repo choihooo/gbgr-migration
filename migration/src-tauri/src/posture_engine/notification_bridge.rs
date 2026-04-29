@@ -2,15 +2,12 @@ use crate::state::posture_engine_state::{
     now_iso, EngineMode, PostureEngineResult, PostureWarningEvent,
 };
 
-// TODO: 백그라운드 결과 수신 기능 구현 시 사용
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NotificationDecision {
     pub should_notify: bool,
     pub message: Option<String>,
 }
 
-#[allow(dead_code)]
 pub fn evaluate_background_notification(result: &PostureEngineResult) -> NotificationDecision {
     let should_notify =
         matches!(result.engine_mode, EngineMode::Background) && result.posture_class >= 4;
