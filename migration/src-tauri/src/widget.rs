@@ -236,6 +236,8 @@ pub fn ensure_widget_window(app: &AppHandle) -> Result<(), String> {
     attach_widget_window_events(app, &window);
     apply_saved_widget_bounds(app, &window).map_err(|error| error.to_string())?;
 
+    set_widget_floating(&window);
+
     window.hide().map_err(|error| error.to_string())?;
 
     Ok(())
@@ -286,3 +288,20 @@ pub fn is_widget_open(app: AppHandle) -> Result<bool, String> {
         .unwrap_or(false);
     Ok(open)
 }
+
+/// 위젯 창을 floating 레벨로 설정한다.
+/// alwaysOnTop와 달리 다른 Spaces로 이동 가능하면서도 일반 창 위에 표시된다.
+#[cfg(target_os = "macos")]
+fn set_widget_floating(window: &WebviewWindow) {
+    match window.ns_window() {
+        Ok(ns_window) => unsafe {
+            use cocoa::base::id;
+            let raw: id = ns_window.cast();
+            msg_send![raw, setLevel: 3i64]; // NSFloatingWindowLevel
+        },
+        Err(e) => eprintln!("위젯 floating 레벨 설정 실패: {e}"),
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn set_widget_floating(_window: &WebviewWindow) {}

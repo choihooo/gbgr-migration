@@ -105,8 +105,18 @@ impl Drop for SidecarHandle {
 }
 
 fn resolve_sidecar_command() -> Result<SidecarCommand, String> {
-    if let Some(binary) = resolve_sidecar_binary()? {
-        return Ok(SidecarCommand::Binary(binary));
+    // 환경변수로 명시된 경우 모드 무시하고 바이너리 사용
+    if std::env::var("GBGR_POSTURE_ENGINE_BIN").is_ok() {
+        if let Some(binary) = resolve_sidecar_binary()? {
+            return Ok(SidecarCommand::Binary(binary));
+        }
+    }
+
+    // release 빌드에서만 바이너리 우선 탐색 (dev에서는 Python 스크립트 사용)
+    if !cfg!(debug_assertions) {
+        if let Some(binary) = resolve_sidecar_binary()? {
+            return Ok(SidecarCommand::Binary(binary));
+        }
     }
 
     let script = resolve_sidecar_path()?;
