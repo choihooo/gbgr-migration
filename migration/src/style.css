@@ -5,6 +5,8 @@
 @import "./shared/styles/scrollbar.css";
 @import "./shared/styles/animations.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 html,
 body,
 #root {
