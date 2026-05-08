@@ -28,6 +28,9 @@ use crate::{
 
 const BACKGROUND_FRAME_INTERVAL: Duration = Duration::from_millis(200);
 
+/// base64 인코딩된 이미지 payload 최대 크기 (약 10MB 원본 = 13.3M 자)
+const MAX_IMAGE_PAYLOAD_LEN: usize = 14_000_000;
+
 /// sidecar에 명령을 보내고 응답을 받는 헬퍼
 fn sidecar_send(
     state: &PostureEngineState,
@@ -456,6 +459,19 @@ pub fn push_posture_frame(
         });
     }
 
+    if payload.image_payload.len() > MAX_IMAGE_PAYLOAD_LEN {
+        let _ = emit_warning(
+            &app,
+            "frame_rejected",
+            Some(payload.session_id),
+            "프레임 이미지가 너무 큽니다",
+        );
+        return Ok(PushPostureFrameResponse {
+            accepted: false,
+            reason: Some("frame_payload_too_large".to_string()),
+        });
+    }
+
     {
         let mut inflight = state.frame_inflight.lock().map_err(|e| e.to_string())?;
         if *inflight {
@@ -720,6 +736,10 @@ pub fn calibrate_frame(
     payload: CalibrateFramePayload,
     state: State<'_, PostureEngineState>,
 ) -> Result<CalibrateFrameResponse, String> {
+    if payload.image_payload.len() > MAX_IMAGE_PAYLOAD_LEN {
+        return Err("frame_payload_too_large: 보정 프레임 이미지가 너무 큽니다".to_string());
+    }
+
     let result = sidecar_send(
         &state,
         &serde_json::json!({
