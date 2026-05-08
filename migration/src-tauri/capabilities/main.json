@@ -1,26 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Capability for the main and widget windows",
-  "windows": ["main", "widget"],
+  "identifier": "main",
+  "description": "Capability for the main window",
+  "windows": ["main"],
   "permissions": [
     "core:default",
     "core:event:default",
-    "core:window:default",
-    "opener:default",
-    "deep-link:default",
-    "notification:default",
-    {
-      "identifier": "http:default",
-      "allow": [
-        "https://api.bugi.co.kr/*",
-        "https://*.bugi.co.kr/*"
-      ]
-    },
-    "updater:default",
     "core:event:allow-listen",
     "core:event:allow-emit",
-    "autostart:default",
+    "core:window:default",
     "core:window:allow-close",
     "core:window:allow-show",
     "core:window:allow-hide",
@@ -37,6 +25,18 @@
     "core:window:allow-inner-position",
     "core:window:allow-outer-position",
     "core:window:allow-is-visible",
-    "core:window:allow-set-title"
+    "core:window:allow-set-title",
+    {
+      "identifier": "http:default",
+      "allow": [
+        "https://api.bugi.co.kr/*",
+        "https://*.bugi.co.kr/*"
+      ]
+    },
+    "opener:default",
+    "deep-link:default",
+    "notification:default",
+    "updater:default",
+    "autostart:default"
   ]
 }
