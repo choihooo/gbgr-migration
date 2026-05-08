@@ -89,3 +89,6 @@ sidecar/posture-engine/.pyinstaller-spec/
 .vscode/
 .vercel
 .claude/settings.local.json
+
+# Sidecar venv
+sidecar/posture-engine/.venv/

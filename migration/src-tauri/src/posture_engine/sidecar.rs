@@ -5,7 +5,7 @@ use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::thread;
 use std::time::Duration;
 
-const SIDECAR_RESPONSE_TIMEOUT: Duration = Duration::from_secs(3);
+const SIDECAR_RESPONSE_TIMEOUT: Duration = Duration::from_secs(15);
 const SIDECAR_TIMEOUT_ERROR_CODE: &str = "SIDECAR_TIMEOUT";
 
 enum SidecarCommand {
@@ -299,7 +299,18 @@ fn sidecar_script_path(base_dir: &Path) -> PathBuf {
 }
 
 /// 사용 가능한 Python 실행 파일을 찾는다.
+/// sidecar/posture-engine/.venv/bin/python3을 최우선으로 탐색한다.
 fn find_python() -> Result<String, String> {
+    // sidecar 스크립트 기준 상대 경로의 venv Python을 최우선 탐색
+    if let Ok(script_path) = resolve_sidecar_path() {
+        if let Some(sidecar_dir) = script_path.parent() {
+            let venv_python = sidecar_dir.join(".venv").join("bin").join("python3");
+            if venv_python.exists() {
+                return Ok(venv_python.to_string_lossy().to_string());
+            }
+        }
+    }
+
     for cmd in &["python3", "python"] {
         if Command::new(cmd)
             .arg("--version")
