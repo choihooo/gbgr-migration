@@ -8,6 +8,7 @@ import type {
   VerifyEmailRequest,
   VerifyEmailResponse,
 } from '@/entities/user'
+import type { SessionActionResponse } from '@/entities/session/types'
 import api from '@/shared/api/instance'
 
 export async function loginRequest(payload: LoginInput) {
@@ -42,6 +43,13 @@ export async function verifyEmailRequest(payload: VerifyEmailRequest) {
     payload,
   )
   return response.data
+}
+
+export async function withdrawRequest() {
+  const response = await api.delete<SessionActionResponse>('/users/me')
+  if (!response.data.success) {
+    throw new Error(response.data.message || '회원탈퇴에 실패했습니다.')
+  }
 }
 
 export async function resendVerificationEmailRequest(

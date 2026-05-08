@@ -1,6 +1,12 @@
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+use std::process::{Child, ChildStdin, Command, Stdio};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
+use std::thread;
+use std::time::Duration;
+
+const SIDECAR_RESPONSE_TIMEOUT: Duration = Duration::from_secs(3);
+const SIDECAR_TIMEOUT_ERROR_CODE: &str = "SIDECAR_TIMEOUT";
 
 enum SidecarCommand {
     Binary(PathBuf),
@@ -11,7 +17,7 @@ enum SidecarCommand {
 pub struct SidecarHandle {
     child: Child,
     stdin: ChildStdin,
-    stdout: BufReader<ChildStdout>,
+    response_rx: Receiver<Result<String, String>>,
 }
 
 impl SidecarHandle {
@@ -36,11 +42,35 @@ impl SidecarHandle {
 
         let stdin = child.stdin.take().ok_or("stdin 파이프 획득 실패")?;
         let stdout = child.stdout.take().ok_or("stdout 파이프 획득 실패")?;
+        let (response_tx, response_rx) = mpsc::channel();
+
+        thread::spawn(move || {
+            let mut reader = BufReader::new(stdout);
+
+            loop {
+                let mut response = String::new();
+                match reader.read_line(&mut response) {
+                    Ok(0) => {
+                        let _ = response_tx.send(Err("sidecar stdout가 닫혔습니다.".to_string()));
+                        break;
+                    }
+                    Ok(_) => {
+                        if response_tx.send(Ok(response)).is_err() {
+                            break;
+                        }
+                    }
+                    Err(error) => {
+                        let _ = response_tx.send(Err(format!("stdout 읽기 실패: {error}")));
+                        break;
+                    }
+                }
+            }
+        });
 
         Ok(Self {
             child,
             stdin,
-            stdout: BufReader::new(stdout),
+            response_rx,
         })
     }
 
@@ -58,17 +88,26 @@ impl SidecarHandle {
             .flush()
             .map_err(|e| format!("stdin flush 실패: {e}"))?;
 
-        let mut response = String::new();
-        self.stdout
-            .read_line(&mut response)
-            .map_err(|e| format!("stdout 읽기 실패: {e}"))?;
+        let response = match wait_for_response(&self.response_rx, SIDECAR_RESPONSE_TIMEOUT) {
+            Ok(response) => response,
+            Err(error) => {
+                let _ = self.kill();
+                return Err(error);
+            }
+        };
 
         let trimmed = response.trim();
         if trimmed.is_empty() {
+            let _ = self.kill();
             return Err("sidecar가 빈 응답을 반환함".to_string());
         }
 
-        serde_json::from_str(trimmed).map_err(|e| format!("sidecar 응답 파싱 실패: {e}"))
+        serde_json::from_str(trimmed)
+            .map_err(|e| format!("sidecar 응답 파싱 실패: {e}"))
+            .map_err(|error| {
+                let _ = self.kill();
+                error
+            })
     }
 
     /// stdin에 JSON 명령만 쓴다 (응답을 기다리지 않음).
@@ -98,6 +137,19 @@ impl SidecarHandle {
     }
 }
 
+fn wait_for_response(
+    response_rx: &Receiver<Result<String, String>>,
+    timeout: Duration,
+) -> Result<String, String> {
+    match response_rx.recv_timeout(timeout) {
+        Ok(response) => response,
+        Err(RecvTimeoutError::Timeout) => Err(format!(
+            "{SIDECAR_TIMEOUT_ERROR_CODE}: 자세 엔진 응답 대기 시간이 초과되었습니다."
+        )),
+        Err(RecvTimeoutError::Disconnected) => Err("sidecar 응답 채널이 닫혔습니다.".to_string()),
+    }
+}
+
 impl Drop for SidecarHandle {
     fn drop(&mut self) {
         let _ = self.kill();
@@ -105,39 +157,55 @@ impl Drop for SidecarHandle {
 }
 
 fn resolve_sidecar_command() -> Result<SidecarCommand, String> {
-    // 환경변수로 명시된 경우 모드 무시하고 바이너리 사용
-    if std::env::var("GBGR_POSTURE_ENGINE_BIN").is_ok() {
-        if let Some(binary) = resolve_sidecar_binary()? {
-            return Ok(SidecarCommand::Binary(binary));
+    if cfg!(debug_assertions) {
+        if std::env::var("GBGR_POSTURE_ENGINE_BIN").is_ok() {
+            if let Some(binary) = resolve_env_sidecar_binary()? {
+                return Ok(SidecarCommand::Binary(binary));
+            }
         }
+
+        let script = resolve_sidecar_path()?;
+        let python = find_python()?;
+        return Ok(SidecarCommand::PythonScript { python, script });
     }
 
-    // release 빌드에서만 바이너리 우선 탐색 (dev에서는 Python 스크립트 사용)
-    if !cfg!(debug_assertions) {
-        if let Some(binary) = resolve_sidecar_binary()? {
-            return Ok(SidecarCommand::Binary(binary));
-        }
+    if std::env::var("GBGR_POSTURE_ENGINE_BIN").is_ok()
+        || std::env::var("GBGR_POSTURE_ENGINE_PATH").is_ok()
+    {
+        return Err(
+            "배포 빌드에서는 자세 엔진 환경변수 override를 사용할 수 없습니다.".to_string(),
+        );
     }
 
-    let script = resolve_sidecar_path()?;
-    let python = find_python()?;
-    Ok(SidecarCommand::PythonScript { python, script })
+    if let Some(binary) = resolve_packaged_sidecar_binary()? {
+        return Ok(SidecarCommand::Binary(binary));
+    }
+
+    Err("배포용 자세 엔진 실행 파일을 찾을 수 없습니다.".to_string())
 }
 
-/// 프로덕션 패키징에서는 PyInstaller/Nuitka 등으로 만든 플랫폼별 실행 파일을 우선 사용한다.
-fn resolve_sidecar_binary() -> Result<Option<PathBuf>, String> {
-    if let Ok(path) = std::env::var("GBGR_POSTURE_ENGINE_BIN") {
-        let env_path = PathBuf::from(path);
-        if env_path.exists() {
-            return Ok(Some(env_path));
-        }
-        return Err(format!(
-            "GBGR_POSTURE_ENGINE_BIN이 존재하지 않는 경로를 가리킴: {env_path:?}"
-        ));
+fn resolve_env_sidecar_binary() -> Result<Option<PathBuf>, String> {
+    let Ok(path) = std::env::var("GBGR_POSTURE_ENGINE_BIN") else {
+        return Ok(None);
+    };
+
+    let env_path = PathBuf::from(path);
+    if env_path.exists() {
+        return Ok(Some(env_path));
     }
 
-    for candidate in sidecar_binary_candidates()? {
-        if candidate.exists() {
+    Err(format!(
+        "GBGR_POSTURE_ENGINE_BIN이 존재하지 않는 경로를 가리킴: {env_path:?}"
+    ))
+}
+
+/// 프로덕션 패키징에서는 PyInstaller/Nuitka 등으로 만든 번들 내 실행 파일만 사용한다.
+fn resolve_packaged_sidecar_binary() -> Result<Option<PathBuf>, String> {
+    let executable_name = sidecar_executable_name();
+    let candidates = packaged_sidecar_binary_candidates(executable_name)?;
+
+    for candidate in candidates {
+        if candidate.is_file() {
             return Ok(Some(candidate));
         }
     }
@@ -145,46 +213,47 @@ fn resolve_sidecar_binary() -> Result<Option<PathBuf>, String> {
     Ok(None)
 }
 
-fn sidecar_binary_candidates() -> Result<Vec<PathBuf>, String> {
-    let executable_names = if cfg!(windows) {
-        vec!["posture-engine.exe"]
+fn sidecar_executable_name() -> &'static str {
+    if cfg!(windows) {
+        "posture-engine.exe"
     } else {
-        vec!["posture-engine"]
-    };
+        "posture-engine"
+    }
+}
 
-    let mut base_dirs = Vec::new();
-    base_dirs.push(std::env::current_dir().map_err(|e| format!("현재 디렉토리 조회 실패: {e}"))?);
-
+fn packaged_sidecar_binary_candidates(executable_name: &str) -> Result<Vec<PathBuf>, String> {
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
-            base_dirs.push(exe_dir.to_path_buf());
-            base_dirs.push(exe_dir.join("resources"));
-            base_dirs.push(exe_dir.join("../Resources"));
+            return Ok(packaged_sidecar_binary_candidates_from_exe_dir(
+                exe_dir,
+                executable_name,
+            ));
         }
     }
 
-    let mut candidates = Vec::new();
-    for base_dir in base_dirs {
-        for ancestor in base_dir.ancestors() {
-            for executable_name in &executable_names {
-                candidates.push(ancestor.join("sidecar").join(executable_name));
-                candidates.push(
-                    ancestor
-                        .join("sidecar")
-                        .join("posture-engine-bin")
-                        .join(executable_name),
-                );
-                candidates.push(
-                    ancestor
-                        .join("sidecar")
-                        .join("posture-engine")
-                        .join(executable_name),
-                );
-            }
-        }
-    }
+    Err("현재 실행 파일 경로를 확인할 수 없습니다.".to_string())
+}
 
-    Ok(candidates)
+fn packaged_sidecar_binary_candidates_from_exe_dir(
+    exe_dir: &Path,
+    executable_name: &str,
+) -> Vec<PathBuf> {
+    [
+        exe_dir.to_path_buf(),
+        exe_dir.join("resources"),
+        exe_dir.join("../Resources"),
+    ]
+    .into_iter()
+    .flat_map(|base_dir| {
+        [
+            base_dir.join("sidecar").join(executable_name),
+            base_dir
+                .join("sidecar")
+                .join("posture-engine")
+                .join(executable_name),
+        ]
+    })
+    .collect()
 }
 
 /// Python sidecar 스크립트 경로를 찾는다.
@@ -246,4 +315,61 @@ fn find_python() -> Result<String, String> {
         "Python 실행 파일을 찾을 수 없음. 개발 모드는 python3/python과 MediaPipe 의존성이 필요하며, 배포 모드는 플랫폼별 자세 엔진 실행 파일이 필요함"
             .to_string(),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wait_for_response_times_out_without_sender() {
+        let (_tx, rx) = mpsc::channel();
+        let result = wait_for_response(&rx, Duration::from_millis(50));
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn timeout_error_code_is_stable() {
+        assert_eq!(SIDECAR_TIMEOUT_ERROR_CODE, "SIDECAR_TIMEOUT");
+    }
+
+    #[test]
+    fn packaged_sidecar_candidates_are_executable_relative() {
+        let exe_dir = Path::new("/Applications/GBGR.app/Contents/MacOS");
+        let candidates = packaged_sidecar_binary_candidates_from_exe_dir(exe_dir, "posture-engine");
+
+        assert_eq!(
+            candidates,
+            vec![
+                PathBuf::from("/Applications/GBGR.app/Contents/MacOS/sidecar/posture-engine"),
+                PathBuf::from(
+                    "/Applications/GBGR.app/Contents/MacOS/sidecar/posture-engine/posture-engine"
+                ),
+                PathBuf::from(
+                    "/Applications/GBGR.app/Contents/MacOS/resources/sidecar/posture-engine"
+                ),
+                PathBuf::from(
+                    "/Applications/GBGR.app/Contents/MacOS/resources/sidecar/posture-engine/posture-engine"
+                ),
+                PathBuf::from(
+                    "/Applications/GBGR.app/Contents/MacOS/../Resources/sidecar/posture-engine"
+                ),
+                PathBuf::from(
+                    "/Applications/GBGR.app/Contents/MacOS/../Resources/sidecar/posture-engine/posture-engine"
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn sidecar_executable_name_matches_platform() {
+        let name = sidecar_executable_name();
+
+        if cfg!(windows) {
+            assert_eq!(name, "posture-engine.exe");
+        } else {
+            assert_eq!(name, "posture-engine");
+        }
+    }
 }

@@ -165,4 +165,44 @@ describe('useLoginForm', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('/auth/verify', { replace: true })
   })
+
+  it('일반 인증 오류를 이메일 미인증으로 오분류하지 않는다', async () => {
+    mockMutateAsync.mockResolvedValue({
+      success: true,
+      data: {
+        accessToken: 'access',
+        refreshToken: 'refresh',
+      },
+    })
+    mockFetchCurrentUser.mockRejectedValue(new Error('인증이 필요합니다.'))
+
+    const { result } = renderHook(() => useLoginForm(), {
+      wrapper: createWrapper(),
+    })
+
+    await act(async () => {
+      result.current.updateField('email')({
+        target: { value: 'user@test.com' },
+      } as never)
+      result.current.updateField('password')({
+        target: { value: 'Password!1' },
+      } as never)
+    })
+
+    await waitFor(() => {
+      expect(result.current.formValues.email).toBe('user@test.com')
+      expect(result.current.formValues.password).toBe('Password!1')
+    })
+
+    await act(async () => {
+      await result.current.handleSubmit({
+        preventDefault: vi.fn(),
+      } as never)
+    })
+
+    expect(mockNavigate).not.toHaveBeenCalledWith('/auth/verify', {
+      replace: true,
+    })
+    expect(result.current.errorMessage).toBe('인증이 필요합니다.')
+  })
 })

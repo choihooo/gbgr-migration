@@ -17,33 +17,8 @@ export interface InstallUpdateResponse {
   exitsOnInstall: boolean
 }
 
-interface UpdateConfigPayload {
-  endpoints: string[]
-  pubkey: string
-}
-
 const isTauriRuntimeAvailable = () =>
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
-
-const parseUpdaterEndpoints = () =>
-  (import.meta.env.VITE_UPDATER_ENDPOINTS ?? '')
-    .split(/[\n,]/)
-    .map((endpoint: string) => endpoint.trim())
-    .filter(Boolean)
-
-const getUpdaterConfig = (): UpdateConfigPayload | null => {
-  const endpoints = parseUpdaterEndpoints()
-  const pubkey = (import.meta.env.VITE_UPDATER_PUBLIC_KEY ?? '').trim()
-
-  if (endpoints.length === 0 || !pubkey) {
-    return null
-  }
-
-  return {
-    endpoints,
-    pubkey,
-  }
-}
 
 export async function fetchUpdate() {
   if (!isTauriRuntimeAvailable()) {
@@ -53,15 +28,7 @@ export async function fetchUpdate() {
     } satisfies FetchUpdateResponse
   }
 
-  const config = getUpdaterConfig()
-  if (!config) {
-    return {
-      configured: false,
-      update: null,
-    } satisfies FetchUpdateResponse
-  }
-
-  return invoke<FetchUpdateResponse>('fetch_update', { config })
+  return invoke<FetchUpdateResponse>('fetch_update')
 }
 
 export async function installUpdate() {
@@ -74,15 +41,5 @@ export async function installUpdate() {
     } satisfies InstallUpdateResponse
   }
 
-  const config = getUpdaterConfig()
-  if (!config) {
-    return {
-      configured: false,
-      installed: false,
-      shouldRestart: false,
-      exitsOnInstall: false,
-    } satisfies InstallUpdateResponse
-  }
-
-  return invoke<InstallUpdateResponse>('install_update', { config })
+  return invoke<InstallUpdateResponse>('install_update')
 }

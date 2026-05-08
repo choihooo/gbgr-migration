@@ -1,5 +1,7 @@
 import type {
   CreateSessionResponse,
+  MetricData,
+  SaveMetricsResponse,
   SessionActionResponse,
 } from '@/entities/session/types'
 import { api } from '@/shared/api/instance'
@@ -44,6 +46,20 @@ export const resumeSession = async (
   )
   if (!response.data.success) {
     throw new Error('세션 재개에 실패했습니다.')
+  }
+  return response.data
+}
+
+export const saveMetrics = async (
+  sessionId: string,
+  metrics: MetricData[],
+): Promise<SaveMetricsResponse> => {
+  const response = await api.post<SaveMetricsResponse>(
+    `/sessions/${sessionId}/metrics`,
+    metrics,
+  )
+  if (!response.data.success) {
+    throw new Error(response.data.message || '세션 메트릭 저장에 실패했습니다.')
   }
   return response.data
 }

@@ -41,10 +41,14 @@ export function classifyAuthError(error: unknown): AuthErrorShape {
   }
 
   if (
+    code === 'AUTH-UNVERIFIED' ||
+    code === 'AUTH-EMAIL-UNVERIFIED' ||
+    code === 'EMAIL-UNVERIFIED' ||
     normalized.includes('verify') ||
     normalized.includes('verification') ||
     normalized.includes('unverified') ||
-    normalized.includes('인증')
+    normalized.includes('이메일 인증') ||
+    normalized.includes('메일 인증')
   ) {
     return { code: 'AUTH-UNVERIFIED', message }
   }

@@ -12,9 +12,13 @@ import {
   clearAuthSession,
   clearRedirectPath,
 } from '@/features/auth/lib/session-persistence'
+import { useWithdrawMutation } from '@/features/auth/model/use-withdraw-mutation'
 import { clearStoredTokens } from '@/shared/api/instance'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
-import { requestCalibrationReset } from '@/shared/lib/calibration-gate'
+import {
+  clearCalibrationGate,
+  requestCalibrationReset,
+} from '@/shared/lib/calibration-gate'
 import { cn } from '@/shared/lib/cn'
 import {
   type AppLanguage,
@@ -49,6 +53,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const navigate = useNavigate()
   const markUnauthenticated = useAuthSessionStore(s => s.markUnauthenticated)
   const clearUser = useAuthUserStore(s => s.clearUser)
+  const { mutateAsync: withdraw, isPending: isWithdrawPending } = useWithdrawMutation()
 
   const [isStartupEnabled, setIsStartupEnabled] = useState(false)
   const [isStartupSupported, setIsStartupSupported] = useState(true)
@@ -136,14 +141,24 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     navigate('/auth/login', { replace: true })
   }
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
+    if (isWithdrawPending) return
+
     const shouldProceed = window.confirm(t('settings.actions.withdrawConfirm'))
     if (!shouldProceed) return
 
-    // TODO: 회원탈퇴 API 연동 (withdrawMutation)
-    clearAuthState()
-    onClose()
-    navigate('/auth/signup', { replace: true })
+    try {
+      await withdraw()
+      const userId = localStorage.getItem(AUTH_STORAGE_KEYS.userId)
+      clearCalibrationGate(userId)
+      clearAuthState()
+      onClose()
+      navigate('/auth/signup', { replace: true })
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : '회원탈퇴에 실패했습니다.'
+      alert(message)
+    }
   }
 
   const handleCalibrationReset = () => {

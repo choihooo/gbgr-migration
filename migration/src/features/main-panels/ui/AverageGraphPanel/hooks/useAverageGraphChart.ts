@@ -48,14 +48,14 @@ export function useAverageGraphChart(
 
       data = slicedEntries.map(([_, score], index) => ({
         periodLabel: (index + 1).toString(),
-        score: score === 0 ? Math.floor(Math.random() * 40) + 30 : score,
+        score,
       }))
     } else {
       const length = activePeriod === 'weekly' ? 7 : 31
 
       data = Array.from({ length }, (_, index) => ({
         periodLabel: (index + 1).toString(),
-        score: Math.floor(Math.random() * 30) + 50,
+        score: 0,
       }))
     }
 

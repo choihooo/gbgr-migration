@@ -4,6 +4,8 @@ use tauri::Manager;
 
 mod app_updates;
 mod commands {
+    pub mod analytics;
+    pub mod api;
     pub mod posture_engine;
 }
 
@@ -18,6 +20,8 @@ use commands::posture_engine::{
     push_posture_frame, set_calibration, start_background_measurement, start_posture_engine,
     stop_background_measurement, stop_posture_engine,
 };
+use commands::analytics::{AnalyticsState, analytics_log_event, analytics_set_user_id};
+use commands::api::api_request;
 use state::posture_engine_state::PostureEngineState;
 use widget::{close_widget_window, ensure_widget_window, is_widget_open, open_widget_window};
 
@@ -43,6 +47,7 @@ pub fn run() {
 
     builder
         .manage(PostureEngineState::default())
+        .manage(AnalyticsState::default())
         .manage(app_updates::PendingUpdate(Mutex::new(None)))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
@@ -72,6 +77,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             greet,
+            api_request,
             start_posture_engine,
             stop_posture_engine,
             push_posture_frame,
@@ -86,7 +92,9 @@ pub fn run() {
             close_widget_window,
             is_widget_open,
             app_updates::fetch_update,
-            app_updates::install_update
+            app_updates::install_update,
+            analytics_log_event,
+            analytics_set_user_id
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

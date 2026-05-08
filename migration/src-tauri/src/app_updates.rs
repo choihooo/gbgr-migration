@@ -1,18 +1,10 @@
 use std::sync::Mutex;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tauri::{AppHandle, State};
-use tauri_plugin_updater::{Update, UpdaterExt};
-use url::Url;
+use tauri_plugin_updater::{Error as UpdaterError, Update, UpdaterExt};
 
 pub struct PendingUpdate(pub Mutex<Option<Update>>);
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateConfigPayload {
-    pub endpoints: Vec<String>,
-    pub pubkey: String,
-}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -37,51 +29,30 @@ pub struct InstallUpdateResponse {
     pub exits_on_install: bool,
 }
 
-fn normalize_update_config(
-    payload: UpdateConfigPayload,
-) -> tauri_plugin_updater::Result<Option<(Vec<Url>, String)>> {
-    let endpoints = payload
-        .endpoints
-        .into_iter()
-        .map(|endpoint| endpoint.trim().to_string())
-        .filter(|endpoint| !endpoint.is_empty())
-        .map(|endpoint| Url::parse(&endpoint))
-        .collect::<Result<Vec<_>, _>>()?;
-
-    let pubkey = payload.pubkey.trim().to_string();
-
-    if endpoints.is_empty() || pubkey.is_empty() {
-        return Ok(None);
-    }
-
-    Ok(Some((endpoints, pubkey)))
+fn is_updater_unconfigured(error: &UpdaterError) -> bool {
+    matches!(error, UpdaterError::EmptyEndpoints)
 }
 
 #[tauri::command]
 pub async fn fetch_update(
     app: AppHandle,
     pending_update: State<'_, PendingUpdate>,
-    config: UpdateConfigPayload,
 ) -> Result<FetchUpdateResponse, String> {
-    let Some((endpoints, pubkey)) =
-        normalize_update_config(config).map_err(|error| error.to_string())?
-    else {
-        return Ok(FetchUpdateResponse {
-            configured: false,
-            update: None,
-        });
+    let updater = match app.updater() {
+        Ok(updater) => updater,
+        Err(error) if is_updater_unconfigured(&error) => {
+            let mut pending = pending_update.0.lock().map_err(|error| error.to_string())?;
+            *pending = None;
+
+            return Ok(FetchUpdateResponse {
+                configured: false,
+                update: None,
+            });
+        }
+        Err(error) => return Err(error.to_string()),
     };
 
-    let update = app
-        .updater_builder()
-        .endpoints(endpoints)
-        .map_err(|error| error.to_string())?
-        .pubkey(pubkey)
-        .build()
-        .map_err(|error| error.to_string())?
-        .check()
-        .await
-        .map_err(|error| error.to_string())?;
+    let update = updater.check().await.map_err(|error| error.to_string())?;
 
     let current_version = app.package_info().version.to_string();
     let update_metadata = update.as_ref().map(|update| UpdateMetadata {
@@ -102,19 +73,7 @@ pub async fn fetch_update(
 pub async fn install_update(
     app: AppHandle,
     pending_update: State<'_, PendingUpdate>,
-    config: UpdateConfigPayload,
 ) -> Result<InstallUpdateResponse, String> {
-    let Some((endpoints, pubkey)) =
-        normalize_update_config(config).map_err(|error| error.to_string())?
-    else {
-        return Ok(InstallUpdateResponse {
-            configured: false,
-            installed: false,
-            should_restart: false,
-            exits_on_install: false,
-        });
-    };
-
     let pending = {
         let mut pending = pending_update.0.lock().map_err(|error| error.to_string())?;
         pending.take()
@@ -123,15 +82,20 @@ pub async fn install_update(
     let update = if let Some(update) = pending {
         Some(update)
     } else {
-        app.updater_builder()
-            .endpoints(endpoints)
-            .map_err(|error| error.to_string())?
-            .pubkey(pubkey)
-            .build()
-            .map_err(|error| error.to_string())?
-            .check()
-            .await
-            .map_err(|error| error.to_string())?
+        let updater = match app.updater() {
+            Ok(updater) => updater,
+            Err(error) if is_updater_unconfigured(&error) => {
+                return Ok(InstallUpdateResponse {
+                    configured: false,
+                    installed: false,
+                    should_restart: false,
+                    exits_on_install: false,
+                });
+            }
+            Err(error) => return Err(error.to_string()),
+        };
+
+        updater.check().await.map_err(|error| error.to_string())?
     };
 
     let Some(update) = update else {

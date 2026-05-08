@@ -10,7 +10,13 @@
     "opener:default",
     "deep-link:default",
     "notification:default",
-    "http:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        "https://api.bugi.co.kr/*",
+        "https://*.bugi.co.kr/*"
+      ]
+    },
     "updater:default",
     "core:event:allow-listen",
     "core:event:allow-emit",

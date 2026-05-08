@@ -33,9 +33,17 @@ fn sidecar_send(
     state: &PostureEngineState,
     payload: &serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    let mut sidecar_guard = state.sidecar.lock().map_err(|e| e.to_string())?;
-    let handle = sidecar_guard.as_mut().ok_or("sidecar가 실행 중이 아님")?;
-    handle.send_and_recv(payload)
+    let result = {
+        let mut sidecar_guard = state.sidecar.lock().map_err(|e| e.to_string())?;
+        let handle = sidecar_guard.as_mut().ok_or("sidecar가 실행 중이 아님")?;
+        handle.send_and_recv(payload)
+    };
+
+    if result.is_err() {
+        invalidate_sidecar(state);
+    }
+
+    result
 }
 
 fn sidecar_error(response: &serde_json::Value) -> Option<String> {
@@ -64,9 +72,23 @@ fn sidecar_send_only(
     state: &PostureEngineState,
     payload: &serde_json::Value,
 ) -> Result<(), String> {
-    let mut sidecar_guard = state.sidecar.lock().map_err(|e| e.to_string())?;
-    let handle = sidecar_guard.as_mut().ok_or("sidecar가 실행 중이 아님")?;
-    handle.send_only(payload)
+    let result = {
+        let mut sidecar_guard = state.sidecar.lock().map_err(|e| e.to_string())?;
+        let handle = sidecar_guard.as_mut().ok_or("sidecar가 실행 중이 아님")?;
+        handle.send_only(payload)
+    };
+
+    if result.is_err() {
+        invalidate_sidecar(state);
+    }
+
+    result
+}
+
+fn invalidate_sidecar(state: &PostureEngineState) {
+    if let Ok(mut sidecar_guard) = state.sidecar.lock() {
+        let _ = sidecar_guard.take();
+    }
 }
 
 fn emit_engine_status(app: &AppHandle, state: &PostureEngineState) -> tauri::Result<()> {
@@ -98,6 +120,11 @@ fn set_engine_error(state: &PostureEngineState, message: &str) {
         guard.recoverable = true;
         guard.updated_at = now_iso();
     }
+}
+
+fn handle_sidecar_failure(app: &AppHandle, state: &PostureEngineState, error: &str) {
+    set_engine_error(state, error);
+    let _ = emit_engine_status(app, state);
 }
 
 fn parse_result(
@@ -266,7 +293,13 @@ pub fn start_posture_engine(
     }
 
     // 2. sidecar에 start 명령 전송
-    let sidecar_response = sidecar_send(&state, &serde_json::json!({"command": "start"}))?;
+    let sidecar_response = match sidecar_send(&state, &serde_json::json!({"command": "start"})) {
+        Ok(response) => response,
+        Err(error) => {
+            handle_sidecar_failure(&app, &state, &error);
+            return Err(error);
+        }
+    };
     if let Some(error) = sidecar_error(&sidecar_response) {
         set_engine_error(&state, &error);
         emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
@@ -453,33 +486,13 @@ pub fn push_posture_frame(
         });
 
         let state: State<'_, PostureEngineState> = app_clone.state::<PostureEngineState>();
-        let result: serde_json::Value = {
-            let mut sidecar_guard = match state.sidecar.lock() {
-                Ok(g) => g,
-                Err(_) => {
-                    if let Ok(mut inflight) = state.frame_inflight.lock() {
-                        *inflight = false;
-                    }
-                    return;
+        let result: serde_json::Value = match sidecar_send(&state, &payload) {
+            Ok(r) => r,
+            Err(_) => {
+                if let Ok(mut inflight) = state.frame_inflight.lock() {
+                    *inflight = false;
                 }
-            };
-            let handle: &mut SidecarHandle = match sidecar_guard.as_mut() {
-                Some(h) => h,
-                None => {
-                    if let Ok(mut inflight) = state.frame_inflight.lock() {
-                        *inflight = false;
-                    }
-                    return;
-                }
-            };
-            match handle.send_and_recv(&payload) {
-                Ok(r) => r,
-                Err(_) => {
-                    if let Ok(mut inflight) = state.frame_inflight.lock() {
-                        *inflight = false;
-                    }
-                    return;
-                }
+                return;
             }
         };
 
@@ -510,13 +523,19 @@ pub fn start_background_measurement(
     state: State<'_, PostureEngineState>,
 ) -> Result<BackgroundMeasurementResponse, String> {
     // sidecar에 명령 전송
-    let sidecar_response = sidecar_send(
+    let sidecar_response = match sidecar_send(
         &state,
         &serde_json::json!({
             "command": "start_background",
             "session_id": payload.session_id
         }),
-    )?;
+    ) {
+        Ok(response) => response,
+        Err(error) => {
+            handle_sidecar_failure(&app, &state, &error);
+            return Err(error);
+        }
+    };
     if let Some(error) = sidecar_error(&sidecar_response) {
         set_engine_error(&state, &error);
         emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
@@ -560,17 +579,9 @@ pub fn start_background_measurement(
 
             let state: State<'_, PostureEngineState> = app_clone.state::<PostureEngineState>();
             let result = {
-                let mut sidecar_guard = match state.sidecar.lock() {
-                    Ok(guard) => guard,
-                    Err(_) => break,
-                };
-                let handle = match sidecar_guard.as_mut() {
-                    Some(handle) => handle,
-                    None => break,
-                };
-                match handle.send_and_recv(&command) {
+                match sidecar_send(&state, &command) {
                     Ok(value) => value,
-                    Err(_) => continue,
+                    Err(_) => break,
                 }
             };
 
@@ -613,13 +624,19 @@ pub fn stop_background_measurement(
     }
 
     // sidecar에 명령 전송
-    let sidecar_response = sidecar_send(
+    let sidecar_response = match sidecar_send(
         &state,
         &serde_json::json!({
             "command": "stop_background",
             "session_id": payload.session_id
         }),
-    )?;
+    ) {
+        Ok(response) => response,
+        Err(error) => {
+            handle_sidecar_failure(&app, &state, &error);
+            return Err(error);
+        }
+    };
     if let Some(error) = sidecar_error(&sidecar_response) {
         set_engine_error(&state, &error);
         emit_engine_status(&app, &state).map_err(|e| e.to_string())?;

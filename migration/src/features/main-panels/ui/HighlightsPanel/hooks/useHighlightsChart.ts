@@ -1,12 +1,14 @@
 /**
  * 하이라이트 차트 설정 훅
- * 목데이터 + 차트 설정(색상, 도메인, 라벨 등)을 통합 관리한다.
+ * API 데이터 + 차트 설정(색상, 도메인, 라벨 등)을 통합 관리한다.
  * @legacy src/renderer/src/features/dashboard/ui/HighlightsPanel/hooks/useHighlightsChart.ts
  */
 
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useHighlightQuery } from '@/entities/dashboard/model/use-dashboard-queries'
+import type { HighlightQueryParams } from '@/entities/dashboard/types'
 import { useThemeApplied } from '@/shared/hooks/use-theme-applied'
 import { getColor } from '@/shared/lib/get-color'
 
@@ -46,33 +48,36 @@ export function useHighlightsChart(activePeriod: HighlightPeriod): ChartConfig {
   const isDarkApplied = useThemeApplied()
   void isDarkApplied
 
+  const now = new Date()
+  const params: HighlightQueryParams = {
+    period: activePeriod === 'weekly' ? 'WEEKLY' : 'MONTHLY',
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+  }
+  const { data: highlightData, isLoading } = useHighlightQuery(params)
+
   const chartData = useMemo<HighlightDatum[]>(() => {
-    return activePeriod === 'weekly'
-      ? [
-          {
-            periodLabel: t('dashboard.panels.highlights.previousWeek'),
-            value: 257,
-            barKey: 'previous',
-          },
-          {
-            periodLabel: t('dashboard.panels.highlights.currentWeek'),
-            value: 321,
-            barKey: 'current',
-          },
-        ]
-      : [
-          {
-            periodLabel: t('dashboard.panels.highlights.previousMonth'),
-            value: 210,
-            barKey: 'previous',
-          },
-          {
-            periodLabel: t('dashboard.panels.highlights.currentMonth'),
-            value: 225,
-            barKey: 'current',
-          },
-        ]
-  }, [activePeriod, t])
+    if (!highlightData?.data) return []
+
+    return [
+      {
+        periodLabel:
+          activePeriod === 'weekly'
+            ? t('dashboard.panels.highlights.previousWeek')
+            : t('dashboard.panels.highlights.previousMonth'),
+        value: highlightData.data.previous,
+        barKey: 'previous',
+      },
+      {
+        periodLabel:
+          activePeriod === 'weekly'
+            ? t('dashboard.panels.highlights.currentWeek')
+            : t('dashboard.panels.highlights.currentMonth'),
+        value: highlightData.data.current,
+        barKey: 'current',
+      },
+    ]
+  }, [highlightData, activePeriod, t])
 
   const chartColors: ChartColors = {
     previous: getColor('--color-grey-100', '#e3e1df'),
@@ -117,7 +122,7 @@ export function useHighlightsChart(activePeriod: HighlightPeriod): ChartConfig {
     gridColor: gridColorValue,
     yAxisTickColor: yAxisTickColorValue,
     yAxisTicks: ticks,
-    isLoading: false,
+    isLoading,
   }
 
   return chartConfig

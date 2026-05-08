@@ -1,4 +1,10 @@
-import axios, { type AxiosInstance, type AxiosResponse, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { invoke } from '@tauri-apps/api/core'
+import axios, {
+  AxiosError,
+  type AxiosInstance,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from 'axios'
 import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { useAuthUserStore } from '@/entities/user'
 import { clearAuthSession } from '@/features/auth/lib/session-persistence'
@@ -26,10 +32,27 @@ const baseURL = (
 
 const isTauriRuntime = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
-/** Tauri HTTP 플러그인 기반 커스텀 Axios 어댑터 */
-async function tauriAdapter(config: InternalAxiosRequestConfig): Promise<AxiosResponse> {
-  const tauriFetch = (await import('@tauri-apps/plugin-http')).fetch
+interface TauriApiResponse {
+  status: number
+  statusText: string
+  headers: Array<[string, string]>
+  data: unknown
+}
 
+function parseRequestBody(data: unknown) {
+  if (typeof data !== 'string') {
+    return data
+  }
+
+  try {
+    return JSON.parse(data) as unknown
+  } catch {
+    return data
+  }
+}
+
+/** Rust command 기반 커스텀 Axios 어댑터 */
+async function tauriAdapter(config: InternalAxiosRequestConfig): Promise<AxiosResponse> {
   const url = config.baseURL && config.url && !config.url.startsWith('http')
     ? `${config.baseURL}${config.url}`
     : config.url ?? ''
@@ -43,31 +66,39 @@ async function tauriAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRe
     }
   }
 
-  let body: string | null = null
-  if (config.data !== undefined && config.data !== null) {
-    body = typeof config.data === 'string' ? config.data : JSON.stringify(config.data)
-  }
-
   const method = (config.method ?? 'GET').toUpperCase()
 
-  const response = await tauriFetch(url, {
-    method,
-    headers,
-    body,
+  const commandResponse = await invoke<TauriApiResponse>('api_request', {
+    request: {
+      method,
+      url,
+      headers: Object.entries(headers),
+      body: parseRequestBody(config.data),
+    },
   })
 
-  const contentType = response.headers.get('content-type')
-  const responseData = contentType?.includes('application/json')
-    ? await response.json()
-    : await response.text()
-
-  return {
-    data: responseData,
-    status: response.status,
-    statusText: response.statusText,
-    headers: Object.fromEntries(response.headers.entries()),
+  const response: AxiosResponse = {
+    data: commandResponse.data,
+    status: commandResponse.status,
+    statusText: commandResponse.statusText,
+    headers: Object.fromEntries(commandResponse.headers),
     config,
   }
+
+  const validateStatus =
+    config.validateStatus ?? api.defaults.validateStatus ?? axios.defaults.validateStatus
+
+  if (!validateStatus || validateStatus(response.status)) {
+    return response
+  }
+
+  throw new AxiosError(
+    `Request failed with status code ${response.status}`,
+    AxiosError.ERR_BAD_RESPONSE,
+    config,
+    undefined,
+    response,
+  )
 }
 
 export const api: AxiosInstance = axios.create({
@@ -128,11 +159,9 @@ export async function refreshAccessToken() {
       throw new Error('Refresh token not found')
     }
 
-    const { data } = await axios.post<RefreshResponse>(
-      `${baseURL}/auth/refresh`,
-      { refreshToken },
-      { withCredentials: true },
-    )
+    const { data } = await api.post<RefreshResponse>('/auth/refresh', {
+      refreshToken,
+    })
 
     if (
       data.code?.toUpperCase() === 'AUTH-102' ||

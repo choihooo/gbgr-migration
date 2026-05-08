@@ -8,6 +8,9 @@ import {
   useStopSessionMutation,
 } from '@/entities/session/model/use-session-mutations'
 import { useWindowVisibilitySync } from '@/features/posture-engine'
+import { useAutoMetricsSender } from '@/features/posture-engine/model/use-auto-metrics-sender'
+import { useMetricsCollector } from '@/features/posture-engine/model/use-metrics-collector'
+import { useSessionCleanup } from '@/features/posture-engine/model/use-session-cleanup'
 import WebcamView from '@/pages/calibration-page/components/WebcamView'
 import { useWidget } from '@/shared/hooks/use-widget'
 import { Button } from '@/shared/ui/button'
@@ -31,6 +34,10 @@ export function WebcamPanel() {
   const resumeSession = useResumeSessionMutation()
 
   useWindowVisibilitySync(setMode)
+
+  const { flushMetrics } = useMetricsCollector()
+  useAutoMetricsSender(flushMetrics)
+  useSessionCleanup(flushMetrics)
 
   const handleStartStop = () => {
     if (isExit) {
@@ -56,6 +63,7 @@ export function WebcamPanel() {
 
     stopSession.mutate(currentSessionId, {
       onSettled: () => {
+        flushMetrics()
         setCameraState('exit')
       },
     })

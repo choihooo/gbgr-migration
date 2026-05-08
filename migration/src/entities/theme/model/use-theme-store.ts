@@ -28,42 +28,45 @@ function resolveTheme(preference: ThemePreference): 'light' | 'dark' {
 
 export const useThemeStore = create<ThemeStore>()(
   persist(
-    set => ({
-      preference: 'system' as ThemePreference,
-      resolvedTheme: getSystemTheme(),
-      isDark: false,
+    set => {
+      const initialResolved = getSystemTheme()
+      return {
+        preference: 'system' as ThemePreference,
+        resolvedTheme: initialResolved,
+        isDark: initialResolved === 'dark',
 
-      setPreference: (pref: ThemePreference) => {
-        const resolved = resolveTheme(pref)
-        set({
-          preference: pref,
-          resolvedTheme: resolved,
-          isDark: resolved === 'dark',
-        })
+        setPreference: (pref: ThemePreference) => {
+          const resolved = resolveTheme(pref)
+          set({
+            preference: pref,
+            resolvedTheme: resolved,
+            isDark: resolved === 'dark',
+          })
 
-        if (typeof document !== 'undefined') {
-          if (resolved === 'dark') {
-            document.documentElement.classList.add('dark')
-          } else {
-            document.documentElement.classList.remove('dark')
+          if (typeof document !== 'undefined') {
+            if (resolved === 'dark') {
+              document.documentElement.classList.add('dark')
+            } else {
+              document.documentElement.classList.remove('dark')
+            }
           }
-        }
-      },
+        },
 
-      _hydrate: () => {
-        const state = useThemeStore.getState()
-        const resolved = resolveTheme(state.preference)
-        set({ resolvedTheme: resolved, isDark: resolved === 'dark' })
+        _hydrate: () => {
+          const state = useThemeStore.getState()
+          const resolved = resolveTheme(state.preference)
+          set({ resolvedTheme: resolved, isDark: resolved === 'dark' })
 
-        if (typeof document !== 'undefined') {
-          if (resolved === 'dark') {
-            document.documentElement.classList.add('dark')
-          } else {
-            document.documentElement.classList.remove('dark')
+          if (typeof document !== 'undefined') {
+            if (resolved === 'dark') {
+              document.documentElement.classList.add('dark')
+            } else {
+              document.documentElement.classList.remove('dark')
+            }
           }
-        }
-      },
-    }),
+        },
+      }
+    },
     {
       name: 'theme',
       storage: createJSONStorage(() => window.localStorage),
