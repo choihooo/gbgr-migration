@@ -1,1 +1,0 @@
-export { ModalPortal } from './ModalPortal'

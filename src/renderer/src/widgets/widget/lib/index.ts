@@ -1,1 +1,0 @@
-export { useWidget } from './useWidget'
