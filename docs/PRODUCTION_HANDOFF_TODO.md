@@ -22,16 +22,17 @@
 | 분석 이벤트 시스템 | ✅ | Provider 추상화 + GA4 Measurement Protocol (Rust) |
 | Vitest 실패 1건 | ✅ | `axios.post` mock으로 수정 |
 
-### 남은 갭 감시 항목 (C/D 단계)
+### 남은 갭 감시 항목 (C/D 단계) — 2026-05-08 완료
 
-| 항목 | 심각도 | 비고 |
-|------|--------|------|
-| Capability main/widget 분리 | 높음 | 위젯에 과다 권한 부여 |
-| Devtools release 제거 | 높음 | `Cargo.toml`에 `devtools` feature 고정 |
-| Frame payload 크기 제한 | 중간 | 대형 base64 문자열 DoS 가능 |
-| migration CI 추가 | 중간 | PR에서 migration 회귀 검증 없음 |
-| Bun/npm 혼재 | 중간 | release에서 `npm ci` 사용 |
-| 문서 불일치/절대경로/한글 | 낮음 | quickstart 명령어, specs 경로 |
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| Capability main/widget 분리 | ✅ | main.json + widget.json 최소 권한 분리 |
+| Devtools release 제거 | ✅ | debug 전용 `[features] dev = ["tauri/devtools"]`로 분리 |
+| Frame payload 크기 제한 | ✅ | 10MB(base64 14M 자) 제한 추가 |
+| Migration CI 추가 | ✅ | ci.yml에 migration-lint/typecheck/test/build/rust-check 추가 |
+| pnpm 통일 | ✅ | 로컬/CI pnpm 통일, lockfile 정리 |
+| 문서 불일치 정리 | ✅ | quickstart 명령어, 절대경로, pnpm 반영 |
+| Tailwind dark mode 수정 | ✅ | `@custom-variant dark` 클래스 기반 활성화 |
 
 ## 1. 현재 상태 요약
 
