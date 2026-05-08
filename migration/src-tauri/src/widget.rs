@@ -293,11 +293,12 @@ pub fn is_widget_open(app: AppHandle) -> Result<bool, String> {
 /// alwaysOnTop와 달리 다른 Spaces로 이동 가능하면서도 일반 창 위에 표시된다.
 #[cfg(target_os = "macos")]
 fn set_widget_floating(window: &WebviewWindow) {
+    use cocoa::base::id;
+    use objc::{msg_send, sel, sel_impl};
     match window.ns_window() {
         Ok(ns_window) => unsafe {
-            use cocoa::base::id;
             let raw: id = ns_window.cast();
-            msg_send![raw, setLevel: 3i64]; // NSFloatingWindowLevel
+            let _: () = msg_send![raw, setLevel: 3i64]; // NSFloatingWindowLevel
         },
         Err(e) => eprintln!("위젯 floating 레벨 설정 실패: {e}"),
     }

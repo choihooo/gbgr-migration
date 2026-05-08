@@ -1,4 +1,4 @@
-import axios, { type AxiosError, type AxiosInstance } from 'axios'
+import axios, { type AxiosInstance, type AxiosResponse, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { useAuthUserStore } from '@/entities/user'
 import { clearAuthSession } from '@/features/auth/lib/session-persistence'
@@ -14,7 +14,7 @@ interface RefreshResponse {
   }
 }
 
-type RetriableConfig = {
+type RetriableConfig = InternalAxiosRequestConfig & {
   _retry?: boolean
 }
 
@@ -24,12 +24,59 @@ const baseURL = (
   import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL
 ).replace(/\/+$/, '')
 
+const isTauriRuntime = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+
+/** Tauri HTTP 플러그인 기반 커스텀 Axios 어댑터 */
+async function tauriAdapter(config: InternalAxiosRequestConfig): Promise<AxiosResponse> {
+  const tauriFetch = (await import('@tauri-apps/plugin-http')).fetch
+
+  const url = config.baseURL && config.url && !config.url.startsWith('http')
+    ? `${config.baseURL}${config.url}`
+    : config.url ?? ''
+
+  const headers: Record<string, string> = {}
+  if (config.headers) {
+    for (const [key, value] of Object.entries(config.headers)) {
+      if (typeof value === 'string') {
+        headers[key] = value
+      }
+    }
+  }
+
+  let body: string | null = null
+  if (config.data !== undefined && config.data !== null) {
+    body = typeof config.data === 'string' ? config.data : JSON.stringify(config.data)
+  }
+
+  const method = (config.method ?? 'GET').toUpperCase()
+
+  const response = await tauriFetch(url, {
+    method,
+    headers,
+    body,
+  })
+
+  const contentType = response.headers.get('content-type')
+  const responseData = contentType?.includes('application/json')
+    ? await response.json()
+    : await response.text()
+
+  return {
+    data: responseData,
+    status: response.status,
+    statusText: response.statusText,
+    headers: Object.fromEntries(response.headers.entries()),
+    config,
+  }
+}
+
 export const api: AxiosInstance = axios.create({
   baseURL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
+  ...(isTauriRuntime ? { adapter: tauriAdapter } : {}),
 })
 
 /** refresh 재시도에서 제외할 인증 관련 엔드포인트 */
@@ -157,7 +204,6 @@ api.interceptors.response.use(
             ? (refreshError as Error & { code: string }).code
             : undefined
 
-        // 실제 AUTH-102(리프레시 토큰 만료)일 때만 세션 초기화
         if (errorCode === 'AUTH-102') {
           resetAuthRuntimeState('AUTH-102')
         }
