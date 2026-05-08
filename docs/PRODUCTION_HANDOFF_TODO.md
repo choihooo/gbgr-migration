@@ -1,8 +1,37 @@
 # 프로덕션 핸드오프 TODO
 
-작성일: 2026-04-25  
-대상: `migration/` Tauri + React 앱  
+작성일: 2026-04-25
+대상: `migration/` Tauri + React 앱
 목적: 현재 마이그레이션 앱을 프로덕션 배포 가능 상태로 만들기 위해 남은 작업을 인수인계한다.
+
+## 0. 2026-05-08 갭 감시 기반 일괄 수정 이력
+
+커밋: `9b82552` — 마이그레이션 갭 감사 기반 릴리즈 차단/parity 이슈 일괄 수정
+감사 문서: `docs/MIGRATION_GAP_AUDIT_2026-05-08.md`
+
+### 완료된 항목
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| `/main` 보정 게이트 | ✅ | `ProtectedRoute`에서 미보정 사용자 → `/onboarding/init` 리다이렉트 |
+| 측정 메트릭 저장/flush | ✅ | 1초 축적, 5분 자동 flush, 세션 종료/창닫기 flush |
+| 회원탈퇴 API 연동 | ✅ | `DELETE /users/me` + 성공 시에만 로컬 정리 |
+| 하이라이트 실데이터 | ✅ | 하드코딩 → `useHighlightQuery` 연결 |
+| 평균 그래프 랜덤 fallback | ✅ | `Math.random()` 제거 → 실데이터 또는 0 |
+| ThemeProvider 연결 | ✅ | provider 계층에 추가 + `isDark` 초기값 버그 수정 |
+| 분석 이벤트 시스템 | ✅ | Provider 추상화 + GA4 Measurement Protocol (Rust) |
+| Vitest 실패 1건 | ✅ | `axios.post` mock으로 수정 |
+
+### 남은 갭 감시 항목 (C/D 단계)
+
+| 항목 | 심각도 | 비고 |
+|------|--------|------|
+| Capability main/widget 분리 | 높음 | 위젯에 과다 권한 부여 |
+| Devtools release 제거 | 높음 | `Cargo.toml`에 `devtools` feature 고정 |
+| Frame payload 크기 제한 | 중간 | 대형 base64 문자열 DoS 가능 |
+| migration CI 추가 | 중간 | PR에서 migration 회귀 검증 없음 |
+| Bun/npm 혼재 | 중간 | release에서 `npm ci` 사용 |
+| 문서 불일치/절대경로/한글 | 낮음 | quickstart 명령어, specs 경로 |
 
 ## 1. 현재 상태 요약
 
