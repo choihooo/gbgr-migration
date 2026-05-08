@@ -47,7 +47,7 @@
 - 다른 패널에 의존하지 않음
 
 ### Gate 5: 품질 게이트 강제 ✅ PASS
-- `bun run check` (lint + typecheck) 통과 필요
+- `pnpm run lint:check && pnpm run typecheck` (lint + typecheck) 통과 필요
 - UI 정적 이관으로 회귀 리스크 낮음
 - 핵심 로직(레벨 매핑, 메시지 변환)은 기존 테스트 커버리지로 충분
 - 수동 시각 검증으로 레거시와의 동일성 확인
@@ -109,7 +109,7 @@ src/                                                    # ← 레거시 (참조�
 - 누락된 차이가 있으면 수정
 
 ### Step 2: 빌드 검증
-- `bun run check` 실행 (Biome lint + TypeScript typecheck)
+- `pnpm run lint:check && pnpm run typecheck` 실행 (Biome lint + TypeScript typecheck)
 - 오류 발생 시 수정
 
 ### Step 3: barrel export 확인

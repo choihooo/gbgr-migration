@@ -6,7 +6,7 @@
 ## 개발 환경 설정
 
 ```bash
-cd /home/choiho/coding/FE-migration/migration
+cd migration
 bun install
 ```
 

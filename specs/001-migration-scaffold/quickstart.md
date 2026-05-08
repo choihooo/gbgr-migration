@@ -16,7 +16,7 @@
 ## 1단계: Tauri 프로젝트 생성
 
 ```bash
-cd /home/choiho/coding/FE-migration
+cd 
 
 # create-tauri-app 실행
 bunx create-tauri-app

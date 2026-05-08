@@ -37,7 +37,7 @@ migration/src/shared/ui/icons/ui-icons.tsx                         ← 아이콘
 - PanelBaseProps 적용 필요 시 반영
 
 ### 3. 빌드 검증
-- `bun run check` (lint + typecheck) 통과 확인
+- `pnpm run lint:check && pnpm run typecheck` (lint + typecheck) 통과 확인
 - `bun run build` 성공 확인
 
 ## 실행 방법
@@ -47,7 +47,7 @@ migration/src/shared/ui/icons/ui-icons.tsx                         ← 아이콘
 cd migration && bun run dev
 
 # 린트/타입체크
-bun run check
+pnpm run lint:check && pnpm run typecheck
 
 # 빌드
 bun run build

@@ -2,7 +2,7 @@
 
 **Purpose**: 계획 단계로 넘어가기 전에 스펙의 완성도와 품질을 검증한다  
 **Created**: 2026-04-14  
-**Feature**: [spec.md](/home/choiho/coding/FE-migration/specs/006-main-page-migration/spec.md)
+**Feature**: [spec.md](specs/006-main-page-migration/spec.md)
 
 ## Content Quality
 

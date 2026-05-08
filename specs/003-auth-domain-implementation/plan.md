@@ -1,6 +1,6 @@
 # Implementation Plan: 인증 도메인 정식 구현
 
-**Branch**: `003-auth-domain-implementation` | **Date**: 2026-04-13 | **Spec**: [spec.md](/home/choiho/coding/FE-migration/specs/003-auth-domain-implementation/spec.md)
+**Branch**: `003-auth-domain-implementation` | **Date**: 2026-04-13 | **Spec**: [spec.md](specs/003-auth-domain-implementation/spec.md)
 **Input**: Feature specification from `/specs/003-auth-domain-implementation/spec.md`
 
 ## Summary

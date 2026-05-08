@@ -23,8 +23,8 @@
 
 **Purpose**: 구현 기준과 검증 기준을 현재 feature 문서에 고정한다.
 
-- [X] T001 레거시 참조 기준과 구현 범위를 `/home/choiho/coding/FE-migration/specs/014-average-graph-panel/plan.md` 및 `/home/choiho/coding/FE-migration/specs/014-average-graph-panel/contracts/average-graph-panel-ui-contract.md` 기준으로 확인한다
-- [X] T002 [P] 검증 절차와 명령을 `/home/choiho/coding/FE-migration/specs/014-average-graph-panel/quickstart.md` 기준으로 정리한다
+- [X] T001 레거시 참조 기준과 구현 범위를 `specs/014-average-graph-panel/plan.md` 및 `specs/014-average-graph-panel/contracts/average-graph-panel-ui-contract.md` 기준으로 확인한다
+- [X] T002 [P] 검증 절차와 명령을 `specs/014-average-graph-panel/quickstart.md` 기준으로 정리한다
 
 ---
 
@@ -34,8 +34,8 @@
 
 **⚠️ CRITICAL**: 이 단계가 끝나야 사용자 스토리 구현을 안정적으로 진행할 수 있다.
 
-- [X] T003 `recharts` 기반 차트 구조와 공용 색상 계산 패턴을 `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/HighlightsPanel.tsx`, `/home/choiho/coding/FE-migration/migration/src/shared/hooks/use-theme-applied.ts`, `/home/choiho/coding/FE-migration/migration/src/shared/lib/get-color.ts` 기준으로 확인한다
-- [X] T004 `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts`에 기간 상태, 차트 데이터 항목, 축/색상 설정을 캡슐화하는 훅 구조를 정리한다
+- [X] T003 `recharts` 기반 차트 구조와 공용 색상 계산 패턴을 `migration/src/features/main-panels/ui/HighlightsPanel.tsx`, `migration/src/shared/hooks/use-theme-applied.ts`, `migration/src/shared/lib/get-color.ts` 기준으로 확인한다
+- [X] T004 `migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts`에 기간 상태, 차트 데이터 항목, 축/색상 설정을 캡슐화하는 훅 구조를 정리한다
 
 **Checkpoint**: 차트 훅과 공용 렌더링 기준이 준비되어 사용자 스토리 구현을 진행할 수 있다.
 
@@ -49,9 +49,9 @@
 
 ### Implementation for User Story 1
 
-- [X] T005 [US1] `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel.tsx`를 레거시 `AreaChart` 구조에 맞게 갱신한다
-- [X] T006 [P] [US1] `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel.tsx`에서 `PanelHeader`와 `ToggleSwitch`를 사용해 상단 헤더와 범례 배치를 레거시와 동일하게 맞춘다
-- [X] T007 [P] [US1] `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel.tsx`에 `CartesianGrid`, `XAxis`, `YAxis`, `Tooltip`, `Area` 설정을 반영해 시각 규칙을 레거시와 동일하게 맞춘다
+- [X] T005 [US1] `migration/src/features/main-panels/ui/AverageGraphPanel.tsx`를 레거시 `AreaChart` 구조에 맞게 갱신한다
+- [X] T006 [P] [US1] `migration/src/features/main-panels/ui/AverageGraphPanel.tsx`에서 `PanelHeader`와 `ToggleSwitch`를 사용해 상단 헤더와 범례 배치를 레거시와 동일하게 맞춘다
+- [X] T007 [P] [US1] `migration/src/features/main-panels/ui/AverageGraphPanel.tsx`에 `CartesianGrid`, `XAxis`, `YAxis`, `Tooltip`, `Area` 설정을 반영해 시각 규칙을 레거시와 동일하게 맞춘다
 
 **Checkpoint**: User Story 1이 완료되면 기본 그래프 UI가 단독으로 동작하고 레거시와 비교 가능한 상태여야 한다.
 
@@ -65,9 +65,9 @@
 
 ### Implementation for User Story 2
 
-- [X] T008 [US2] `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts`에 `weekly | monthly` 기간 상태별 데이터 슬라이싱 규칙을 구현한다
-- [X] T009 [US2] `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel.tsx`에 토글 상태와 차트 폭 계산을 연결해 월간 12개 초과 시 수평 스크롤이 동작하도록 구현한다
-- [X] T010 [P] [US2] `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts`에서 정렬된 원본 데이터와 순번 라벨 생성 규칙을 레거시 기준으로 맞춘다
+- [X] T008 [US2] `migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts`에 `weekly | monthly` 기간 상태별 데이터 슬라이싱 규칙을 구현한다
+- [X] T009 [US2] `migration/src/features/main-panels/ui/AverageGraphPanel.tsx`에 토글 상태와 차트 폭 계산을 연결해 월간 12개 초과 시 수평 스크롤이 동작하도록 구현한다
+- [X] T010 [P] [US2] `migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts`에서 정렬된 원본 데이터와 순번 라벨 생성 규칙을 레거시 기준으로 맞춘다
 
 **Checkpoint**: User Story 2가 완료되면 기간 전환만으로도 레거시와 동일한 데이터 범위 변화와 스크롤 동작을 독립 검증할 수 있어야 한다.
 
@@ -81,9 +81,9 @@
 
 ### Implementation for User Story 3
 
-- [X] T011 [US3] `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts`에 빈 응답용 임시 데이터 생성 규칙을 구현한다
-- [X] T012 [P] [US3] `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts`에 `0` 점수 치환 규칙과 고정 y축 설정을 반영한다
-- [X] T013 [US3] `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel.tsx`에서 예외 데이터 상황에서도 최소 높이, 차트 컨테이너, 툴팁 표시가 유지되도록 마무리한다
+- [X] T011 [US3] `migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts`에 빈 응답용 임시 데이터 생성 규칙을 구현한다
+- [X] T012 [P] [US3] `migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts`에 `0` 점수 치환 규칙과 고정 y축 설정을 반영한다
+- [X] T013 [US3] `migration/src/features/main-panels/ui/AverageGraphPanel.tsx`에서 예외 데이터 상황에서도 최소 높이, 차트 컨테이너, 툴팁 표시가 유지되도록 마무리한다
 
 **Checkpoint**: User Story 3이 완료되면 데이터 예외 상황에서도 패널 레이아웃이 안정적으로 유지되어야 한다.
 
@@ -93,9 +93,9 @@
 
 **Purpose**: 문서, 정적 검증, 수동 UI 비교를 마무리한다.
 
-- [X] T014 [P] `/home/choiho/coding/FE-migration/specs/014-average-graph-panel/quickstart.md` 기준으로 `bun x tsc --noEmit`와 `bun x biome check`를 실행해 결과를 확인한다
-- [X] T015 `/home/choiho/coding/FE-migration/migration/src/features/dashboard/ui/LeftPanelArea.tsx`와 `/home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel.tsx`를 기준으로 좌측 패널 레이아웃 회귀 여부를 확인한다
-- [X] T016 `/home/choiho/coding/FE-migration/specs/014-average-graph-panel/quickstart.md`와 `/home/choiho/coding/FE-migration/specs/014-average-graph-panel/contracts/average-graph-panel-ui-contract.md` 기준으로 레거시 대비 수동 UI 비교 결과를 기록한다
+- [X] T014 [P] `specs/014-average-graph-panel/quickstart.md` 기준으로 `bun x tsc --noEmit`와 `bun x biome check`를 실행해 결과를 확인한다
+- [X] T015 `migration/src/features/dashboard/ui/LeftPanelArea.tsx`와 `migration/src/features/main-panels/ui/AverageGraphPanel.tsx`를 기준으로 좌측 패널 레이아웃 회귀 여부를 확인한다
+- [X] T016 `specs/014-average-graph-panel/quickstart.md`와 `specs/014-average-graph-panel/contracts/average-graph-panel-ui-contract.md` 기준으로 레거시 대비 수동 UI 비교 결과를 기록한다
 
 ---
 
@@ -135,22 +135,22 @@
 ## Parallel Example: User Story 1
 
 ```bash
-Task: "T006 [US1] /home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel.tsx 에서 헤더와 범례 배치를 레거시와 동일하게 맞춘다"
-Task: "T007 [US1] /home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel.tsx 에 차트 축, 그리드, 툴팁, 면적 그래프 설정을 반영한다"
+Task: "T006 [US1] migration/src/features/main-panels/ui/AverageGraphPanel.tsx 에서 헤더와 범례 배치를 레거시와 동일하게 맞춘다"
+Task: "T007 [US1] migration/src/features/main-panels/ui/AverageGraphPanel.tsx 에 차트 축, 그리드, 툴팁, 면적 그래프 설정을 반영한다"
 ```
 
 ## Parallel Example: User Story 2
 
 ```bash
-Task: "T009 [US2] /home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel.tsx 에 토글 상태와 차트 폭 계산을 연결한다"
-Task: "T010 [US2] /home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts 에 정렬과 순번 라벨 규칙을 반영한다"
+Task: "T009 [US2] migration/src/features/main-panels/ui/AverageGraphPanel.tsx 에 토글 상태와 차트 폭 계산을 연결한다"
+Task: "T010 [US2] migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts 에 정렬과 순번 라벨 규칙을 반영한다"
 ```
 
 ## Parallel Example: User Story 3
 
 ```bash
-Task: "T011 [US3] /home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts 에 빈 응답용 임시 데이터를 구현한다"
-Task: "T012 [US3] /home/choiho/coding/FE-migration/migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts 에 0점 치환과 고정 y축 설정을 반영한다"
+Task: "T011 [US3] migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts 에 빈 응답용 임시 데이터를 구현한다"
+Task: "T012 [US3] migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts 에 0점 치환과 고정 y축 설정을 반영한다"
 ```
 
 ## Implementation Strategy

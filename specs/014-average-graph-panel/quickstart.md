@@ -3,18 +3,18 @@
 ## 1. 사전 조건
 
 - 작업 브랜치가 `014-average-graph-panel`인지 확인한다.
-- 저장소 루트는 `/home/choiho/coding/FE-migration`이다.
+- 저장소 루트는 ``이다.
 - 개발 명령은 헌법에 따라 `bun` 기준으로 실행한다.
 
 ## 2. 정적 검증
 
 ```bash
-cd /home/choiho/coding/FE-migration/migration
+cd migration
 bun x tsc --noEmit
 ```
 
 ```bash
-cd /home/choiho/coding/FE-migration
+cd 
 bun x biome check migration/src/features/main-panels/ui/AverageGraphPanel.tsx \
   migration/src/features/main-panels/ui/AverageGraphPanel/hooks/useAverageGraphChart.ts
 ```
@@ -22,7 +22,7 @@ bun x biome check migration/src/features/main-panels/ui/AverageGraphPanel.tsx \
 ## 3. 실행 검증
 
 ```bash
-cd /home/choiho/coding/FE-migration/migration
+cd migration
 bun run dev
 ```
 

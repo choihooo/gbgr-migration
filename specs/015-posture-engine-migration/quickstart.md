@@ -3,7 +3,7 @@
 ## 1. 사전 조건
 
 - 작업 브랜치가 `015-posture-engine-migration`인지 확인한다.
-- 저장소 루트는 `/home/choiho/coding/FE-migration`이다.
+- 저장소 루트는 ``이다.
 - 개발 명령은 헌법에 따라 `bun`을 우선 사용한다.
 - 레거시 비교 기준 화면은 `src/renderer/src/features/dashboard/ui/WebcamPanel.tsx`와 `src/renderer/src/pages/calibration-page/index.tsx`이다.
 
@@ -17,24 +17,24 @@
 ## 3. 정적 검증
 
 ```bash
-cd /home/choiho/coding/FE-migration/migration
+cd migration
 bun x tsc --noEmit
 ```
 
 ```bash
-cd /home/choiho/coding/FE-migration
+cd 
 bun x biome check migration/src migration/src-tauri/src
 ```
 
 ```bash
-cd /home/choiho/coding/FE-migration/migration/src-tauri
+cd migration/src-tauri
 cargo check
 ```
 
 ## 4. 실행 검증
 
 ```bash
-cd /home/choiho/coding/FE-migration/migration
+cd migration
 bun run tauri dev
 ```
 

@@ -2,7 +2,7 @@
 
 **Purpose**: 계획 단계로 넘어가기 전에 스펙의 완성도와 품질을 검증한다
 **Created**: 2026-04-15
-**Feature**: [spec.md](/home/choiho/coding/FE-migration/specs/010-average-posture-panel/spec.md)
+**Feature**: [spec.md](specs/010-average-posture-panel/spec.md)
 
 ## Content Quality
 

@@ -118,7 +118,7 @@
 **Purpose**: 전체 품질 검증 및 마무리 작업
 
 - [X] T024 barrel export에 AttendancePanel 추가/확인 in `migration/src/features/main-panels/ui/index.ts`
-- [X] T025 `bun run check` (Biome lint + TypeScript typecheck) 통과 확인 in `migration/`
+- [X] T025 `pnpm run lint:check && pnpm run typecheck` (Biome lint + TypeScript typecheck) 통과 확인 in `migration/`
 - [X] T026 `bun run build` 빌드 성공 확인 in `migration/`
 - [ ] T027 수동 시각 검증: 레거시 앱과 마이그레이션 앱 나란히 실행하여 패널 비교 in `migration/`
 

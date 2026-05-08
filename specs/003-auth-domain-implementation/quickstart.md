@@ -38,7 +38,7 @@
 ## 5. 기본 명령
 
 ```bash
-cd /home/choiho/coding/FE-migration/migration
+cd migration
 pnpm install
 pnpm lint:check
 pnpm typecheck
@@ -48,6 +48,6 @@ pnpm dev
 Vitest를 추가한 뒤에는 아래 명령을 함께 사용한다.
 
 ```bash
-cd /home/choiho/coding/FE-migration/migration
+cd migration
 pnpm test
 ```
