@@ -1,6 +1,10 @@
-import axios from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { clearStoredTokens, refreshAccessToken } from '@/shared/api/instance'
+import {
+  api,
+  clearStoredTokens,
+  refreshAccessToken,
+  isNonRetryablePath,
+} from '@/shared/api/instance'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { installMockStorage } from '../../../setup/auth-test-storage'
 
@@ -30,7 +34,7 @@ describe('shared/api/instance', () => {
 
   it('리프레시 성공 시 새 토큰을 저장한다', async () => {
     window.localStorage.setItem(AUTH_STORAGE_KEYS.refreshToken, 'refresh-token')
-    vi.spyOn(axios, 'post').mockResolvedValue({
+    vi.spyOn(api, 'post').mockResolvedValue({
       data: {
         success: true,
         data: {
@@ -48,5 +52,9 @@ describe('shared/api/instance', () => {
     expect(window.localStorage.getItem(AUTH_STORAGE_KEYS.refreshToken)).toBe(
       'new-refresh',
     )
+  })
+
+  it('회원가입 endpoint는 refresh 재시도 제외 경로로 취급한다', () => {
+    expect(isNonRetryablePath('/auth/sign-up')).toBe(true)
   })
 })

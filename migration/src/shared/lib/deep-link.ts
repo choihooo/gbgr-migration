@@ -32,10 +32,17 @@ async function navigateToDeepLink(router: RouterLike, urls: string[] | null) {
 }
 
 export async function initDeepLinkListener(router: RouterLike) {
-  try {
-    const startUrls = await getCurrent()
-    await navigateToDeepLink(router, startUrls)
+  let startUrls: string[] | null = null
 
+  try {
+    startUrls = await getCurrent()
+  } catch {
+    startUrls = null
+  }
+
+  await navigateToDeepLink(router, startUrls)
+
+  try {
     return await onOpenUrl(async urls => {
       await navigateToDeepLink(router, urls)
     })

@@ -8,11 +8,13 @@ import { useLoginMutation } from '@/features/auth/api/use-login-mutation'
 import { classifyAuthError } from '@/features/auth/lib/auth-error'
 import {
   clearSavedEmail,
+  clearAuthSession,
   persistAuthSession,
   persistSavedEmail,
 } from '@/features/auth/lib/session-persistence'
 import { useAuthRedirect } from '@/features/auth/model/use-auth-redirect'
-import { setStoredTokens } from '@/shared/api/instance'
+import { clearStoredTokens, setStoredTokens } from '@/shared/api/instance'
+import { setAnalyticsUserId } from '@/shared/lib/analytics'
 
 export interface LoginFormValues {
   email: string
@@ -110,6 +112,7 @@ export function useLoginForm() {
         userName,
       })
 
+      await setAnalyticsUserId(userId)
       setUser({ id: userId, name: userName })
       setSession({
         status: 'authenticated',
@@ -123,6 +126,8 @@ export function useLoginForm() {
 
       navigateAfterAuth()
     } catch (error) {
+      clearStoredTokens()
+      clearAuthSession()
       const authError = classifyAuthError(error)
 
       if (authError.code === 'AUTH-UNVERIFIED') {

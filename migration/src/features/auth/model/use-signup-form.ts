@@ -12,6 +12,7 @@ import {
   validateName,
   validatePassword,
 } from '@/features/auth/lib/validators'
+import { buildAuthVerifyCallbackUrl } from '@/features/auth/lib/callback-url'
 
 interface DuplicateCheckState {
   message: string
@@ -118,7 +119,7 @@ export function useSignupForm() {
         password: formValues.password,
         name: formValues.name,
         avatar: '',
-        callbackUrl: `${window.location.origin}/auth/verify-callback`,
+        callbackUrl: buildAuthVerifyCallbackUrl(),
       })
 
       if (!result.success) {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuthEmailStore } from '@/entities/user'
 import { useResendVerificationEmailMutation } from '@/features/auth/api/use-resend-verification-email-mutation'
+import { buildAuthVerifyCallbackUrl } from '@/features/auth/lib/callback-url'
 
 export function useResendVerification() {
   const { t } = useTranslation()
@@ -18,7 +19,7 @@ export function useResendVerification() {
     try {
       const result = await resendMutation.mutateAsync({
         email,
-        callbackUrl: `${window.location.origin}/auth/verify-callback`,
+        callbackUrl: buildAuthVerifyCallbackUrl(),
       })
 
       if (!result.success) {

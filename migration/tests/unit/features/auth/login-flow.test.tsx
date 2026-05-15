@@ -9,11 +9,17 @@ import { useLoginForm } from '@/features/auth/model/use-login-form'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { installMockStorage } from '../../../setup/auth-test-storage'
 
-const { mockNavigate, mockMutateAsync, mockFetchCurrentUser } = vi.hoisted(
+const {
+  mockNavigate,
+  mockMutateAsync,
+  mockFetchCurrentUser,
+  mockSetAnalyticsUserId,
+} = vi.hoisted(
   () => ({
     mockNavigate: vi.fn(),
     mockMutateAsync: vi.fn(),
     mockFetchCurrentUser: vi.fn(),
+    mockSetAnalyticsUserId: vi.fn(),
   }),
 )
 
@@ -36,6 +42,10 @@ vi.mock('@/features/auth/api/use-login-mutation', () => ({
 
 vi.mock('@/features/auth/api/auth-api', () => ({
   fetchCurrentUser: mockFetchCurrentUser,
+}))
+
+vi.mock('@/shared/lib/analytics', () => ({
+  setAnalyticsUserId: mockSetAnalyticsUserId,
 }))
 
 function createWrapper() {
@@ -61,6 +71,7 @@ describe('useLoginForm', () => {
     mockNavigate.mockReset()
     mockMutateAsync.mockReset()
     mockFetchCurrentUser.mockReset()
+    mockSetAnalyticsUserId.mockReset()
     useAuthEmailStore.getState().clearEmail()
     useAuthUserStore.getState().clearUser()
     useAuthSessionStore.setState({
@@ -130,6 +141,7 @@ describe('useLoginForm', () => {
     expect(window.localStorage.getItem(AUTH_STORAGE_KEYS.accessToken)).toBe(
       'access',
     )
+    expect(mockSetAnalyticsUserId).toHaveBeenCalledWith('user@test.com')
     expect(useAuthSessionStore.getState().status).toBe('authenticated')
     expect(mockNavigate).toHaveBeenCalledWith('/onboarding/init', {
       replace: true,
@@ -204,5 +216,40 @@ describe('useLoginForm', () => {
       replace: true,
     })
     expect(result.current.errorMessage).toBe('인증이 필요합니다.')
+  })
+
+  it('/users/me 복구 실패 시 저장된 토큰을 정리한다', async () => {
+    mockMutateAsync.mockResolvedValue({
+      success: true,
+      data: {
+        accessToken: 'access',
+        refreshToken: 'refresh',
+      },
+    })
+    mockFetchCurrentUser.mockRejectedValue(new Error('인증이 필요합니다.'))
+
+    const { result } = renderHook(() => useLoginForm(), {
+      wrapper: createWrapper(),
+    })
+
+    await act(async () => {
+      result.current.updateField('email')({
+        target: { value: 'user@test.com' },
+      } as never)
+      result.current.updateField('password')({
+        target: { value: 'Password!1' },
+      } as never)
+    })
+
+    await act(async () => {
+      await result.current.handleSubmit({
+        preventDefault: vi.fn(),
+      } as never)
+    })
+
+    expect(window.localStorage.getItem(AUTH_STORAGE_KEYS.accessToken)).toBeNull()
+    expect(
+      window.localStorage.getItem(AUTH_STORAGE_KEYS.refreshToken),
+    ).toBeNull()
   })
 })

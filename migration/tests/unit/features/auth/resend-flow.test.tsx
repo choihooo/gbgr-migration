@@ -16,6 +16,12 @@ vi.mock('@/features/auth/api/use-resend-verification-email-mutation', () => ({
   }),
 }))
 
+vi.mock('@tauri-apps/api/window', () => ({
+  getCurrentWindow: () => ({
+    setTitle: vi.fn(),
+  }),
+}))
+
 function createWrapper() {
   const queryClient = new QueryClient()
 
@@ -33,6 +39,10 @@ describe('useResendVerification', () => {
     installMockStorage()
     mockResend.mockReset()
     useAuthEmailStore.getState().clearEmail()
+    Object.defineProperty(window, '__TAURI_INTERNALS__', {
+      configurable: true,
+      value: {},
+    })
   })
 
   it('이메일이 없으면 이메일 없음 메시지를 반환한다', async () => {
@@ -59,6 +69,10 @@ describe('useResendVerification', () => {
       await result.current.handleResend()
     })
 
+    expect(mockResend).toHaveBeenCalledWith({
+      email: 'user@test.com',
+      callbackUrl: 'gbgr://auth/verify-callback',
+    })
     expect(result.current.feedbackMessage).toContain('user@test.com')
   })
 })

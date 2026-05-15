@@ -24,6 +24,12 @@ type RetriableConfig = InternalAxiosRequestConfig & {
   _retry?: boolean
 }
 
+type ApiBodyError = {
+  success?: boolean
+  code?: string
+  message?: string | null
+}
+
 const DEFAULT_API_BASE_URL = 'https://api.bugi.co.kr'
 
 const baseURL = (
@@ -117,13 +123,61 @@ const NON_RETRYABLE_PATHS = [
   '/auth/verify-email',
   '/auth/resend-verification-email',
   '/auth/signup',
+  '/auth/sign-up',
   '/auth/refresh',
 ]
 
-function isNonRetryablePath(url?: string): boolean {
+export function isNonRetryablePath(url?: string): boolean {
   if (!url) return false
   const path = url.replace(baseURL, '').split('?')[0]
   return NON_RETRYABLE_PATHS.some(p => path.startsWith(p))
+}
+
+function readAuthErrorCodeFromBody(data: unknown): string | null {
+  if (!data || typeof data !== 'object') {
+    return null
+  }
+
+  const payload = data as ApiBodyError
+  const code = payload.code?.toUpperCase()
+  if (!code) {
+    return null
+  }
+
+  if (
+    payload.success === false &&
+    (code === 'AUTH-101' || code === 'AUTH-102')
+  ) {
+    return code
+  }
+
+  return null
+}
+
+async function retryWithRefresh(
+  originalRequest: RetriableConfig,
+  errorCode?: string | null,
+) {
+  try {
+    await refreshAccessToken()
+
+    const nextAccessToken = localStorage.getItem(AUTH_STORAGE_KEYS.accessToken)
+
+    if (nextAccessToken && originalRequest.headers) {
+      originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`
+    }
+
+    return api(originalRequest)
+  } catch (refreshError) {
+    resetAuthRuntimeState(
+      errorCode ??
+        (refreshError instanceof Error && 'code' in refreshError
+          ? ((refreshError as Error & { code?: string }).code ?? undefined)
+          : undefined),
+    )
+
+    throw refreshError
+  }
 }
 
 export function clearStoredTokens() {
@@ -196,7 +250,31 @@ api.interceptors.request.use(config => {
 })
 
 api.interceptors.response.use(
-  response => response,
+  async response => {
+    const originalRequest = response.config as RetriableConfig
+    const authErrorCode = readAuthErrorCodeFromBody(response.data)
+
+    if (!authErrorCode) {
+      return response
+    }
+
+    if (!originalRequest || isNonRetryablePath(originalRequest.url)) {
+      resetAuthRuntimeState(authErrorCode)
+      throw new Error(
+        (response.data as ApiBodyError).message ?? '인증이 만료되었습니다.',
+      )
+    }
+
+    if (originalRequest._retry) {
+      resetAuthRuntimeState(authErrorCode)
+      throw new Error(
+        (response.data as ApiBodyError).message ?? '인증이 만료되었습니다.',
+      )
+    }
+
+    originalRequest._retry = true
+    return retryWithRefresh(originalRequest, authErrorCode)
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosError['config'] &
       RetriableConfig
@@ -214,31 +292,7 @@ api.interceptors.response.use(
       !originalRequest._retry
     ) {
       originalRequest._retry = true
-
-      try {
-        await refreshAccessToken()
-
-        const nextAccessToken = localStorage.getItem(
-          AUTH_STORAGE_KEYS.accessToken,
-        )
-
-        if (nextAccessToken && originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`
-        }
-
-        return api(originalRequest)
-      } catch (refreshError) {
-        const errorCode =
-          refreshError instanceof Error && 'code' in refreshError
-            ? (refreshError as Error & { code: string }).code
-            : undefined
-
-        if (errorCode === 'AUTH-102') {
-          resetAuthRuntimeState('AUTH-102')
-        }
-
-        return Promise.reject(refreshError)
-      }
+      return retryWithRefresh(originalRequest)
     }
 
     return Promise.reject(error)

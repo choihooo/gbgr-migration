@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { MetricData } from '@/entities/session/types'
 import { AnalyticsEvents, GA_STORAGE_KEYS } from '@/shared/lib/analytics'
+import { closeWidget } from '@/shared/lib/widget-api'
 import {
   createSession,
   pauseSession,
@@ -89,6 +90,8 @@ export const useStopSessionMutation = () => {
         localStorage.setItem('lastSessionId', currentSessionId)
         localStorage.removeItem('sessionId')
       }
+
+      void closeWidget().catch(() => {})
       console.log('세션이 종료되었습니다.', sessionId)
 
       queryClient.invalidateQueries({ queryKey: ['averageScore'] })
