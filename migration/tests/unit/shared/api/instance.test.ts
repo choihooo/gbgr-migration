@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   api,
   clearStoredTokens,
-  refreshAccessToken,
   isNonRetryablePath,
+  refreshAccessToken,
 } from '@/shared/api/instance'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { installMockStorage } from '../../../setup/auth-test-storage'

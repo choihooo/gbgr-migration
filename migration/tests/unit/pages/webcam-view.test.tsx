@@ -18,25 +18,32 @@ vi.mock('@/entities/posture', () => ({
 
 vi.mock('react-webcam', () => {
   return {
-    default: React.forwardRef((props: { onUserMedia?: (stream: MediaStream) => void }, ref) => {
-      React.useEffect(() => {
-        props.onUserMedia?.({
-          getTracks: () => [{ stop: stopTrack }],
-          getVideoTracks: () => [],
-        } as unknown as MediaStream)
-      }, [])
+    default: React.forwardRef(
+      (props: { onUserMedia?: (stream: MediaStream) => void }, ref) => {
+        const didNotifyUserMediaRef = React.useRef(false)
 
-      React.useImperativeHandle(ref, () => ({
-        video: {
-          srcObject: {
+        React.useEffect(() => {
+          if (didNotifyUserMediaRef.current) return
+
+          didNotifyUserMediaRef.current = true
+          props.onUserMedia?.({
             getTracks: () => [{ stop: stopTrack }],
-          },
-          readyState: 4,
-        },
-      }))
+            getVideoTracks: () => [],
+          } as unknown as MediaStream)
+        }, [props.onUserMedia])
 
-      return <div data-testid="mock-webcam" />
-    }),
+        React.useImperativeHandle(ref, () => ({
+          video: {
+            srcObject: {
+              getTracks: () => [{ stop: stopTrack }],
+            },
+            readyState: 4,
+          },
+        }))
+
+        return <div data-testid="mock-webcam" />
+      },
+    ),
   }
 })
 

@@ -1,6 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import React from 'react'
-import { act } from 'react'
+import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { usePostureEngineStore } from '@/entities/posture'
 import CalibrationPage from '@/pages/calibration-page'
@@ -48,7 +47,12 @@ vi.mock('@/pages/calibration-page/components/WebcamView', () => ({
     onResultChange?: (result: unknown) => void
     onVideoRefReady?: (ref: { current: { video: HTMLVideoElement } }) => void
   }) => {
+    const didNotifyWebcamReadyRef = React.useRef(false)
+
     React.useEffect(() => {
+      if (didNotifyWebcamReadyRef.current) return
+
+      didNotifyWebcamReadyRef.current = true
       onResultChange?.({
         resultId: 'result-1',
         sessionId: 'session-1',
@@ -71,7 +75,7 @@ vi.mock('@/pages/calibration-page/components/WebcamView', () => ({
           } as HTMLVideoElement,
         },
       })
-    }, [])
+    }, [onResultChange, onVideoRefReady])
 
     return <div>{`timer-${remainingTime ?? -1}`}</div>
   },
@@ -140,7 +144,9 @@ describe('CalibrationPage', () => {
     render(<CalibrationPage />)
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'onboarding.calibration.measureButton' }),
+      screen.getByRole('button', {
+        name: 'onboarding.calibration.measureButton',
+      }),
     )
 
     expect(screen.getByText('timer-5')).toBeInTheDocument()

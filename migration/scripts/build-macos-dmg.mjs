@@ -1,12 +1,20 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const migrationDir = resolve(scriptDir, '..')
 const tauriDir = join(migrationDir, 'src-tauri')
-const tauriConfig = JSON.parse(readFileSync(join(tauriDir, 'tauri.conf.json'), 'utf8'))
+const tauriConfig = JSON.parse(
+  readFileSync(join(tauriDir, 'tauri.conf.json'), 'utf8'),
+)
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -112,7 +120,13 @@ export function buildMacosDmg(options = {}) {
       tempDmgPath,
     ])
 
-    run('hdiutil', ['attach', tempDmgPath, '-mountpoint', mountPoint, '-nobrowse'])
+    run('hdiutil', [
+      'attach',
+      tempDmgPath,
+      '-mountpoint',
+      mountPoint,
+      '-nobrowse',
+    ])
     run('cp', ['-R', join(stageDir, `${productName}.app`), mountPoint])
 
     try {

@@ -1,15 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { AppI18nProvider } from '@/app/providers/i18n-provider'
 import { useAuthSessionStore } from '@/entities/session'
 import { useAuthUserStore } from '@/entities/user'
 import { SettingsModal } from '@/features/settings/ui/SettingsModal'
-import { AppI18nProvider } from '@/app/providers/i18n-provider'
-import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { GA_STORAGE_KEYS } from '@/shared/lib/analytics/storage-keys'
+import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { installMockStorage } from '../../../setup/auth-test-storage'
 
 const {
@@ -117,7 +116,7 @@ describe('SettingsModal', () => {
       expect(mockFetchUpdate).toHaveBeenCalled()
     })
 
-    await userEvent.click(logoutButton)
+    fireEvent.click(logoutButton)
 
     expect(localStorage.getItem(AUTH_STORAGE_KEYS.accessToken)).toBeNull()
     expect(
@@ -138,7 +137,9 @@ describe('SettingsModal', () => {
       expect(mockFetchUpdate).toHaveBeenCalled()
     })
 
-    expect(screen.getByText('업데이트 서버가 아직 설정되지 않았어요.')).toBeInTheDocument()
+    expect(
+      screen.getByText('업데이트 서버가 아직 설정되지 않았어요.'),
+    ).toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: '업데이트 확인' }),
     ).not.toBeInTheDocument()

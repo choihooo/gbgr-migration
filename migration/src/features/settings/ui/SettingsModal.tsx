@@ -14,8 +14,8 @@ import {
 } from '@/features/auth/lib/session-persistence'
 import { useWithdrawMutation } from '@/features/auth/model/use-withdraw-mutation'
 import { clearStoredTokens } from '@/shared/api/instance'
-import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { clearAnalyticsFlags } from '@/shared/lib/analytics'
+import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import {
   clearCalibrationGate,
   requestCalibrationReset,
@@ -54,7 +54,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const navigate = useNavigate()
   const markUnauthenticated = useAuthSessionStore(s => s.markUnauthenticated)
   const clearUser = useAuthUserStore(s => s.clearUser)
-  const { mutateAsync: withdraw, isPending: isWithdrawPending } = useWithdrawMutation()
+  const { mutateAsync: withdraw, isPending: isWithdrawPending } =
+    useWithdrawMutation()
 
   const [isStartupEnabled, setIsStartupEnabled] = useState(false)
   const [isStartupSupported, setIsStartupSupported] = useState(true)

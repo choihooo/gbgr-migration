@@ -36,7 +36,8 @@ const baseURL = (
   import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL
 ).replace(/\/+$/, '')
 
-const isTauriRuntime = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+const isTauriRuntime =
+  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
 interface TauriApiResponse {
   status: number
@@ -58,10 +59,13 @@ function parseRequestBody(data: unknown) {
 }
 
 /** Rust command 기반 커스텀 Axios 어댑터 */
-async function tauriAdapter(config: InternalAxiosRequestConfig): Promise<AxiosResponse> {
-  const url = config.baseURL && config.url && !config.url.startsWith('http')
-    ? `${config.baseURL}${config.url}`
-    : config.url ?? ''
+async function tauriAdapter(
+  config: InternalAxiosRequestConfig,
+): Promise<AxiosResponse> {
+  const url =
+    config.baseURL && config.url && !config.url.startsWith('http')
+      ? `${config.baseURL}${config.url}`
+      : (config.url ?? '')
 
   const headers: Record<string, string> = {}
   if (config.headers) {
@@ -92,7 +96,9 @@ async function tauriAdapter(config: InternalAxiosRequestConfig): Promise<AxiosRe
   }
 
   const validateStatus =
-    config.validateStatus ?? api.defaults.validateStatus ?? axios.defaults.validateStatus
+    config.validateStatus ??
+    api.defaults.validateStatus ??
+    axios.defaults.validateStatus
 
   if (!validateStatus || validateStatus(response.status)) {
     return response

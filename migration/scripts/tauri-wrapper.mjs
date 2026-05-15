@@ -4,7 +4,13 @@ import { fileURLToPath } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const migrationDir = resolve(scriptDir, '..')
-const tauriCliPath = join(migrationDir, 'node_modules', '@tauri-apps', 'cli', 'tauri.js')
+const tauriCliPath = join(
+  migrationDir,
+  'node_modules',
+  '@tauri-apps',
+  'cli',
+  'tauri.js',
+)
 const dmgBuilderPath = join(scriptDir, 'build-macos-dmg.mjs')
 
 function runNodeScript(scriptPath, args) {
@@ -35,7 +41,12 @@ function parseBundles(args) {
   for (const index of flagIndexes) {
     const next = args[index + 1]
     if (next && !next.startsWith('-')) {
-      values.push(...next.split(',').map(value => value.trim()).filter(Boolean))
+      values.push(
+        ...next
+          .split(',')
+          .map(value => value.trim())
+          .filter(Boolean),
+      )
     }
   }
 

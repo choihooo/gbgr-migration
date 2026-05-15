@@ -7,8 +7,8 @@ import { fetchCurrentUser } from '@/features/auth/api/auth-api'
 import { useLoginMutation } from '@/features/auth/api/use-login-mutation'
 import { classifyAuthError } from '@/features/auth/lib/auth-error'
 import {
-  clearSavedEmail,
   clearAuthSession,
+  clearSavedEmail,
   persistAuthSession,
   persistSavedEmail,
 } from '@/features/auth/lib/session-persistence'

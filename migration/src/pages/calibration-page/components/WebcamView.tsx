@@ -71,8 +71,7 @@ const WebcamView = ({
   const videoConstraints = preferredDeviceId
     ? { deviceId: { exact: preferredDeviceId }, width: 1000, height: 563 }
     : { facingMode: 'user', width: 1000, height: 563 }
-  const shouldRenderLiveWebcam =
-    cameraState === 'show' && mode === 'foreground'
+  const shouldRenderLiveWebcam = cameraState === 'show' && mode === 'foreground'
 
   const handleUserMedia = (stream: MediaStream | null) => {
     setCameraError(null)
@@ -97,9 +96,7 @@ const WebcamView = ({
 
   const handleUserMediaError = (error: string | DOMException) => {
     const message =
-      typeof error === 'string'
-        ? error
-        : getCameraPermissionErrorMessage(error)
+      typeof error === 'string' ? error : getCameraPermissionErrorMessage(error)
     console.error('[WebcamView] 카메라 연결 실패:', error)
 
     if (preferredDeviceId) {

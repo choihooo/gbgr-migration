@@ -6,13 +6,13 @@ import {
   useCheckEmailMutation,
   useSignupMutation,
 } from '@/features/auth/api/use-signup-mutation'
+import { buildAuthVerifyCallbackUrl } from '@/features/auth/lib/callback-url'
 import {
   type SignupFormValues,
   validateEmail,
   validateName,
   validatePassword,
 } from '@/features/auth/lib/validators'
-import { buildAuthVerifyCallbackUrl } from '@/features/auth/lib/callback-url'
 
 interface DuplicateCheckState {
   message: string

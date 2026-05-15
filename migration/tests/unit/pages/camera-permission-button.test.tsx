@@ -53,7 +53,9 @@ describe('CameraPermissionButton', () => {
 
     render(<CameraPermissionButton />)
 
-    await userEvent.click(screen.getByRole('button', { name: '카메라 권한 허용' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: '카메라 권한 허용' }),
+    )
 
     await waitFor(() => {
       expect(useCameraStore.getState().cameraState).toBe('show')
@@ -97,7 +99,9 @@ describe('CameraPermissionButton', () => {
 
     render(<CameraPermissionButton />)
 
-    await userEvent.click(screen.getByRole('button', { name: '카메라 권한 허용' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: '카메라 권한 허용' }),
+    )
 
     await waitFor(() => {
       expect(getUserMedia).toHaveBeenNthCalledWith(1, {

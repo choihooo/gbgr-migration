@@ -368,7 +368,7 @@ function RunningPanel() {
     return () => {
       cancelAnimationFrame(animationId)
     }
-  }, [isCameraShow, levelVideo, seeThruUnavailable])
+  }, [isCameraShow, seeThruUnavailable])
 
   return (
     <div>

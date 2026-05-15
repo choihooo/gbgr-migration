@@ -232,7 +232,7 @@ const CalibrationPage = () => {
       console.error('[calibration] 시작 오류:', err)
       setStep2Error('캘리브레이션을 시작할 수 없어요')
     }
-  }, [latestPoseDetected])
+  }, [isPoseDetected, latestPoseDetected])
 
   // 상태에 따른 패딩 클래스
   const paddingClass = isCalibrating

@@ -38,10 +38,7 @@ export const useCreateSessionMutation = () => {
             Math.round((Date.now() - signupCompletedAt) / 1000),
           )
           AnalyticsEvents.firstMeasureStart({ seconds_from_signup })
-          localStorage.setItem(
-            GA_STORAGE_KEYS.FIRST_MEASURE_START_SENT,
-            'true',
-          )
+          localStorage.setItem(GA_STORAGE_KEYS.FIRST_MEASURE_START_SENT, 'true')
         }
       }
 

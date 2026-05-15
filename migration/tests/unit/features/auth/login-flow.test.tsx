@@ -14,14 +14,12 @@ const {
   mockMutateAsync,
   mockFetchCurrentUser,
   mockSetAnalyticsUserId,
-} = vi.hoisted(
-  () => ({
-    mockNavigate: vi.fn(),
-    mockMutateAsync: vi.fn(),
-    mockFetchCurrentUser: vi.fn(),
-    mockSetAnalyticsUserId: vi.fn(),
-  }),
-)
+} = vi.hoisted(() => ({
+  mockNavigate: vi.fn(),
+  mockMutateAsync: vi.fn(),
+  mockFetchCurrentUser: vi.fn(),
+  mockSetAnalyticsUserId: vi.fn(),
+}))
 
 vi.mock('react-router-dom', async () => {
   const actual =
@@ -247,7 +245,9 @@ describe('useLoginForm', () => {
       } as never)
     })
 
-    expect(window.localStorage.getItem(AUTH_STORAGE_KEYS.accessToken)).toBeNull()
+    expect(
+      window.localStorage.getItem(AUTH_STORAGE_KEYS.accessToken),
+    ).toBeNull()
     expect(
       window.localStorage.getItem(AUTH_STORAGE_KEYS.refreshToken),
     ).toBeNull()

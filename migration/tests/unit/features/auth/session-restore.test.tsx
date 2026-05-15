@@ -8,17 +8,13 @@ import { useAuthBootstrap } from '@/features/auth/model/use-auth-bootstrap'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { installMockStorage } from '../../../setup/auth-test-storage'
 
-const {
-  mockGet,
-  mockRefresh,
-  mockClearStoredTokens,
-  mockSetAnalyticsUserId,
-} = vi.hoisted(() => ({
-  mockGet: vi.fn(),
-  mockRefresh: vi.fn(),
-  mockClearStoredTokens: vi.fn(),
-  mockSetAnalyticsUserId: vi.fn(),
-}))
+const { mockGet, mockRefresh, mockClearStoredTokens, mockSetAnalyticsUserId } =
+  vi.hoisted(() => ({
+    mockGet: vi.fn(),
+    mockRefresh: vi.fn(),
+    mockClearStoredTokens: vi.fn(),
+    mockSetAnalyticsUserId: vi.fn(),
+  }))
 
 vi.mock('@/shared/api/instance', () => ({
   __esModule: true,
