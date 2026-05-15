@@ -33,7 +33,7 @@ function ensurePathExists(path, description) {
 
 function resolvePythonCommand() {
   const candidates =
-    process.platform === 'win32' ? ['python'] : ['python3.11', 'python3']
+    process.platform === 'win32' ? ['python'] : ['python', 'python3.11', 'python3']
 
   for (const candidate of candidates) {
     const result = spawnSync(candidate, ['--version'], {
