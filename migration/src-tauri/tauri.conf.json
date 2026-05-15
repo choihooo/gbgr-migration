@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "co.kr.bugi.desktop",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "pnpm run dev",
     "devUrl": "http://localhost:3000",
-    "beforeBuildCommand": "npm run build:posture-sidecar && npm run build",
+    "beforeBuildCommand": "pnpm run build:posture-sidecar && pnpm run build",
     "frontendDist": "../dist"
   },
   "app": {

@@ -15,6 +15,7 @@ import {
 import { useWithdrawMutation } from '@/features/auth/model/use-withdraw-mutation'
 import { clearStoredTokens } from '@/shared/api/instance'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
+import { clearAnalyticsFlags } from '@/shared/lib/analytics'
 import {
   clearCalibrationGate,
   requestCalibrationReset,
@@ -101,6 +102,51 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   }, [isOpen])
 
+  useEffect(() => {
+    let isMounted = true
+
+    const syncUpdateSettings = async () => {
+      if (!isOpen) return
+
+      setUpdateError('')
+      setIsCheckingUpdate(true)
+
+      try {
+        const response = await fetchUpdate()
+        if (!isMounted) return
+
+        setUpdateInfo(response)
+        setUpdateMessage(
+          response.configured
+            ? response.update
+              ? t('settings.update.availableDescription', {
+                  version: response.update.version,
+                })
+              : t('settings.update.noUpdate')
+            : t('settings.update.unconfigured'),
+        )
+      } catch (error: unknown) {
+        if (!isMounted) return
+
+        const message =
+          error instanceof Error
+            ? error.message
+            : t('settings.update.errorFallback')
+        setUpdateError(message)
+      } finally {
+        if (isMounted) {
+          setIsCheckingUpdate(false)
+        }
+      }
+    }
+
+    void syncUpdateSettings()
+
+    return () => {
+      isMounted = false
+    }
+  }, [isOpen, t])
+
   const handleStartupToggle = async (nextEnabled: boolean) => {
     if (isStartupLoading || isStartupSaving || !isStartupSupported) return
 
@@ -131,6 +177,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     clearStoredTokens()
     clearAuthSession()
     clearRedirectPath()
+    clearAnalyticsFlags()
     clearUser()
     markUnauthenticated()
   }
@@ -265,6 +312,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     updateInfo?.configured && updateInfo.update
       ? t('settings.update.installAction')
       : t('settings.update.checkAction')
+  const showUpdateAction = updateInfo?.configured !== false
 
   const actionItems = [
     {
@@ -360,16 +408,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             ) : null}
           </div>
 
-          <Button
-            text={updateActionLabel}
-            variant="grey"
-            size="xs"
-            onClick={() => {
-              void handleUpdateAction()
-            }}
-            disabled={isCheckingUpdate || isInstallingUpdate}
-            className="shrink-0"
-          />
+          {showUpdateAction ? (
+            <Button
+              text={updateActionLabel}
+              variant="grey"
+              size="xs"
+              onClick={() => {
+                void handleUpdateAction()
+              }}
+              disabled={isCheckingUpdate || isInstallingUpdate}
+              className="shrink-0"
+            />
+          ) : null}
         </div>
 
         <div className="flex flex-col overflow-hidden rounded-[12px] bg-grey-25 dark:bg-grey-900">
