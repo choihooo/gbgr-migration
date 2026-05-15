@@ -220,6 +220,7 @@ function RunningPanel() {
   const backgroundVideoRef = useRef<HTMLVideoElement>(null)
   const characterCanvasRef = useRef<HTMLCanvasElement>(null)
   const characterVideoRef = useRef<HTMLVideoElement>(null)
+  const [seeThruUnavailable, setSeeThruUnavailable] = useState(false)
 
   const score = latestResult?.score ?? restoredResult?.score ?? 0
   const levelInfo = useMemo(() => getScoreLevel(score), [score])
@@ -313,6 +314,7 @@ function RunningPanel() {
   // seeThru로 캐릭터 영상 검은 배경 투명화
   useEffect(() => {
     if (!isCameraShow) return
+    if (seeThruUnavailable) return
 
     const video = characterVideoRef.current
     const canvas = characterCanvasRef.current
@@ -334,7 +336,17 @@ function RunningPanel() {
 
       ctx.drawImage(video, 0, 0)
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      let imageData: ImageData
+      try {
+        imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      } catch (error) {
+        console.warn(
+          '[MiniRunningPanel] 영상 픽셀 데이터를 읽을 수 없어 seeThru 처리를 중단합니다:',
+          error,
+        )
+        setSeeThruUnavailable(true)
+        return
+      }
       const data = imageData.data
 
       for (let i = 0; i < data.length; i += 4) {
@@ -356,7 +368,7 @@ function RunningPanel() {
     return () => {
       cancelAnimationFrame(animationId)
     }
-  }, [isCameraShow, levelVideo])
+  }, [isCameraShow, seeThruUnavailable])
 
   return (
     <div>
@@ -406,15 +418,23 @@ function RunningPanel() {
                 loop
                 muted
                 playsInline
+                crossOrigin="anonymous"
                 disablePictureInPicture
                 controls={false}
                 controlsList="nofullscreen noplaybackrate nodownload noremoteplayback"
-                className="pointer-events-none absolute h-0 w-0 opacity-0"
+                className={cn(
+                  'pointer-events-none',
+                  seeThruUnavailable
+                    ? 'h-auto max-h-[320px] w-full rounded-lg object-contain'
+                    : 'absolute h-0 w-0 opacity-0',
+                )}
               />
-              <canvas
-                ref={characterCanvasRef}
-                className="pointer-events-none h-auto max-h-[320px] w-full rounded-lg object-contain"
-              />
+              {!seeThruUnavailable ? (
+                <canvas
+                  ref={characterCanvasRef}
+                  className="pointer-events-none h-auto max-h-[320px] w-full rounded-lg object-contain"
+                />
+              ) : null}
             </>
           ) : (
             <img

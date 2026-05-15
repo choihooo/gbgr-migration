@@ -19,6 +19,10 @@ function renderGuard(route = '/onboarding/init') {
             path="/onboarding/calibration"
             element={<div>보정 측정 화면</div>}
           />
+          <Route
+            path="/onboarding/completion"
+            element={<div>보정 완료 화면</div>}
+          />
         </Route>
         <Route path="/main" element={<div>메인 화면</div>} />
       </Routes>
@@ -54,5 +58,13 @@ describe('CalibrationRouteGuard', () => {
     renderGuard()
 
     expect(screen.getByText('메인 화면')).toBeInTheDocument()
+  })
+
+  it('보정을 완료한 사용자는 완료 화면에 접근할 수 있다', () => {
+    lockCalibrationGate('user-1')
+
+    renderGuard('/onboarding/completion')
+
+    expect(screen.getByText('보정 완료 화면')).toBeInTheDocument()
   })
 })

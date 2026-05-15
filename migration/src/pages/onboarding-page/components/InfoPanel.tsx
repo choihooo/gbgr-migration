@@ -38,7 +38,7 @@ const InfoPanel = ({ currentStep, onNext, direction }: InfoPanelProps) => {
     : []
 
   return (
-    <div className="bg-grey-0 flex h-full min-w-[386px] flex-col justify-between p-10 xl:w-[clamp(386px,calc(386px+(100vw-1280px)*0.5),462px)]">
+    <div className="bg-grey-0 flex w-full max-w-[462px] min-w-0 flex-col justify-between p-8 xl:min-w-[386px] xl:w-[clamp(386px,calc(386px+(100vw-1280px)*0.5),462px)] xl:p-10">
       <div className="flex flex-col">
         {/* 프로그레스바 */}
         <div className="mb-[91px]">

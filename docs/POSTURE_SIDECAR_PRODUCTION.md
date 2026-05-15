@@ -75,16 +75,17 @@ list 방식으로 `../../sidecar/posture-engine`를 넣으면 macOS 번들 내�
 
 ```bash
 cd migration
-bun run build:posture-sidecar
+pnpm run build:posture-sidecar
 ```
 
 스크립트 동작:
 
 - 기본적으로 macOS/Linux는 `python3.11`, `python3` 순서로 PyInstaller 실행 Python을 찾는다.
 - Windows는 `python`을 사용한다.
-- 특정 Python을 강제하려면 `PYTHON=/absolute/path/python3.11 bun run build:posture-sidecar`로 실행한다.
+- 특정 Python을 강제하려면 `PYTHON=/absolute/path/python3.11 pnpm run build:posture-sidecar`로 실행한다.
 - 산출물은 `sidecar/posture-engine/posture-engine` 또는 `sidecar/posture-engine/posture-engine.exe`에 생성한다.
-- 산출 직후 `latest_result` JSON smoke 요청을 실행해 stdin/stdout 계약을 확인한다.
+- 산출 직후 `start` JSON smoke 요청을 실행해 실제 초기화와 stdin/stdout 계약을 함께 확인한다.
+- 스크립트는 빌드 전에 `main.py`, `models/`, `PyInstaller`, `mediapipe` 설치 여부를 먼저 검증하고, 누락 시 명확한 메시지로 실패한다.
 
 생성된 실행 파일과 PyInstaller 작업 디렉터리는 로컬 산출물이므로 git에 커밋하지 않는다. Tauri 빌드는 `sidecar/posture-engine` 디렉터리를 리소스로 복사하므로, 릴리즈 패키징 전에 이 스크립트를 실행하면 앱 번들에 실행 파일이 함께 포함된다.
 
@@ -107,9 +108,9 @@ sidecar 실행 실패 시 사용자에게는 기술 경로 대신 다음 수준�
 - macOS arm64 실행 파일 산출 확인: `sidecar/posture-engine/posture-engine`
 - 산출 파일 크기: 83MB
 - 실행 파일 형식: Mach-O 64-bit executable arm64
-- 로컬 실행 파일 `latest_result` JSON smoke 응답 확인
+- 로컬 실행 파일 `start` JSON smoke 응답 확인
 - macOS 앱 번들 내부 실행 파일 경로 확인: `Contents/Resources/sidecar/posture-engine/posture-engine`
-- macOS 앱 번들 내부 실행 파일 `latest_result` JSON smoke 응답 확인
+- macOS 앱 번들 내부 실행 파일 `start` JSON smoke 응답 확인
 - DMG 마운트 후 `GBGR.app/Contents/Resources/sidecar/posture-engine/posture-engine` 경로 확인
-- DMG 내부 실행 파일 `latest_result` JSON smoke 응답 확인
+- DMG 내부 실행 파일 `start` JSON smoke 응답 확인
 - 현재 로컬 머신에는 `python3.11`이 없어 `/usr/bin/python3` Python 3.9.6으로 산출했다. 프로덕션 CI에서는 Python 3.11 런타임을 명시해야 한다.

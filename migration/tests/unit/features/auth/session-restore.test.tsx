@@ -8,11 +8,13 @@ import { useAuthBootstrap } from '@/features/auth/model/use-auth-bootstrap'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { installMockStorage } from '../../../setup/auth-test-storage'
 
-const { mockGet, mockRefresh, mockClearStoredTokens } = vi.hoisted(() => ({
-  mockGet: vi.fn(),
-  mockRefresh: vi.fn(),
-  mockClearStoredTokens: vi.fn(),
-}))
+const { mockGet, mockRefresh, mockClearStoredTokens, mockSetAnalyticsUserId } =
+  vi.hoisted(() => ({
+    mockGet: vi.fn(),
+    mockRefresh: vi.fn(),
+    mockClearStoredTokens: vi.fn(),
+    mockSetAnalyticsUserId: vi.fn(),
+  }))
 
 vi.mock('@/shared/api/instance', () => ({
   __esModule: true,
@@ -21,6 +23,10 @@ vi.mock('@/shared/api/instance', () => ({
   },
   clearStoredTokens: mockClearStoredTokens,
   refreshAccessToken: mockRefresh,
+}))
+
+vi.mock('@/shared/lib/analytics', () => ({
+  setAnalyticsUserId: mockSetAnalyticsUserId,
 }))
 
 function createWrapper() {
@@ -39,6 +45,7 @@ describe('useAuthBootstrap', () => {
     mockGet.mockReset()
     mockRefresh.mockReset()
     mockClearStoredTokens.mockReset()
+    mockSetAnalyticsUserId.mockReset()
     useAuthUserStore.getState().clearUser()
     useAuthSessionStore.setState({
       status: 'checking',
@@ -73,6 +80,7 @@ describe('useAuthBootstrap', () => {
     await waitFor(() => {
       expect(useAuthSessionStore.getState().status).toBe('authenticated')
     })
+    expect(mockSetAnalyticsUserId).toHaveBeenCalledWith('user@test.com')
   })
 
   it('저장된 세션이 실패하면 미인증 상태로 전환한다', async () => {

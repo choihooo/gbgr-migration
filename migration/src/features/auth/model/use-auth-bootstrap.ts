@@ -10,6 +10,7 @@ import api, {
   clearStoredTokens,
   refreshAccessToken,
 } from '@/shared/api/instance'
+import { setAnalyticsUserId } from '@/shared/lib/analytics'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 
 export function useAuthBootstrap() {
@@ -67,6 +68,11 @@ export function useAuthBootstrap() {
           AUTH_STORAGE_KEYS.refreshToken,
         )
 
+        if (!userId || !userName) {
+          throw new Error('사용자 정보를 불러오지 못했습니다.')
+        }
+
+        await setAnalyticsUserId(userId)
         setUser({
           id: userId,
           name: userName,

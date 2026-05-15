@@ -4,36 +4,38 @@
 
 ## 빌드 전제 조건
 
-- Bun 1.3 이상
+- Node.js 20 이상
+- pnpm 9 이상
 - Rust stable 툴체인
+- Python 3.11
+- `sidecar/posture-engine/requirements.txt` 기준 Python 의존성
 - Windows에서는 Visual Studio 2022 Build Tools 또는 Visual Studio 2022
 
 ## 자주 쓰는 명령
 
 ```bash
-bun install
-node scripts/install-with-manager.mjs npm-ci
-bun run typecheck
-bun run build
-bun run tauri:dev
-bun run tauri:build
+pnpm install
+pnpm run typecheck
+pnpm run build
+pnpm run tauri:dev
+pnpm run tauri:build
 ```
+
+macOS의 `pnpm run tauri:build`는 기본 Tauri DMG bundler 대신 wrapper를 통해 `.app` 번들 생성 후 수동 DMG 패키징을 수행한다. 이는 현재 환경에서 `hdiutil create -srcfolder`가 `GBGR.app` 복사 단계에서 `작업이 허용되지 않음`으로 실패하기 때문이다.
 
 ### 패키지 매니저 운영 원칙
 
-- 개발용 의존성 설치: `bun install` 또는 `npm run install:dev`
-- 릴리스용 의존성 설치: `npm run install:release`
-- `package-lock.json`을 갱신해야 할 때만: `npm run install:release:lock`
-
-`bun`과 `npm`은 실행 파일 shim 방식이 달라서 같은 `node_modules`를 섞어 쓰면 깨질 수 있습니다. 위 전환 스크립트는 설치 전에 `node_modules`를 비우고 다시 설치해서 로컬 충돌을 줄입니다.
+- 개발용 의존성 설치: `pnpm install`
+- 릴리스용 의존성 설치: `pnpm run install:release`
+- 로컬과 CI 모두 `pnpm`만 사용한다.
 
 ## Windows에서 권장하는 실행 방법
 
 일반 PowerShell에서 바로 `cargo` 또는 `tauri build`를 실행하면 Visual C++ 환경이 잡히지 않아 실패할 수 있습니다.
 
-- 개발 실행: `bun run tauri:dev:win`
-- 패키징 빌드: `bun run tauri:build:win`
-- 디버그 패키징 빌드: `bun run tauri:build:debug:win`
+- 개발 실행: `pnpm run tauri:dev:win`
+- 패키징 빌드: `pnpm run tauri:build:win`
+- 디버그 패키징 빌드: `pnpm run tauri:build:debug:win`
 
 위 스크립트는 설치된 Visual Studio 2022 경로를 찾아 `VsDevCmd.bat`를 먼저 로드한 뒤 Tauri 명령을 실행합니다.
 
@@ -53,9 +55,11 @@ bun run tauri:build
 
 ### 필요한 GitHub Secrets
 
-- `TAURI_UPDATER_PUBLIC_KEY`: `bunx tauri signer generate`로 만든 공개키 전체 내용
+- `TAURI_UPDATER_PUBLIC_KEY`: `pnpm dlx @tauri-apps/cli signer generate`로 만든 공개키 전체 내용
 - `TAURI_SIGNING_PRIVATE_KEY`: 같은 키쌍의 개인키 파일 경로 또는 내용
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: signer 생성 시 비밀번호를 줬다면 그 값
+
+Tauri updater key, Apple Developer ID 인증서, App Store Connect API Key 발급/조회/등록 절차는 [GitHub Actions 배포 Secret 발급 및 조회 가이드](/Users/choiho/coding/gbgr/gbgr-migration/docs/GITHUB_ACTIONS_SECRETS_ISSUANCE.md)를 따른다.
 
 ### 릴리스 방법
 
@@ -66,7 +70,7 @@ bun run tauri:build
   - 또는 GitHub Actions 수동 실행
 
 워크플로우는 실행 중에만 `migration/src-tauri/tauri.github-release.conf.json`을 만들어 `createUpdaterArtifacts`와 updater 설정을 켭니다. 그래서 로컬 개발 빌드는 그대로 유지되고, GitHub Actions에서만 `latest.json` 생성 흐름이 활성화됩니다.
-또한 개발 환경은 `bun`을 유지하되, GitHub Actions 릴리스 빌드는 `npm ci`와 `npm run tauri`를 사용하도록 분리되어 있습니다.
+또한 로컬과 GitHub Actions 릴리스 빌드는 모두 `pnpm` 기반으로 동작합니다. 릴리즈 워크플로우는 Tauri 빌드 전에 Python 3.11, `PyInstaller`, `sidecar/posture-engine/requirements.txt` 의존성을 먼저 설치합니다.
 
 ### 중요한 운영 주의사항
 

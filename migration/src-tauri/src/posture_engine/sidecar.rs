@@ -5,7 +5,7 @@ use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::thread;
 use std::time::Duration;
 
-const SIDECAR_RESPONSE_TIMEOUT: Duration = Duration::from_secs(15);
+const SIDECAR_RESPONSE_TIMEOUT: Duration = Duration::from_secs(60);
 const SIDECAR_TIMEOUT_ERROR_CODE: &str = "SIDECAR_TIMEOUT";
 
 enum SidecarCommand {
@@ -24,6 +24,10 @@ impl SidecarHandle {
     /// Python sidecar 프로세스를 실행한다.
     pub fn spawn() -> Result<Self, String> {
         let command = resolve_sidecar_command()?;
+        Self::spawn_with_command(command)
+    }
+
+    fn spawn_with_command(command: SidecarCommand) -> Result<Self, String> {
         let mut process = match command {
             SidecarCommand::Binary(binary) => Command::new(binary),
             SidecarCommand::PythonScript { python, script } => {
@@ -182,6 +186,33 @@ fn resolve_sidecar_command() -> Result<SidecarCommand, String> {
     }
 
     Err("배포용 자세 엔진 실행 파일을 찾을 수 없습니다.".to_string())
+}
+
+pub fn spawn_with_debug_fallback() -> Result<SidecarHandle, String> {
+    if !cfg!(debug_assertions) {
+        return SidecarHandle::spawn();
+    }
+
+    if let Some(binary) = resolve_env_sidecar_binary()? {
+        match SidecarHandle::spawn_with_command(SidecarCommand::Binary(binary)) {
+            Ok(handle) => return Ok(handle),
+            Err(error) => {
+                eprintln!(
+                    "[posture-engine] debug binary sidecar 실행 실패, Python 스크립트로 폴백합니다: {error}"
+                );
+            }
+        }
+    }
+
+    let script = resolve_sidecar_path()?;
+    let python = find_python()?;
+    SidecarHandle::spawn_with_command(SidecarCommand::PythonScript { python, script })
+}
+
+pub fn spawn_python_sidecar() -> Result<SidecarHandle, String> {
+    let script = resolve_sidecar_path()?;
+    let python = find_python()?;
+    SidecarHandle::spawn_with_command(SidecarCommand::PythonScript { python, script })
 }
 
 fn resolve_env_sidecar_binary() -> Result<Option<PathBuf>, String> {

@@ -32,7 +32,8 @@ class PoseDetector:
     """MediaPipe Pose Landmarker를 사용한 포즈 감지."""
 
     def __init__(self) -> None:
-        self._mp: Any | None = None
+        self._image_type: Any | None = None
+        self._image_format: Any | None = None
         self._landmarker: Any | None = None
         self._frame_timestamp_ms: int = 0
         self.last_error: str | None = None
@@ -47,15 +48,20 @@ class PoseDetector:
             return False
 
         try:
-            import mediapipe as mp
-            from mediapipe.tasks.python import BaseOptions
-            from mediapipe.tasks.python.vision import (
+            from mediapipe.tasks.python.core.base_options import BaseOptions
+            from mediapipe.tasks.python.vision.core.image import (
+                Image,
+                ImageFormat,
+            )
+            from mediapipe.tasks.python.vision.core.vision_task_running_mode import (
+                VisionTaskRunningMode as RunningMode,
+            )
+            from mediapipe.tasks.python.vision.pose_landmarker import (
                 PoseLandmarker,
                 PoseLandmarkerOptions,
-                RunningMode,
             )
-        except ImportError:
-            self.last_error = "mediapipe_not_installed"
+        except ImportError as exc:
+            self.last_error = f"mediapipe_import_failed: {exc}"
             return False
 
         try:
@@ -68,7 +74,8 @@ class PoseDetector:
                 min_tracking_confidence=0.2,
             )
             self._landmarker = PoseLandmarker.create_from_options(options)
-            self._mp = mp
+            self._image_type = Image
+            self._image_format = ImageFormat
             return True
         except Exception as exc:
             self.last_error = f"mediapipe_initialization_failed: {exc}"
@@ -100,9 +107,12 @@ class PoseDetector:
             return None
 
         rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB)
-        if self._mp is None:
+        if self._image_type is None or self._image_format is None:
             return None
-        mp_image = self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=rgb_image)
+        mp_image = self._image_type(
+            image_format=self._image_format.SRGB,
+            data=rgb_image,
+        )
 
         self._frame_timestamp_ms += 50  # 50ms 간격 (20fps)
         results = self._landmarker.detect_for_video(mp_image, self._frame_timestamp_ms)

@@ -32,6 +32,12 @@ vi.mock('@/features/auth/api/use-signup-mutation', () => ({
   }),
 }))
 
+vi.mock('@tauri-apps/api/window', () => ({
+  getCurrentWindow: () => ({
+    setTitle: vi.fn(),
+  }),
+}))
+
 function createWrapper() {
   const queryClient = new QueryClient()
 
@@ -51,6 +57,10 @@ describe('useSignupForm', () => {
     mockCheckEmail.mockReset()
     mockSignup.mockReset()
     useAuthEmailStore.getState().clearEmail()
+    Object.defineProperty(window, '__TAURI_INTERNALS__', {
+      configurable: true,
+      value: {},
+    })
   })
 
   it('중복 확인 성공 후 회원가입이 완료되면 인증 대기 화면으로 이동한다', async () => {
@@ -99,6 +109,13 @@ describe('useSignupForm', () => {
       } as never)
     })
 
+    expect(mockSignup).toHaveBeenCalledWith({
+      email: 'user@test.com',
+      password: 'Password!1',
+      name: '테스터',
+      avatar: '',
+      callbackUrl: 'gbgr://auth/verify-callback',
+    })
     expect(useAuthEmailStore.getState().email).toBe('user@test.com')
     expect(mockNavigate).toHaveBeenCalledWith('/auth/verify')
   })

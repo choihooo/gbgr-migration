@@ -23,7 +23,7 @@ const WelcomePanel = ({
   const username = localStorage.getItem('userName') || '사용자'
 
   return (
-    <div className="flex w-[422px] min-w-[422px] shrink-0 flex-col pt-12">
+    <div className="flex w-full max-w-[422px] min-w-0 shrink-0 flex-col pt-4 xl:pt-12">
       <div className="mb-12">
         <h1 className="text-title-4xl-bold text-grey-900 mb-[20px]">
           바른자세 기준점 등록

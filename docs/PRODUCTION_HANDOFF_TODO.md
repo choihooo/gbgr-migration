@@ -36,13 +36,13 @@
 
 ## 1. 현재 상태 요약
 
-- [x] `bun run typecheck` 통과
-- [x] `bun run test` 통과
+- [x] `pnpm run typecheck` 통과
+- [x] `pnpm run test` 통과
   - 2026-04-26 기준 19개 테스트 파일, 80개 테스트 통과
   - 테스트 중 `--localstorage-file` 경고가 출력되지만 테스트 실패로 이어지지는 않음
 - [x] `cargo check` 통과
-- [x] `bun run build` 통과
-- [x] `bun run tauri:build` 최신 재검증 필요
+- [x] `pnpm run build` 통과
+- [x] `pnpm run tauri:build` 최신 재검증 필요
   - 이전 실행은 DMG 내부 `GBGR.app` 프로세스가 떠 있어 detach 실패
   - 잔여 프로세스 종료 및 `/dev/disk4` detach 후 재실행하여 성공한 이력이 있음
   - 2026-04-25 재실행 결과: Rust release 빌드와 `.app` 번들 생성까지 완료됐으나 DMG 번들링 단계의 `bundle_dmg.sh`에서 실패
@@ -52,7 +52,7 @@
   - 산출물:
     - `migration/src-tauri/target/release/bundle/macos/GBGR.app`
     - `migration/src-tauri/target/release/bundle/dmg/GBGR_0.1.0_aarch64.dmg`
-- [x] `bun run lint:check` 통과
+- [x] `pnpm run lint:check` 통과
   - Biome import 정렬 및 format 오류는 `bun run lint`로 정리 완료
   - `src/shared/ui/toggle-switch/index.tsx`, `src/style.css`에 경고 6건은 남아 있으나 실패로 이어지지 않음
 - [ ] 프로덕션 실사용 검증은 아직 완료되지 않음
@@ -67,7 +67,7 @@
 
 ### 2.1 Biome 정적 검사 실패 해결
 
-- [x] `migration/`에서 `bun run lint:check`를 실행해 최신 오류 목록을 확인한다.
+- [x] `migration/`에서 `pnpm run lint:check`를 실행해 최신 오류 목록을 확인한다.
 - [x] import 정렬 오류를 정리한다.
   - 대상 예시:
     - `migration/scripts/install-with-manager.mjs`
@@ -89,14 +89,14 @@
     - `migration/src/pages/widget-page/MiniWidgetContent.tsx`
     - `migration/src/pages/widget-page/WidgetTitleBar.tsx`
 - [x] 정리 후 아래 명령을 모두 재실행한다.
-  - [x] `bun run lint:check`
-  - [x] `bun run typecheck`
-  - [x] `bun run test`
+  - [x] `pnpm run lint:check`
+  - [x] `pnpm run typecheck`
+  - [x] `pnpm run test`
   - [x] `cargo check` in `migration/src-tauri`
-  - [x] `bun run build`
-  - [x] `bun run tauri:build`
+  - [x] `pnpm run build`
+  - [x] `pnpm run tauri:build`
     - 2026-04-26 재실행에서 DMG 번들링까지 성공
-- [x] 자동 수정이 가능한 항목은 `bun run lint`로 처리하되, 변경 범위가 커지면 diff를 확인한다.
+- [x] 자동 수정이 가능한 항목은 `pnpm run lint`로 처리하되, 변경 범위가 커지면 diff를 확인한다.
 - [x] 현재 워크트리에 이미 있던 변경을 되돌리지 않는다.
 
 ### 2.2 현재 워크트리 변경 정리
@@ -140,7 +140,7 @@
   - [ ] 설치 단계에서 Python 의존성을 준비
     - 미선택 대안
   - 결정 문서: `docs/POSTURE_SIDECAR_PRODUCTION.md`
-  - `bun run build:posture-sidecar` 산출 자동화 추가
+  - `pnpm run build:posture-sidecar` 산출 자동화 추가
   - macOS arm64 `posture-engine` 산출 및 smoke 검증 완료
   - Windows/Linux 산출은 동일 스크립트를 각 플랫폼 CI에서 실행해 검증해야 한다.
 - [x] 선택한 방식에 맞춰 `resolve_sidecar_path()`와 `find_python()` 책임을 재정의한다.
@@ -338,7 +338,7 @@
 
 ### 8.1 번들 크기
 
-- [ ] `bun run build` 출력의 JS 청크 경고를 검토한다.
+- [ ] `pnpm run build` 출력의 JS 청크 경고를 검토한다.
   - 현재 `index-*.js`가 500KB 경고 기준을 초과함
 - [ ] React Router 페이지 단위 lazy loading 필요 여부를 판단한다.
 - [ ] 차트/비디오/이미지 asset 로딩이 초기 진입 성능에 미치는 영향을 확인한다.
@@ -355,7 +355,7 @@
 
 ### 8.3 DMG 패키징 안정성
 
-- [ ] `bun run tauri:build`를 깨끗한 상태에서 2회 이상 반복 실행한다.
+- [ ] `pnpm run tauri:build`를 깨끗한 상태에서 2회 이상 반복 실행한다.
   - 2026-04-25 최신 재실행은 `.app` 번들 생성 후 DMG `bundle_dmg.sh` 단계에서 실패
   - 2026-04-26 재실행 1회 성공: `GBGR.app`, `GBGR_0.1.0_aarch64.dmg` 생성 확인
 - [ ] 실패 시 `/Volumes/dmg.*` 잔여 마운트가 없는지 확인한다.
@@ -379,12 +379,12 @@
 ## 10. 릴리즈 절차 정리
 
 - [x] 프로덕션 릴리즈 전 실행할 명령을 고정한다.
-  - [x] `bun run lint:check`
-  - [x] `bun run typecheck`
-  - [x] `bun run test`
+  - [x] `pnpm run lint:check`
+  - [x] `pnpm run typecheck`
+  - [x] `pnpm run test`
   - [x] `cargo check` in `migration/src-tauri`
-  - [x] `bun run build`
-  - [x] `bun run tauri:build`
+  - [x] `pnpm run build`
+  - [x] `pnpm run tauri:build`
     - 2026-04-26 DMG 번들링 성공으로 릴리즈 전 자동 품질 게이트에 포함 가능
 - [x] 릴리즈 산출물 위치를 문서화한다.
   - `.app`
@@ -401,7 +401,7 @@
 
 ## 11. 권장 작업 순서
 
-- [x] 1순위: `bun run lint:check` 실패 정리
+- [x] 1순위: `pnpm run lint:check` 실패 정리
 - [x] 2순위: 현재 워크트리 변경 범위 확정
 - [x] 3순위: 보정 게이트 라우터 연결
 - [x] 4순위: Python sidecar 프로덕션 배포 전략 확정

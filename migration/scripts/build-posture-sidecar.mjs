@@ -15,7 +15,8 @@ const outputPath = join(sidecarDir, outputName)
 const buildDir = join(sidecarDir, '.pyinstaller-build')
 const specDir = join(sidecarDir, '.pyinstaller-spec')
 const dataSeparator = process.platform === 'win32' ? ';' : ':'
-const python = process.env.PYTHON ?? resolveSetupPythonCommand() ?? resolvePythonCommand()
+const python =
+  process.env.PYTHON ?? resolveSetupPythonCommand() ?? resolvePythonCommand()
 
 function fail(message, detail) {
   if (detail) {
@@ -33,7 +34,9 @@ function ensurePathExists(path, description) {
 
 function resolvePythonCommand() {
   const candidates =
-    process.platform === 'win32' ? ['python'] : ['python', 'python3.11', 'python3']
+    process.platform === 'win32'
+      ? ['python']
+      : ['python', 'python3.11', 'python3']
 
   for (const candidate of candidates) {
     const result = spawnSync(candidate, ['--version'], {
@@ -56,7 +59,10 @@ function resolveSetupPythonCommand() {
   const candidates =
     process.platform === 'win32'
       ? [join(pythonLocation, 'python.exe')]
-      : [join(pythonLocation, 'bin', 'python3'), join(pythonLocation, 'bin', 'python')]
+      : [
+          join(pythonLocation, 'bin', 'python3'),
+          join(pythonLocation, 'bin', 'python'),
+        ]
 
   return candidates.find(candidate => existsSync(candidate)) ?? null
 }
@@ -168,7 +174,9 @@ function resolveMediaPipeBinaryPath() {
 
   const resolvedPath = probe.stdout.trim()
   if (!resolvedPath || !existsSync(resolvedPath)) {
-    console.warn(`MediaPipe 동적 라이브러리 경로가 유효하지 않아 add-binary를 생략합니다: ${resolvedPath}`)
+    console.warn(
+      `MediaPipe 동적 라이브러리 경로가 유효하지 않아 add-binary를 생략합니다: ${resolvedPath}`,
+    )
     return null
   }
 

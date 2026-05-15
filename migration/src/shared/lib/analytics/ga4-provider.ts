@@ -1,9 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import type { AnalyticsProvider } from './provider'
-import type {
-  AnalyticsEventName,
-  AnalyticsEventParamsMap,
-} from './schema'
+import type { AnalyticsEventName, AnalyticsEventParamsMap } from './schema'
 
 const isTauriRuntime =
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window

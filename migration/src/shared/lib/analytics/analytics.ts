@@ -1,9 +1,6 @@
 import { GA4Provider } from './ga4-provider'
 import type { AnalyticsProvider } from './provider'
-import type {
-  AnalyticsEventName,
-  AnalyticsEventParamsMap,
-} from './schema'
+import type { AnalyticsEventName, AnalyticsEventParamsMap } from './schema'
 
 let provider: AnalyticsProvider = new GA4Provider()
 

@@ -28,4 +28,4 @@ if errorlevel 1 (
 set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
 
 cd /d "%~dp0"
-bun run tauri build %*
+pnpm run tauri build %*

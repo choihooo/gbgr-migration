@@ -3,16 +3,18 @@
 작성일: 2026-04-26  
 대상: `migration/` Tauri + React 앱
 
+세부적인 Apple 서명/노타라이즈 실제 실행 순서는 [macOS 서명/노타라이즈 실행 문서](/Users/choiho/coding/gbgr/gbgr-migration/docs/MACOS_SIGNING_NOTARIZATION_RUNBOOK.md)를 따른다.
+
 ## 릴리즈 전 품질 게이트
 
 아래 명령은 `migration/` 디렉터리에서 실행한다.
 
 ```bash
-bun run lint:check
-bun run typecheck
-bun run test
-bun run build
-bun run tauri:build
+pnpm run lint:check
+pnpm run typecheck
+pnpm run test
+pnpm run build
+pnpm run tauri:build
 ```
 
 Rust 단독 검증은 `migration/src-tauri/`에서 실행한다.
@@ -21,11 +23,12 @@ Rust 단독 검증은 `migration/src-tauri/`에서 실행한다.
 cargo check
 ```
 
-2026-04-26 기준 위 명령은 모두 통과했다. `bun run test`에서는 `--localstorage-file` 경고가 출력되지만 테스트 실패로 이어지지 않는다.
+2026-04-26 기준 위 명령은 모두 통과했다. `pnpm run test`에서는 `--localstorage-file` 경고가 출력되지만 테스트 실패로 이어지지 않는다.
+2026-05-10 기준 macOS `pnpm run tauri:build`는 wrapper 스크립트를 통해 Tauri 기본 `dmg` bundler를 우회하고, `.app` 생성 후 빈 RW DMG를 mount해 `GBGR.app`을 직접 복사한 다음 압축 DMG로 변환한다. 현재 환경에서는 `hdiutil create -srcfolder`가 `GBGR.app` 복사 단계에서 `작업이 허용되지 않음`으로 실패하기 때문이다.
 
 ## 릴리즈 산출물
 
-`bun run tauri:build` 성공 후 산출물 위치는 다음과 같다.
+`pnpm run tauri:build` 성공 후 산출물 위치는 다음과 같다.
 
 | 산출물 | 경로 | 용도 |
 | --- | --- | --- |

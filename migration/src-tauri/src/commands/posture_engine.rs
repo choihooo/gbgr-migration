@@ -14,7 +14,7 @@ use crate::{
         events::{POSTURE_ENGINE_STATUS_EVENT, POSTURE_RESULT_EVENT, POSTURE_WARNING_EVENT},
         notification_bridge::{build_warning_event, evaluate_background_notification},
         session_metrics::record_session_result,
-        sidecar::SidecarHandle,
+        sidecar::{spawn_python_sidecar, spawn_with_debug_fallback, SidecarHandle},
     },
     state::posture_engine_state::{
         now_iso, BackgroundMeasurementPayload, BackgroundMeasurementResponse,
@@ -67,6 +67,14 @@ fn sidecar_error(response: &serde_json::Value) -> Option<String> {
                     .to_string()
             })
         })
+}
+
+fn engine_status_from_response(response: &serde_json::Value, fallback: &str) -> String {
+    response
+        .get("engine_status")
+        .and_then(|v| v.as_str())
+        .unwrap_or(fallback)
+        .to_string()
 }
 
 /// sidecar에 명령만 보내는 헬퍼 (응답 대기 없음)
@@ -289,15 +297,35 @@ pub fn start_posture_engine(
     {
         let mut sidecar_guard = state.sidecar.lock().map_err(|e| e.to_string())?;
         if sidecar_guard.is_none() {
-            let handle = SidecarHandle::spawn()?;
+            let handle = spawn_with_debug_fallback()?;
             *sidecar_guard = Some(handle);
         }
         drop(sidecar_guard);
     }
 
     // 2. sidecar에 start 명령 전송
-    let sidecar_response = match sidecar_send(&state, &serde_json::json!({"command": "start"})) {
+    let start_payload = serde_json::json!({"command": "start"});
+    let sidecar_response = match sidecar_send(&state, &start_payload) {
         Ok(response) => response,
+        Err(error) if cfg!(debug_assertions) && std::env::var("GBGR_POSTURE_ENGINE_BIN").is_ok() => {
+            eprintln!(
+                "[posture-engine] debug binary sidecar start 실패, Python 스크립트로 재시도합니다: {error}"
+            );
+            invalidate_sidecar(&state);
+
+            {
+                let mut sidecar_guard = state.sidecar.lock().map_err(|e| e.to_string())?;
+                *sidecar_guard = Some(spawn_python_sidecar()?);
+            }
+
+            match sidecar_send(&state, &start_payload) {
+                Ok(response) => response,
+                Err(retry_error) => {
+                    handle_sidecar_failure(&app, &state, &retry_error);
+                    return Err(retry_error);
+                }
+            }
+        }
         Err(error) => {
             handle_sidecar_failure(&app, &state, &error);
             return Err(error);
@@ -331,11 +359,7 @@ pub fn start_posture_engine(
     // 4. 엔진 상태를 sidecar 응답 기반으로 업데이트
     {
         let mut engine_guard = state.engine_state.lock().map_err(|e| e.to_string())?;
-        engine_guard.engine_status = sidecar_response
-            .get("engine_status")
-            .and_then(|v| v.as_str())
-            .unwrap_or("ready")
-            .to_string();
+        engine_guard.engine_status = engine_status_from_response(&sidecar_response, "ready");
         engine_guard.mode = EngineMode::Foreground;
         engine_guard.camera_owner = CameraOwner::React;
         engine_guard.updated_at = now_iso();
@@ -346,7 +370,7 @@ pub fn start_posture_engine(
     emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
 
     Ok(StartPostureEngineResponse {
-        engine_status: "ready".to_string(),
+        engine_status: engine_status_from_response(&sidecar_response, "ready"),
         session_id,
         mode: EngineMode::Foreground,
     })
@@ -504,7 +528,8 @@ pub fn push_posture_frame(
         let state: State<'_, PostureEngineState> = app_clone.state::<PostureEngineState>();
         let result: serde_json::Value = match sidecar_send(&state, &payload) {
             Ok(r) => r,
-            Err(_) => {
+            Err(error) => {
+                handle_sidecar_failure(&app_clone, &state, &error);
                 if let Ok(mut inflight) = state.frame_inflight.lock() {
                     *inflight = false;
                 }
@@ -597,7 +622,10 @@ pub fn start_background_measurement(
             let result = {
                 match sidecar_send(&state, &command) {
                     Ok(value) => value,
-                    Err(_) => break,
+                    Err(error) => {
+                        handle_sidecar_failure(&app_clone, &state, &error);
+                        break;
+                    }
                 }
             };
 
@@ -605,6 +633,7 @@ pub fn start_background_measurement(
                 let notification =
                     ingest_background_result_with_notification(&state, result_data.clone())
                         .unwrap_or(None);
+                let _ = emit_engine_status(&app_clone, &state);
                 let _ = emit_result(&app_clone, &result_data);
                 if let Some(message) = notification {
                     let _ = emit_warning(
@@ -844,4 +873,25 @@ pub fn set_calibration(
         mu: result.get("mu").and_then(|v| v.as_f64()).unwrap_or(0.0),
         sigma: result.get("sigma").and_then(|v| v.as_f64()).unwrap_or(1.0),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::engine_status_from_response;
+
+    #[test]
+    fn engine_status_from_response_uses_sidecar_status_when_present() {
+        let response = serde_json::json!({
+            "engine_status": "starting"
+        });
+
+        assert_eq!(engine_status_from_response(&response, "ready"), "starting");
+    }
+
+    #[test]
+    fn engine_status_from_response_falls_back_when_missing() {
+        let response = serde_json::json!({});
+
+        assert_eq!(engine_status_from_response(&response, "ready"), "ready");
+    }
 }

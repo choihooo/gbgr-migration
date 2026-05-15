@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { MetricData } from '@/entities/session/types'
 import { AnalyticsEvents, GA_STORAGE_KEYS } from '@/shared/lib/analytics'
+import { closeWidget } from '@/shared/lib/widget-api'
 import {
   createSession,
   pauseSession,
@@ -37,10 +38,7 @@ export const useCreateSessionMutation = () => {
             Math.round((Date.now() - signupCompletedAt) / 1000),
           )
           AnalyticsEvents.firstMeasureStart({ seconds_from_signup })
-          localStorage.setItem(
-            GA_STORAGE_KEYS.FIRST_MEASURE_START_SENT,
-            'true',
-          )
+          localStorage.setItem(GA_STORAGE_KEYS.FIRST_MEASURE_START_SENT, 'true')
         }
       }
 
@@ -89,6 +87,8 @@ export const useStopSessionMutation = () => {
         localStorage.setItem('lastSessionId', currentSessionId)
         localStorage.removeItem('sessionId')
       }
+
+      void closeWidget().catch(() => {})
       console.log('세션이 종료되었습니다.', sessionId)
 
       queryClient.invalidateQueries({ queryKey: ['averageScore'] })

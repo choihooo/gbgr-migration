@@ -28,26 +28,31 @@ button {
 }
 
 .media-display::-webkit-media-controls {
+  /* biome-ignore lint/complexity/noImportantStyles: WebKit 기본 미디어 컨트롤을 확실히 숨겨야 합니다. */
   display: none !important;
   -webkit-appearance: none;
 }
 
 .media-display::-webkit-media-controls-enclosure {
+  /* biome-ignore lint/complexity/noImportantStyles: WebKit 기본 미디어 컨트롤을 확실히 숨겨야 합니다. */
   display: none !important;
   -webkit-appearance: none;
 }
 
 .media-display::-webkit-media-controls-panel {
+  /* biome-ignore lint/complexity/noImportantStyles: WebKit 기본 미디어 컨트롤을 확실히 숨겨야 합니다. */
   display: none !important;
   -webkit-appearance: none;
 }
 
 .media-display::-webkit-media-controls-play-button {
+  /* biome-ignore lint/complexity/noImportantStyles: WebKit 기본 미디어 컨트롤을 확실히 숨겨야 합니다. */
   display: none !important;
   -webkit-appearance: none;
 }
 
 .media-display::-webkit-media-controls-start-playback-button {
+  /* biome-ignore lint/complexity/noImportantStyles: WebKit 기본 미디어 컨트롤을 확실히 숨겨야 합니다. */
   display: none !important;
   -webkit-appearance: none;
 }

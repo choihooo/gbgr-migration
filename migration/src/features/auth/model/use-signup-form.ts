@@ -6,6 +6,7 @@ import {
   useCheckEmailMutation,
   useSignupMutation,
 } from '@/features/auth/api/use-signup-mutation'
+import { buildAuthVerifyCallbackUrl } from '@/features/auth/lib/callback-url'
 import {
   type SignupFormValues,
   validateEmail,
@@ -118,7 +119,7 @@ export function useSignupForm() {
         password: formValues.password,
         name: formValues.name,
         avatar: '',
-        callbackUrl: `${window.location.origin}/auth/verify-callback`,
+        callbackUrl: buildAuthVerifyCallbackUrl(),
       })
 
       if (!result.success) {
