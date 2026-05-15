@@ -50,7 +50,7 @@ export function WebcamPanel() {
           setCameraState('show')
         },
         onError: () => {
-          setCameraState('show')
+          setCameraState('exit')
         },
       })
       return

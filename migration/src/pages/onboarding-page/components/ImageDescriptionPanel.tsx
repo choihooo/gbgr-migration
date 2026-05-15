@@ -78,8 +78,8 @@ const ImageDescriptionPanel = ({
   const stepImage = stepImages[currentStep - 1]
 
   return (
-    <div className="h-full min-w-[894px] flex-1">
-      <div className="relative flex h-full flex-col items-center justify-center px-20">
+    <div className="h-full w-full min-w-0 xl:min-w-[894px] xl:flex-1">
+      <div className="relative flex h-full flex-col items-center justify-center px-6 py-8 xl:px-20 xl:py-0">
         {currentStep > 1 && (
           <button
             type="button"
@@ -92,7 +92,7 @@ const ImageDescriptionPanel = ({
 
         <div
           key={currentStep}
-          className={`flex aspect-[784/510] w-full max-w-[1010px] items-center p-5 ${direction === 'next' ? 'animate-slide-next' : 'animate-slide-prev'}`}
+          className={`flex aspect-[784/510] w-full max-w-[1010px] items-center justify-center p-5 ${direction === 'next' ? 'animate-slide-next' : 'animate-slide-prev'}`}
         >
           {currentStep === 1 ? (
             <FirstImageDescription />

@@ -4,6 +4,7 @@ import SleepIcon from '@/assets/common/icons/sleep.svg'
 import { PoseOverlayCanvas, type PostureEngineResult } from '@/entities/posture'
 import { useCameraStore } from '@/features/main-panels/model/use-camera-store'
 import { usePostureEngine } from '@/features/posture-engine'
+import { getCameraPermissionErrorMessage } from '@/shared/lib/camera-permission'
 import { Timer } from '@/shared/ui/timer'
 
 interface WebcamViewProps {
@@ -27,6 +28,7 @@ const WebcamView = ({
   disableFramePush = false,
 }: WebcamViewProps) => {
   const webcamRef = useRef<Webcam>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
   const { overlayLandmarks, latestResult, engineState, runtimeAvailable } =
     usePostureEngine({
       active: isActive,
@@ -69,9 +71,12 @@ const WebcamView = ({
   const videoConstraints = preferredDeviceId
     ? { deviceId: { exact: preferredDeviceId }, width: 1000, height: 563 }
     : { facingMode: 'user', width: 1000, height: 563 }
+  const shouldRenderLiveWebcam =
+    cameraState === 'show' && mode === 'foreground'
 
   const handleUserMedia = (stream: MediaStream | null) => {
     setCameraError(null)
+    mediaStreamRef.current = stream
 
     if (stream) {
       setShow()
@@ -91,7 +96,10 @@ const WebcamView = ({
   }
 
   const handleUserMediaError = (error: string | DOMException) => {
-    const message = typeof error === 'string' ? error : error.message
+    const message =
+      typeof error === 'string'
+        ? error
+        : getCameraPermissionErrorMessage(error)
     console.error('[WebcamView] 카메라 연결 실패:', error)
 
     if (preferredDeviceId) {
@@ -105,13 +113,20 @@ const WebcamView = ({
   }
 
   useEffect(() => {
-    if (cameraState === 'hide' || cameraState === 'exit') {
-      const stream = webcamRef.current?.video?.srcObject as MediaStream | null
+    if (
+      cameraState === 'hide' ||
+      cameraState === 'exit' ||
+      mode === 'background'
+    ) {
+      const stream =
+        mediaStreamRef.current ??
+        (webcamRef.current?.video?.srcObject as MediaStream | null)
       stream?.getTracks().forEach(track => {
         track.stop()
       })
+      mediaStreamRef.current = null
     }
-  }, [cameraState])
+  }, [cameraState, mode])
 
   const isEngineAvailable =
     runtimeAvailable && engineState.engineStatus !== 'error'
@@ -155,7 +170,7 @@ const WebcamView = ({
 
   return (
     <div className="relative h-full w-full" ref={containerRef}>
-      {cameraState === 'show' ? (
+      {shouldRenderLiveWebcam ? (
         <div className="relative">
           <Webcam
             ref={webcamRef}
@@ -191,6 +206,15 @@ const WebcamView = ({
             </div>
           ) : null}
         </div>
+      ) : cameraState === 'show' ? (
+        <div
+          className="bg-grey-50 flex items-center justify-center rounded-2xl"
+          style={{
+            width: containerRef.current?.clientWidth || videoDimensions.width,
+            height:
+              containerRef.current?.clientHeight || videoDimensions.height,
+          }}
+        />
       ) : cameraState === 'hide' ? (
         <div
           className="bg-grey-50 flex items-center justify-center rounded-2xl"

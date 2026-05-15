@@ -42,6 +42,7 @@ const CalibrationPage = () => {
     null,
   )
   const [isCalibrating, setIsCalibrating] = useState(false)
+  const [calibrationPoseDetected, setCalibrationPoseDetected] = useState(false)
   const [remainingTime, setRemainingTime] = useState(
     CALIBRATION_DURATION_MS / 1000,
   )
@@ -59,7 +60,10 @@ const CalibrationPage = () => {
   const isEngineAvailable =
     engineState.engineStatus !== 'error' && engineState.engineStatus !== 'idle'
 
-  const isPoseDetected = (latestResult?.landmarks.length ?? 0) > 0
+  const latestPoseDetected = (latestResult?.landmarks.length ?? 0) > 0
+  const isPoseDetected = isCalibrating
+    ? calibrationPoseDetected
+    : latestPoseDetected
 
   // 캘리브레이션 중 오류 감지 시 타이머 리셋
   const resetTimer = useCallback(() => {
@@ -87,9 +91,17 @@ const CalibrationPage = () => {
     }
   }, [isCalibrating, isPoseDetected, resetTimer])
 
+  useEffect(() => {
+    if (isCalibrating) {
+      return
+    }
+
+    setCalibrationPoseDetected(latestPoseDetected)
+  }, [isCalibrating, latestPoseDetected])
+
   // 캘리브레이션 프레임 전송 루프
   useEffect(() => {
-    if (!isCalibrating || !isPoseDetected) return
+    if (!isCalibrating) return
 
     const sessionId = localStorage.getItem('sessionId') ?? 'calibration-session'
 
@@ -107,13 +119,13 @@ const CalibrationPage = () => {
           capturedAt: new Date().toISOString(),
           frameSize: frame.frameSize,
         })
+        const detected =
+          result.status !== 'no_detection' && result.status !== 'no_pi'
+        setCalibrationPoseDetected(detected)
 
         if (result.step1Error) {
           setStep1Error(result.step1Error)
-        } else if (
-          result.status !== 'no_detection' &&
-          result.status !== 'no_pi'
-        ) {
+        } else if (detected) {
           setStep1Error(null)
         }
 
@@ -133,7 +145,7 @@ const CalibrationPage = () => {
         calibIntervalRef.current = null
       }
     }
-  }, [isCalibrating, isPoseDetected])
+  }, [isCalibrating])
 
   // 1초 카운트다운 타이머
   useEffect(() => {
@@ -213,13 +225,14 @@ const CalibrationPage = () => {
       await calibrateStart()
       setStep1Error(null)
       setStep2Error(null)
+      setCalibrationPoseDetected(latestPoseDetected)
       setRemainingTime(CALIBRATION_DURATION_MS / 1000)
       setIsCalibrating(true)
     } catch (err) {
       console.error('[calibration] 시작 오류:', err)
       setStep2Error('캘리브레이션을 시작할 수 없어요')
     }
-  }, [isPoseDetected])
+  }, [latestPoseDetected])
 
   // 상태에 따른 패딩 클래스
   const paddingClass = isCalibrating
@@ -227,13 +240,13 @@ const CalibrationPage = () => {
     : 'minimum:px-[90px] labtop:px-[105px] desktop:px-[164px]'
 
   return (
-    <main className="bg-grey-50 hbp:pt-[75px] hbp:h-[calc(100vh-75px)] flex h-[calc(100vh-60px)] flex-col items-center pt-15">
+    <main className="bg-grey-50 hbp:pt-[75px] hbp:h-[calc(100vh-75px)] flex h-[calc(100vh-60px)] flex-col items-center overflow-x-hidden pt-15">
       <section
-        className={`${paddingClass} flex h-screen w-full items-center justify-center`}
+        className={`${paddingClass} flex h-full w-full items-center justify-center py-6 xl:py-0`}
       >
-        <div className="flex w-full justify-center gap-12">
+        <div className="flex w-full max-w-[1440px] flex-col items-center justify-center gap-8 xl:flex-row xl:items-start xl:gap-12">
           {/* 왼쪽 웹캠 영역 */}
-          <div className="relative">
+          <div className="relative w-full max-w-[760px] shrink-0">
             <WebcamView
               isActive={true}
               mode={mode}

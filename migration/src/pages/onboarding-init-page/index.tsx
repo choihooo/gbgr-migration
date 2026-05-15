@@ -31,9 +31,9 @@ const OnboardingInitPage = () => {
   }
 
   return (
-    <main className="flex h-[calc(100vh-60px)] flex-col items-center">
+    <main className="flex min-h-[calc(100vh-60px)] flex-col items-center overflow-x-hidden">
       <div className="relative h-full w-full overflow-visible">
-        <section className="flex h-full w-full items-center">
+        <section className="flex h-full w-full flex-col items-center xl:flex-row xl:items-stretch">
           <ImageDescriptionPanel
             currentStep={currentStep}
             onPrev={handlePrev}
