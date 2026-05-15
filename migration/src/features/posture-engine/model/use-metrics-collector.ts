@@ -4,11 +4,10 @@
  * 자세 결과를 1초 throttling으로 축적하고 flush 함수를 반환한다.
  */
 import { useEffect, useRef } from 'react'
-
-import type { MetricData } from '@/entities/session/types'
 import type { PostureEngineResult } from '@/entities/posture'
 import { usePostureEngineStore } from '@/entities/posture'
 import { useSaveMetricsMutation } from '@/entities/session/model/use-session-mutations'
+import type { MetricData } from '@/entities/session/types'
 
 export function useMetricsCollector() {
   const latestResult = usePostureEngineStore(s => s.latestResult)

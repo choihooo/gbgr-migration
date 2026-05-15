@@ -28,10 +28,7 @@
     "core:window:allow-set-title",
     {
       "identifier": "http:default",
-      "allow": [
-        "https://api.bugi.co.kr/*",
-        "https://*.bugi.co.kr/*"
-      ]
+      "allow": ["https://api.bugi.co.kr/*", "https://*.bugi.co.kr/*"]
     },
     "opener:default",
     "deep-link:default",

@@ -1,7 +1,4 @@
-import type {
-  AnalyticsEventName,
-  AnalyticsEventParamsMap,
-} from './schema'
+import type { AnalyticsEventName, AnalyticsEventParamsMap } from './schema'
 
 /**
  * 분석 provider 추상화 인터페이스.

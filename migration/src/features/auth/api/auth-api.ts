@@ -1,3 +1,4 @@
+import type { SessionActionResponse } from '@/entities/session/types'
 import type {
   CheckEmailResponse,
   LoginInput,
@@ -8,7 +9,6 @@ import type {
   VerifyEmailRequest,
   VerifyEmailResponse,
 } from '@/entities/user'
-import type { SessionActionResponse } from '@/entities/session/types'
 import api from '@/shared/api/instance'
 
 export async function loginRequest(payload: LoginInput) {
