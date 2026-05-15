@@ -47,6 +47,19 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install posture sidecar dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+          python -m pip install -r sidecar/posture-engine/requirements.txt
+
       - name: Validate release tag
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
@@ -80,6 +93,44 @@ jobs:
             echo "TAURI_SIGNING_PRIVATE_KEY secret 이 필요합니다."
             exit 1
           fi
+
+      - name: Validate Apple signing secrets
+        if: startsWith(matrix.platform, 'macos')
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          for name in \
+            APPLE_CERTIFICATE \
+            APPLE_CERTIFICATE_PASSWORD \
+            APPLE_SIGNING_IDENTITY \
+            APPLE_API_KEY \
+            APPLE_API_ISSUER \
+            APPLE_API_KEY_P8
+          do
+            if [ -z "${!name}" ]; then
+              echo "${name} secret 이 필요합니다."
+              exit 1
+            fi
+          done
+
+      - name: Restore App Store Connect API key
+        if: startsWith(matrix.platform, 'macos')
+        shell: bash
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.private_keys"
+          printf '%s' "${APPLE_API_KEY_P8}" > "$HOME/.private_keys/AuthKey_${APPLE_API_KEY}.p8"
+          chmod 600 "$HOME/.private_keys/AuthKey_${APPLE_API_KEY}.p8"
 
       - name: Create updater release config
         shell: bash
@@ -123,6 +174,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_PATH: /Users/runner/.private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8
         with:
           projectPath: migration
           tauriScript: pnpm run tauri
