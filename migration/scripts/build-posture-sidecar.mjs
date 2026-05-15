@@ -15,7 +15,7 @@ const outputPath = join(sidecarDir, outputName)
 const buildDir = join(sidecarDir, '.pyinstaller-build')
 const specDir = join(sidecarDir, '.pyinstaller-spec')
 const dataSeparator = process.platform === 'win32' ? ';' : ':'
-const python = process.env.PYTHON ?? resolvePythonCommand()
+const python = process.env.PYTHON ?? resolveSetupPythonCommand() ?? resolvePythonCommand()
 
 function fail(message, detail) {
   if (detail) {
@@ -45,6 +45,20 @@ function resolvePythonCommand() {
   }
 
   return candidates.at(-1)
+}
+
+function resolveSetupPythonCommand() {
+  const pythonLocation = process.env.pythonLocation
+  if (!pythonLocation) {
+    return null
+  }
+
+  const candidates =
+    process.platform === 'win32'
+      ? [join(pythonLocation, 'python.exe')]
+      : [join(pythonLocation, 'bin', 'python3'), join(pythonLocation, 'bin', 'python')]
+
+  return candidates.find(candidate => existsSync(candidate)) ?? null
 }
 
 function ensurePythonAvailable() {
