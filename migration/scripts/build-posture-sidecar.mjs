@@ -168,7 +168,8 @@ function resolveMediaPipeBinaryPath() {
 
   const resolvedPath = probe.stdout.trim()
   if (!resolvedPath || !existsSync(resolvedPath)) {
-    fail(`MediaPipe 동적 라이브러리 경로가 유효하지 않습니다: ${resolvedPath}`)
+    console.warn(`MediaPipe 동적 라이브러리 경로가 유효하지 않아 add-binary를 생략합니다: ${resolvedPath}`)
+    return null
   }
 
   return resolvedPath
@@ -253,8 +254,6 @@ const args = [
   specDir,
   '--add-data',
   `${modelsDir}${dataSeparator}models`,
-  '--add-binary',
-  `${mediaPipeBinaryPath}${dataSeparator}mediapipe/tasks/c`,
   '--collect-submodules',
   'mediapipe.tasks.python.core',
   '--collect-submodules',
@@ -277,6 +276,15 @@ const args = [
   'sounddevice',
   entryScriptPath,
 ]
+
+if (mediaPipeBinaryPath) {
+  args.splice(
+    args.indexOf('--collect-submodules'),
+    0,
+    '--add-binary',
+    `${mediaPipeBinaryPath}${dataSeparator}mediapipe/tasks/c`,
+  )
+}
 
 const result = spawnSync(python, args, {
   cwd: sidecarDir,
