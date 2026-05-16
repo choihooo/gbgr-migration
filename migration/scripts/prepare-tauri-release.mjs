@@ -39,6 +39,20 @@ function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`)
 }
 
+function formatVersionFiles() {
+  run(
+    'node',
+    [
+      './node_modules/@biomejs/biome/bin/biome',
+      'format',
+      '--write',
+      'package.json',
+      'src-tauri/tauri.conf.json',
+    ],
+    { cwd: projectRoot },
+  )
+}
+
 function replaceRequired(path, pattern, replacement) {
   const before = readFileSync(path, 'utf8')
   const after = before.replace(pattern, replacement)
@@ -111,6 +125,7 @@ replaceRequired(
   /^version = "([^"]+)"$/m,
   `version = "${nextVersion}"`,
 )
+formatVersionFiles()
 
 console.log(
   `Tauri 릴리즈 버전을 ${currentVersion} -> ${nextVersion}로 변경했습니다.`,
