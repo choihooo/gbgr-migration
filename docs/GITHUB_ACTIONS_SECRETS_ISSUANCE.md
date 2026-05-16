@@ -6,16 +6,10 @@
 
 ## 1. 핵심 결론
 
-현재 `choihooo/gbgr-migration` repository secrets는 비어 있는 상태로 확인됐다.
+현재 `choihooo/gbgr-migration`의 Tauri 릴리즈 워크플로우는 GitHub Actions secret을 사용해 Tauri updater 서명, macOS Developer ID 서명, App Store Connect API Key 기반 notarization을 수행한다.
 
 ```bash
 env -u GITHUB_TOKEN gh secret list --repo choihooo/gbgr-migration --json name,updatedAt,visibility
-```
-
-확인 결과:
-
-```json
-[]
 ```
 
 GitHub Actions secret은 값 원문을 다시 조회할 수 없다. 이름과 갱신 시각만 확인 가능하다. 값을 잃어버렸다면 다시 발급하거나 로컬에 남아 있는 원본 파일에서 재등록해야 한다.
@@ -34,7 +28,7 @@ GitHub Actions secret은 값 원문을 다시 조회할 수 없다. 이름과 �
 
 ### 2.2 macOS 배포까지 필요한 Apple Secret
 
-아래 값들은 macOS Developer ID 서명과 notarization에 필요하다. 단, 현재 `tauri-release.yml`에는 아직 연결되어 있지 않다. GitHub에 등록만 해서는 부족하고, 워크플로우에서 env로 넘기는 작업이 필요하다.
+아래 값들은 macOS Developer ID 서명과 notarization에 필요하며, 현재 `tauri-release.yml`에서 직접 사용한다.
 
 | 권장 Secret 이름 | 용도 |
 | --- | --- |
@@ -57,7 +51,7 @@ GitHub Actions secret은 값 원문을 다시 조회할 수 없다. 이름과 �
 | `APPLE_ID` | 대안 방식에서 `APPLE_ID` | API Key 방식이면 필수 아님 |
 | `APPLE_APP_SPECIFIC_PASSWORD` | 대안 방식에서 `APPLE_PASSWORD` | API Key 방식이면 필수 아님 |
 | `APPLE_TEAM_ID` | 대안 방식에서 `APPLE_TEAM_ID` | API Key 방식에서는 보통 `APPLE_API_ISSUER` 사용 |
-| `KEYCHAIN_PASSWORD` | Tauri 직접 필수 아님 | 인증서를 keychain에 직접 import하는 방식에서 사용 |
+| `KEYCHAIN_PASSWORD` | 불필요 | Tauri 릴리즈 워크플로우는 CI 실행 중 임시 keychain 비밀번호를 생성한다 |
 
 Tauri에서는 App Store Connect API Key 방식이 CI 자동화에 더 적합하다. Apple ID 앱 전용 비밀번호 방식은 계정 정책, 2FA, 조직 설정에 더 민감하다.
 
@@ -258,7 +252,7 @@ cat /tmp/gbgr-apple-certificate-base64.txt
 
 출력된 한 줄 전체가 `APPLE_CERTIFICATE`다.
 
-기존 Electron 워크플로우 이름을 유지한다면 같은 값을 `BUILD_CERTIFICATE_BASE64`에도 넣을 수 있다.
+기존 Electron 워크플로우까지 같이 유지한다면 같은 값을 `BUILD_CERTIFICATE_BASE64`에도 넣을 수 있다. Tauri 릴리즈 워크플로우에는 `APPLE_CERTIFICATE`만 필요하다.
 
 ## 6. App Store Connect API Key 발급 방법
 
@@ -444,16 +438,18 @@ tail -1 /절대경로/AuthKey_<KEY_ID>.p8
 
 ## 10. 지금 저장소에서 추가로 해야 할 일
 
-현재 `/Users/choiho/coding/gbgr/gbgr-migration/.github/workflows/tauri-release.yml`은 Tauri updater secret 3개만 연결되어 있다.
+현재 `/Users/choiho/coding/gbgr/gbgr-migration/.github/workflows/tauri-release.yml`은 Tauri updater, macOS Developer ID signing, App Store Connect API Key notarization 값을 모두 연결한다.
 
-macOS 배포까지 완성하려면 아래 작업이 필요하다.
+남은 운영 정리 항목은 아래 문서를 기준으로 관리한다.
 
-1. GitHub repository secrets에 필요한 값을 등록한다.
-2. `tauri-release.yml`에 Apple 인증서 import 또는 Tauri macOS signing env 전달 단계를 추가한다.
-3. `APPLE_API_KEY_P8`를 CI runner의 파일로 복원한다.
-4. `APPLE_API_KEY_PATH`가 복원된 파일 경로를 가리키게 한다.
-5. macOS matrix job에서만 Apple signing/notarization env를 넘긴다.
-6. 릴리즈 후 `codesign`, `spctl`, `stapler` 검증을 workflow 또는 수동 검증으로 남긴다.
+- `/Users/choiho/coding/gbgr/gbgr-migration/docs/TAURI_RELEASE_OPERATIONS.md`
+
+특히 다음 배포부터는 직접 여러 파일을 수정하지 말고 아래 명령으로 버전을 올린다.
+
+```bash
+cd /Users/choiho/coding/gbgr/gbgr-migration/migration
+pnpm release:tauri 0.1.2
+```
 
 ## 11. 실패 시 판단 기준
 
@@ -498,4 +494,3 @@ App Store Connect API Key 값이 틀렸거나 `.p8` 파일 복원이 잘못됐�
 - `/tmp`에 만든 인증서 복원 파일은 검증 후 삭제한다.
 - 개인키를 재발급하면 기존 배포/업데이트 체인에 영향이 있는지 먼저 확인한다.
 - secret 이름만 공유하고 값은 GitHub Secrets UI 또는 `gh secret set`으로 직접 등록한다.
-

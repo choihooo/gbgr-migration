@@ -21,6 +21,7 @@
     "tauri:dev:win": "run-tauri-dev.cmd",
     "tauri:build:win": "run-tauri-build.cmd",
     "tauri:build:debug:win": "run-tauri-build.cmd --debug",
+    "release:tauri": "node scripts/prepare-tauri-release.mjs",
     "lint": "node ./node_modules/@biomejs/biome/bin/biome check --write",
     "lint:check": "node ./node_modules/@biomejs/biome/bin/biome check",
     "format": "node ./node_modules/@biomejs/biome/bin/biome format --write",

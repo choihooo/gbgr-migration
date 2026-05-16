@@ -36,13 +36,13 @@ Apple 인증서, App Store Connect API Key, Tauri updater key를 새로 발급�
 
 - 서명된 `GBGR.app`
 - 노타라이즈되고 staple 된 `GBGR.app`
-- 서명 검증이 끝난 `GBGR_0.1.0_*.dmg`
+- 서명 검증이 끝난 `GBGR_<version>_*.dmg`
 - GitHub Release 업로드용 updater 산출물
 
 현재 로컬 빌드 산출물 기본 경로:
 
 - 앱 번들: `/Users/choiho/coding/gbgr/gbgr-migration/migration/src-tauri/target/release/bundle/macos/GBGR.app`
-- DMG: `/Users/choiho/coding/gbgr/gbgr-migration/migration/src-tauri/target/release/bundle/dmg/GBGR_0.1.0_aarch64.dmg`
+- DMG: `/Users/choiho/coding/gbgr/gbgr-migration/migration/src-tauri/target/release/bundle/dmg/GBGR_<version>_aarch64.dmg`
 
 ## 4. 필요한 환경 변수
 
@@ -189,7 +189,7 @@ spctl --assess --type execute --verbose /Users/choiho/coding/gbgr/gbgr-migration
 
 ```bash
 xcrun stapler validate /Users/choiho/coding/gbgr/gbgr-migration/migration/src-tauri/target/release/bundle/macos/GBGR.app
-xcrun stapler validate /Users/choiho/coding/gbgr/gbgr-migration/migration/src-tauri/target/release/bundle/dmg/GBGR_0.1.0_aarch64.dmg
+xcrun stapler validate /Users/choiho/coding/gbgr/gbgr-migration/migration/src-tauri/target/release/bundle/dmg/GBGR_<version>_aarch64.dmg
 ```
 
 ### 7.4 노타라이즈 로그 확인이 필요할 때
