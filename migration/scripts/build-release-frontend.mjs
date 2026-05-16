@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const migrationDir = resolve(scriptDir, '..')
+const packageManager = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 
 function formatDuration(milliseconds) {
   const seconds = Math.round(milliseconds / 1000)
@@ -37,8 +38,11 @@ function runTimed(label, command, args) {
 }
 
 const totalStart = Date.now()
-runTimed('Python sidecar 준비', 'pnpm', ['run', 'build:posture-sidecar'])
-runTimed('frontend build', 'pnpm', ['run', 'build'])
+runTimed('Python sidecar 준비', packageManager, [
+  'run',
+  'build:posture-sidecar',
+])
+runTimed('frontend build', packageManager, ['run', 'build'])
 console.log(
   `[release-timing] release frontend 준비 총 소요: ${formatDuration(
     Date.now() - totalStart,
