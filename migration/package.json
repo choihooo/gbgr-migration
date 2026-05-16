@@ -14,6 +14,7 @@
     "dev": "node ./node_modules/vite/bin/vite.js",
     "build": "node ./node_modules/typescript/bin/tsc && node ./node_modules/vite/bin/vite.js build",
     "build:posture-sidecar": "node scripts/build-posture-sidecar.mjs",
+    "build:release-frontend": "node scripts/build-release-frontend.mjs",
     "preview": "node ./node_modules/vite/bin/vite.js preview",
     "tauri": "node scripts/tauri-wrapper.mjs",
     "tauri:dev": "pnpm run tauri dev",

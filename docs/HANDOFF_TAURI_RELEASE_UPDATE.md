@@ -2,7 +2,7 @@
 
 작성일: 2026-05-16  
 대상 저장소: `/Users/choiho/coding/gbgr/gbgr-migration`  
-현재 기준 릴리즈: `tauri-v0.1.2`
+현재 기준 릴리즈: `tauri-v0.1.3`
 
 ## 1. 현재 완료된 상태
 
@@ -18,12 +18,14 @@ https://github.com/choihooo/gbgr-migration/releases/latest/download/latest.json
 
 ## 2. 검증된 릴리즈
 
-`tauri-v0.1.2` 배포가 성공했다.
+`tauri-v0.1.3` 배포가 성공했다.
 
-- GitHub Actions: `https://github.com/choihooo/gbgr-migration/actions/runs/25957719851`
-- Release: `https://github.com/choihooo/gbgr-migration/releases/tag/tauri-v0.1.2`
-- `latest.json`의 `version`은 `0.1.2`다.
-- 전체 배포 시간은 약 11분 39초였다.
+- GitHub Actions: `https://github.com/choihooo/gbgr-migration/actions/runs/25960112454`
+- Release: `https://github.com/choihooo/gbgr-migration/releases/tag/tauri-v0.1.3`
+- `latest.json`의 `version`은 `0.1.3`다.
+- 생성된 산출물은 macOS Apple Silicon DMG, macOS Intel DMG, Windows NSIS, Windows MSI, Tauri updater용 tarball/signature/latest.json이다.
+- 전체 matrix job은 모두 성공했다.
+- 현재 `/Applications/GBGR.app` 설치본은 `0.1.2`라서 `0.1.2 -> 0.1.3` 앱 내부 업데이트 검증에 사용할 수 있다.
 
 ## 3. 다음 릴리즈 절차
 
@@ -31,9 +33,9 @@ https://github.com/choihooo/gbgr-migration/releases/latest/download/latest.json
 
 ```bash
 cd /Users/choiho/coding/gbgr/gbgr-migration/migration
-pnpm release:tauri 0.1.3 --commit --tag
+pnpm release:tauri 0.1.4 --commit --tag
 git push origin master
-git push origin tauri-v0.1.3
+git push origin tauri-v0.1.4
 ```
 
 스크립트가 변경하는 파일:
@@ -57,7 +59,7 @@ curl -L https://github.com/choihooo/gbgr-migration/releases/latest/download/late
 plutil -p /Applications/GBGR.app/Contents/Info.plist | rg "CFBundleShortVersionString|CFBundleVersion"
 ```
 
-업데이트 테스트는 반드시 이전 버전 설치본에서 수행한다. 예를 들어 `0.1.2`로 업데이트를 확인하려면 설치된 앱이 `0.1.1`이어야 한다.
+업데이트 테스트는 반드시 이전 버전 설치본에서 수행한다. 예를 들어 `0.1.3`으로 업데이트를 확인하려면 설치된 앱이 `0.1.2`여야 한다.
 
 ## 5. 자동 재시작 변경
 
@@ -77,4 +79,4 @@ Windows는 installer 동작 특성이 달라 `exits_on_install` 경로를 유지
 - repository가 private이면 updater endpoint가 비로그인 요청에서 `404`가 되어 앱 업데이트가 동작하지 않는다.
 - `tauri.conf.json` 기본 설정에는 updater endpoint가 비어 있다. GitHub Actions 릴리즈 빌드에서 `tauri.github-release.conf.json`을 생성해 endpoint와 public key를 주입한다.
 - 로컬 `pnpm run tauri:build` 산출물은 release updater 설정이 없을 수 있으므로 업데이트 테스트에는 GitHub Release에서 받은 설치본을 사용한다.
-- 다음 릴리즈 `0.1.3`에는 자동 재시작 변경이 포함되어야 실제 설치본에서 검증할 수 있다.
+- `tauri-v0.1.3`에는 자동 재시작 변경이 포함되어 있으므로, 설치된 `0.1.2` 앱에서 업데이트 설치 후 자동 종료/재실행 여부를 검증한다.

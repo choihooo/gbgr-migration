@@ -55,6 +55,8 @@ GitHub Actions secret은 값 원문을 다시 조회할 수 없다. 이름과 �
 
 Tauri에서는 App Store Connect API Key 방식이 CI 자동화에 더 적합하다. Apple ID 앱 전용 비밀번호 방식은 계정 정책, 2FA, 조직 설정에 더 민감하다.
 
+현재 Tauri 릴리즈 워크플로우는 위 Electron 호환 secret을 사용하지 않는다. 이 저장소는 Tauri 마이그레이션 기준으로 운영하므로 `BUILD_CERTIFICATE_BASE64`, `P12_PASSWORD`, `APPLE_IDENTITY`, `KEYCHAIN_PASSWORD`는 repository secret에서 삭제했다. legacy Electron workflow를 다시 사용할 때만 별도로 재등록한다.
+
 ## 3. GitHub Secret 등록 여부 확인 방법
 
 ### 3.1 GitHub CLI 인증 상태 확인
@@ -252,7 +254,7 @@ cat /tmp/gbgr-apple-certificate-base64.txt
 
 출력된 한 줄 전체가 `APPLE_CERTIFICATE`다.
 
-기존 Electron 워크플로우까지 같이 유지한다면 같은 값을 `BUILD_CERTIFICATE_BASE64`에도 넣을 수 있다. Tauri 릴리즈 워크플로우에는 `APPLE_CERTIFICATE`만 필요하다.
+Tauri 릴리즈 워크플로우에는 `APPLE_CERTIFICATE`만 필요하다. legacy Electron workflow를 다시 사용할 때만 같은 값을 `BUILD_CERTIFICATE_BASE64`에도 별도로 등록한다.
 
 ## 6. App Store Connect API Key 발급 방법
 
@@ -448,7 +450,7 @@ tail -1 /절대경로/AuthKey_<KEY_ID>.p8
 
 ```bash
 cd /Users/choiho/coding/gbgr/gbgr-migration/migration
-pnpm release:tauri 0.1.2
+pnpm release:tauri 0.1.4
 ```
 
 ## 11. 실패 시 판단 기준

@@ -5,6 +5,12 @@ on:
     tags:
       - 'tauri-v*'
   workflow_dispatch:
+    inputs:
+      include_intel_macos:
+        description: 'macOS Intel 산출물을 빌드할지 여부'
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -14,23 +20,44 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  prepare-release-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create release matrix
+        id: matrix
+        env:
+          INCLUDE_INTEL_MACOS: ${{ inputs.include_intel_macos }}
+        run: |
+          set -euo pipefail
+          MATRIX="$(node migration/scripts/create-tauri-release-matrix.mjs)"
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+          echo "### Tauri release matrix" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          echo "${MATRIX}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
   publish-tauri:
+    needs: prepare-release-matrix
     runs-on: ${{ matrix.platform }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - platform: macos-15-intel
-            target: x86_64-apple-darwin
-            args: --target x86_64-apple-darwin --config src-tauri/tauri.github-release.conf.json
-          - platform: macos-latest
-            target: aarch64-apple-darwin
-            args: --target aarch64-apple-darwin --config src-tauri/tauri.github-release.conf.json
-          - platform: windows-latest
-            target: ''
-            args: --config src-tauri/tauri.github-release.conf.json
+      matrix: ${{ fromJson(needs.prepare-release-matrix.outputs.matrix) }}
 
     steps:
+      - name: Start release job timer
+        shell: bash
+        run: |
+          set -euo pipefail
+          date +%s > "$RUNNER_TEMP/release-job-started-at"
+          echo "### Tauri release timing" >> "$GITHUB_STEP_SUMMARY"
+          echo "- platform: \`${{ matrix.platform }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- target: \`${{ matrix.target || 'default' }}\`" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -183,7 +210,7 @@ jobs:
 
           const config = {
             build: {
-              beforeBuildCommand: 'pnpm run build:posture-sidecar && pnpm run build',
+              beforeBuildCommand: 'pnpm run build:release-frontend',
             },
             bundle: {
               createUpdaterArtifacts: true,
@@ -198,6 +225,10 @@ jobs:
 
           fs.writeFileSync(targetPath, `${JSON.stringify(config, null, 2)}\n`);
           NODE
+
+      - name: Start Tauri action timer
+        shell: bash
+        run: date +%s > "$RUNNER_TEMP/tauri-action-started-at"
 
       - name: Build and publish Tauri release
         uses: tauri-apps/tauri-action@v0.6.2
@@ -222,3 +253,16 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Summarize release job timing
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          now="$(date +%s)"
+          job_start="$(cat "$RUNNER_TEMP/release-job-started-at" 2>/dev/null || echo "$now")"
+          tauri_start="$(cat "$RUNNER_TEMP/tauri-action-started-at" 2>/dev/null || echo "$now")"
+          job_seconds="$((now - job_start))"
+          tauri_seconds="$((now - tauri_start))"
+          echo "- 전체 job 소요: $((job_seconds / 60))m $((job_seconds % 60))s" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tauri action 소요: $((tauri_seconds / 60))m $((tauri_seconds % 60))s" >> "$GITHUB_STEP_SUMMARY"
