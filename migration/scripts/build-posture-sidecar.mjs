@@ -214,6 +214,16 @@ function signMacosSidecar() {
   }
 }
 
+function appendMacosPyInstallerSigningArgs(args) {
+  const identity = process.env.APPLE_SIGNING_IDENTITY
+
+  if (process.platform !== 'darwin' || !identity) {
+    return
+  }
+
+  args.push('--codesign-identity', identity)
+}
+
 function cleanupPyInstallerArtifacts() {
   for (const path of [buildDir, specDir]) {
     if (existsSync(path)) {
@@ -284,6 +294,8 @@ const args = [
   'sounddevice',
   entryScriptPath,
 ]
+
+appendMacosPyInstallerSigningArgs(args)
 
 if (mediaPipeBinaryPath) {
   args.splice(
