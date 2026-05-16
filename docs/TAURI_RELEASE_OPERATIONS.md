@@ -74,16 +74,11 @@ Tauri 릴리즈 워크플로우가 직접 요구하는 secret은 아래가 기�
 
 `KEYCHAIN_PASSWORD`는 더 이상 Tauri 릴리즈 워크플로우에 필요하지 않다. CI 실행 중 임시 keychain 비밀번호를 생성해서 사용한다.
 
-## 4. 수동 실행 옵션
+## 4. 수동 실행 정책
 
-태그 push 배포는 항상 전체 플랫폼을 빌드한다.
+태그 push 배포와 GitHub Actions UI 수동 실행은 항상 전체 플랫폼을 빌드한다.
 
-GitHub Actions UI에서 `workflow_dispatch`로 수동 실행할 때는 `include_intel_macos` 옵션을 사용할 수 있다.
-
-- `true`: macOS Intel, macOS Apple Silicon, Windows를 모두 빌드한다.
-- `false`: macOS Intel을 제외하고 macOS Apple Silicon, Windows만 빌드한다.
-
-정식 태그 릴리즈에서는 Intel 산출물을 유지하는 것이 현재 기본 정책이다. 수동 실행에서만 Intel을 제외할 수 있게 둔 이유는 빠른 검증 비용을 낮추기 위해서다.
+정식 태그 릴리즈에서는 Intel 산출물을 유지하는 것이 현재 기본 정책이다. 빠른 검증용 부분 빌드는 별도 workflow로 분리하기 전까지 만들지 않는다.
 
 ## 5. 릴리즈 성공 확인
 
