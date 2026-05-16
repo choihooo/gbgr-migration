@@ -11,6 +11,11 @@ on:
         required: true
         default: true
         type: boolean
+      dry_run:
+        description: '릴리즈 업로드 없이 matrix 생성까지만 검증'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -40,9 +45,11 @@ jobs:
           echo '```json' >> "$GITHUB_STEP_SUMMARY"
           echo "${MATRIX}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "- dry run: \`${{ inputs.dry_run || false }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   publish-tauri:
     needs: prepare-release-matrix
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
     runs-on: ${{ matrix.platform }}
     strategy:
       fail-fast: false

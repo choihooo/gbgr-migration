@@ -83,6 +83,8 @@ GitHub Actions UI 수동 실행은 `include_intel_macos` 입력으로 macOS Inte
 
 정식 태그 릴리즈에서는 Intel 산출물을 유지하는 것이 현재 기본 정책이다. 빠른 검증이나 복구성 수동 실행에서만 `include_intel_macos=false`를 사용한다.
 
+릴리즈 자산 업로드 없이 workflow 입력과 matrix 생성만 확인하려면 `dry_run=true`로 실행한다. 이 경우 `publish-tauri` job은 실행하지 않는다.
+
 ## 5. 릴리즈 시간 확인
 
 워크플로우는 아래 정보를 step summary와 로그에 남긴다.
