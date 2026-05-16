@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use tauri::Manager;
+use tauri::{AppHandle, Manager, WebviewWindowBuilder};
 
 mod app_updates;
 mod commands {
@@ -15,13 +15,13 @@ mod state {
 }
 mod widget;
 
+use commands::analytics::{analytics_log_event, analytics_set_user_id, AnalyticsState};
+use commands::api::api_request;
 use commands::posture_engine::{
     calibrate_finish, calibrate_frame, calibrate_start, get_latest_posture_state,
     push_posture_frame, set_calibration, start_background_measurement, start_posture_engine,
     stop_background_measurement, stop_posture_engine,
 };
-use commands::analytics::{AnalyticsState, analytics_log_event, analytics_set_user_id};
-use commands::api::api_request;
 use state::posture_engine_state::PostureEngineState;
 use widget::{close_widget_window, ensure_widget_window, is_widget_open, open_widget_window};
 
@@ -31,6 +31,32 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+fn show_or_create_main_window(app: &AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.set_focus();
+        return Ok(());
+    }
+
+    let main_config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|window| window.label == "main")
+        .ok_or_else(|| "main window config not found".to_string())?;
+
+    let window = WebviewWindowBuilder::from_config(app, main_config)
+        .map_err(|error| error.to_string())?
+        .build()
+        .map_err(|error| error.to_string())?;
+
+    let _ = window.show();
+    let _ = window.set_focus();
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
@@ -38,10 +64,7 @@ pub fn run() {
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
+            let _ = show_or_create_main_window(app);
         }));
     }
 
@@ -70,6 +93,12 @@ pub fn run() {
                 std::io::Error::new(
                     std::io::ErrorKind::Other,
                     format!("widget setup failed: {error}"),
+                )
+            })?;
+            show_or_create_main_window(app.handle()).map_err(|error| {
+                std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("main window setup failed: {error}"),
                 )
             })?;
 
