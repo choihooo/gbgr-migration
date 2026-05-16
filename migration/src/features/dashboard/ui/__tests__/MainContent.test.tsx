@@ -1,6 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { MainContent } from '../MainContent'
+
+vi.mock('../LeftPanelArea', () => ({
+  LeftPanelArea: () => <div data-testid="left-panel-area" />,
+}))
+
+vi.mock('../RightPanelArea', () => ({
+  RightPanelArea: () => <div data-testid="right-panel-area" />,
+}))
 
 describe('MainContent', () => {
   it('2열 레이아웃과 좌우 패널 영역을 렌더링한다', () => {

@@ -48,34 +48,25 @@ class PoseDetector:
             return False
 
         try:
-            from mediapipe.tasks.python.core.base_options import BaseOptions
-            from mediapipe.tasks.python.vision.core.image import (
-                Image,
-                ImageFormat,
-            )
-            from mediapipe.tasks.python.vision.core.vision_task_running_mode import (
-                VisionTaskRunningMode as RunningMode,
-            )
-            from mediapipe.tasks.python.vision.pose_landmarker import (
-                PoseLandmarker,
-                PoseLandmarkerOptions,
-            )
+            import mediapipe as mp
+            from mediapipe.tasks import python
+            from mediapipe.tasks.python import vision
         except ImportError as exc:
             self.last_error = f"mediapipe_import_failed: {exc}"
             return False
 
         try:
-            options = PoseLandmarkerOptions(
-                base_options=BaseOptions(model_asset_path=str(model_path)),
-                running_mode=RunningMode.VIDEO,
+            options = vision.PoseLandmarkerOptions(
+                base_options=python.BaseOptions(model_asset_path=str(model_path)),
+                running_mode=vision.RunningMode.VIDEO,
                 num_poses=1,
                 min_pose_detection_confidence=0.2,
                 min_pose_presence_confidence=0.2,
                 min_tracking_confidence=0.2,
             )
-            self._landmarker = PoseLandmarker.create_from_options(options)
-            self._image_type = Image
-            self._image_format = ImageFormat
+            self._landmarker = vision.PoseLandmarker.create_from_options(options)
+            self._image_type = mp.Image
+            self._image_format = mp.ImageFormat
             return True
         except Exception as exc:
             self.last_error = f"mediapipe_initialization_failed: {exc}"

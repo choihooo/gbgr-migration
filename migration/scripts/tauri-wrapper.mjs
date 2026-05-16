@@ -109,6 +109,7 @@ const command = cliArgs[0]
 
 if (process.platform !== 'darwin' || command !== 'build') {
   runNodeScript(tauriCliPath, cliArgs)
+  process.exit(0)
 }
 
 const manualDmg = shouldBuildManualDmg(cliArgs.slice(1))
