@@ -112,10 +112,15 @@ pub async fn install_update(
         .await
         .map_err(|error| error.to_string())?;
 
+    let should_restart = !cfg!(target_os = "windows");
+    if should_restart {
+        app.request_restart();
+    }
+
     Ok(InstallUpdateResponse {
         configured: true,
         installed: true,
-        should_restart: !cfg!(target_os = "windows"),
+        should_restart,
         exits_on_install: cfg!(target_os = "windows"),
     })
 }

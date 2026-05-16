@@ -277,7 +277,7 @@ export const resources = {
           noUpdate: '최신 버전을 사용 중이에요.',
           availableDescription: '{{version}} 버전 업데이트를 설치할 수 있어요.',
           installedDescription:
-            '업데이트가 설치되었어요. 앱을 다시 시작해주세요.',
+            '업데이트가 설치되었어요. 앱을 자동으로 다시 시작합니다.',
           installingExit:
             '업데이트 설치를 위해 앱이 종료되거나 재시작될 수 있어요.',
           checkAction: '업데이트 확인',
@@ -588,7 +588,7 @@ export const resources = {
           noUpdate: 'You are already using the latest version.',
           availableDescription: 'Version {{version}} is available to install.',
           installedDescription:
-            'The update has been installed. Please restart the app.',
+            'The update has been installed. The app will restart automatically.',
           installingExit:
             'The app may close or restart while the update is being installed.',
           checkAction: 'Check updates',
