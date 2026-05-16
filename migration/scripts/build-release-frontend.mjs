@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const migrationDir = resolve(scriptDir, '..')
-const packageManager = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
+const packageManager = 'pnpm'
+const useShell = process.platform === 'win32'
 
 function formatDuration(milliseconds) {
   const seconds = Math.round(milliseconds / 1000)
@@ -26,6 +27,7 @@ function runTimed(label, command, args) {
     cwd: migrationDir,
     stdio: 'inherit',
     env: process.env,
+    shell: useShell,
   })
 
   const duration = Date.now() - start
@@ -33,6 +35,9 @@ function runTimed(label, command, args) {
   console.log('::endgroup::')
 
   if (result.status !== 0) {
+    if (result.error) {
+      console.error(result.error.message)
+    }
     process.exit(result.status ?? 1)
   }
 }
