@@ -349,20 +349,18 @@ function RunningPanel() {
           )}
         >
           {isCameraShow ? (
-            <>
-              <video
-                ref={characterVideoRef}
-                src={levelVideo}
-                autoPlay
-                loop
-                muted
-                playsInline
-                disablePictureInPicture
-                controls={false}
-                controlsList="nofullscreen noplaybackrate nodownload noremoteplayback"
-                className="pointer-events-none h-auto max-h-[320px] w-full rounded-lg object-contain mix-blend-screen"
-              />
-            </>
+            <video
+              ref={characterVideoRef}
+              src={levelVideo}
+              autoPlay
+              loop
+              muted
+              playsInline
+              disablePictureInPicture
+              controls={false}
+              controlsList="nofullscreen noplaybackrate nodownload noremoteplayback"
+              className="pointer-events-none h-auto max-h-[320px] w-full rounded-lg object-contain mix-blend-screen"
+            />
           ) : (
             <img
               src={levelSvgSrc}
