@@ -228,34 +228,50 @@ export const usePostureEngine = ({
         currentSessionId,
       )
       if (mode === 'background') {
-        const response = await startBackgroundMeasurement({
+        try {
+          const response = await startBackgroundMeasurement({
+            sessionId: currentSessionId,
+            reason: 'manual',
+          })
+          setEngineState({
+            engineStatus: response.engineStatus,
+            mode: response.mode,
+            cameraOwner: 'python',
+            updatedAt: new Date().toISOString(),
+            message: null,
+            recoverable: true,
+          })
+          setSession(buildFallbackSession(currentSessionId, response.mode))
+        } catch (err) {
+          console.error('[posture-engine] startBackgroundMeasurement 실패:', err)
+          setEngineState({
+            engineStatus: 'error',
+            mode: 'foreground',
+            cameraOwner: 'react',
+            updatedAt: new Date().toISOString(),
+            message: err instanceof Error ? err.message : String(err),
+            recoverable: true,
+          })
+        }
+        return
+      }
+
+      try {
+        const response = await stopBackgroundMeasurement({
           sessionId: currentSessionId,
-          reason: 'manual',
         })
         setEngineState({
           engineStatus: response.engineStatus,
           mode: response.mode,
-          cameraOwner: 'python',
+          cameraOwner: 'react',
           updatedAt: new Date().toISOString(),
           message: null,
           recoverable: true,
         })
         setSession(buildFallbackSession(currentSessionId, response.mode))
-        return
+      } catch (err) {
+        console.error('[posture-engine] stopBackgroundMeasurement 실패:', err)
       }
-
-      const response = await stopBackgroundMeasurement({
-        sessionId: currentSessionId,
-      })
-      setEngineState({
-        engineStatus: response.engineStatus,
-        mode: response.mode,
-        cameraOwner: 'react',
-        updatedAt: new Date().toISOString(),
-        message: null,
-        recoverable: true,
-      })
-      setSession(buildFallbackSession(currentSessionId, response.mode))
     })()
   }, [
     active,

@@ -69,8 +69,12 @@ const WebcamView = ({
   }, [])
 
   const videoConstraints = preferredDeviceId
-    ? { deviceId: { exact: preferredDeviceId }, width: 1000, height: 563 }
-    : { facingMode: 'user', width: 1000, height: 563 }
+    ? {
+        deviceId: { ideal: preferredDeviceId },
+        width: { ideal: 1000 },
+        height: { ideal: 563 },
+      }
+    : { facingMode: 'user', width: { ideal: 1000 }, height: { ideal: 563 } }
   const shouldRenderLiveWebcam = cameraState === 'show' && mode === 'foreground'
 
   const handleUserMedia = (stream: MediaStream | null) => {
@@ -170,6 +174,7 @@ const WebcamView = ({
       {shouldRenderLiveWebcam ? (
         <div className="relative">
           <Webcam
+            key={preferredDeviceId ?? 'default-camera'}
             ref={webcamRef}
             autoPlay
             playsInline
