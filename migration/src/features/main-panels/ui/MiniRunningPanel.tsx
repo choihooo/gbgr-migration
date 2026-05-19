@@ -218,9 +218,7 @@ function RunningPanel() {
   const cameraState = useCameraStore(state => state.cameraState)
   const isCameraShow = cameraState === 'show'
   const backgroundVideoRef = useRef<HTMLVideoElement>(null)
-  const characterCanvasRef = useRef<HTMLCanvasElement>(null)
   const characterVideoRef = useRef<HTMLVideoElement>(null)
-  const [seeThruUnavailable, setSeeThruUnavailable] = useState(false)
 
   const score = latestResult?.score ?? restoredResult?.score ?? 0
   const levelInfo = useMemo(() => getScoreLevel(score), [score])
@@ -311,65 +309,6 @@ function RunningPanel() {
     video.pause()
   }, [isCameraShow])
 
-  // seeThru로 캐릭터 영상 검은 배경 투명화
-  useEffect(() => {
-    if (!isCameraShow) return
-    if (seeThruUnavailable) return
-
-    const video = characterVideoRef.current
-    const canvas = characterCanvasRef.current
-    if (!video || !canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    let animationId: number
-
-    const draw = () => {
-      if (video.paused || video.ended) {
-        animationId = requestAnimationFrame(draw)
-        return
-      }
-
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-
-      ctx.drawImage(video, 0, 0)
-
-      let imageData: ImageData
-      try {
-        imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      } catch (error) {
-        console.warn(
-          '[MiniRunningPanel] 영상 픽셀 데이터를 읽을 수 없어 seeThru 처리를 중단합니다:',
-          error,
-        )
-        setSeeThruUnavailable(true)
-        return
-      }
-      const data = imageData.data
-
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i]
-        const g = data[i + 1]
-        const b = data[i + 2]
-        // 검은색에 가까울수록 더 투명하게 (threshold 40)
-        const brightness = (r + g + b) / 3
-        const alpha = Math.min(255, Math.max(0, (brightness / 40) * 255))
-        data[i + 3] = Math.round(alpha)
-      }
-
-      ctx.putImageData(imageData, 0, 0)
-      animationId = requestAnimationFrame(draw)
-    }
-
-    draw()
-
-    return () => {
-      cancelAnimationFrame(animationId)
-    }
-  }, [isCameraShow, seeThruUnavailable])
-
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -418,23 +357,11 @@ function RunningPanel() {
                 loop
                 muted
                 playsInline
-                crossOrigin="anonymous"
                 disablePictureInPicture
                 controls={false}
                 controlsList="nofullscreen noplaybackrate nodownload noremoteplayback"
-                className={cn(
-                  'pointer-events-none',
-                  seeThruUnavailable
-                    ? 'h-auto max-h-[320px] w-full rounded-lg object-contain'
-                    : 'absolute h-0 w-0 opacity-0',
-                )}
+                className="pointer-events-none h-auto max-h-[320px] w-full rounded-lg object-contain mix-blend-screen"
               />
-              {!seeThruUnavailable ? (
-                <canvas
-                  ref={characterCanvasRef}
-                  className="pointer-events-none h-auto max-h-[320px] w-full rounded-lg object-contain"
-                />
-              ) : null}
             </>
           ) : (
             <img
