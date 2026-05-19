@@ -1,0 +1,211 @@
+name: Tauri macOS Apple Silicon Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      retention_days:
+        description: 'artifact 보관 기간(일)'
+        required: true
+        default: '14'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tauri-macos-arm64-artifact-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-macos-arm64:
+    runs-on: macos-15
+
+    steps:
+      - name: Start build timer
+        shell: bash
+        run: |
+          set -euo pipefail
+          date +%s > "$RUNNER_TEMP/build-started-at"
+          echo "### Tauri macOS Apple Silicon artifact" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ref: \`${GITHUB_REF_NAME}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- target: \`aarch64-apple-darwin\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: migration/pnpm-lock.yaml
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        continue-on-error: true
+        with:
+          workspaces: migration/src-tauri -> target
+          key: macos-15-aarch64-apple-darwin-artifact
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: sidecar/posture-engine/requirements.txt
+
+      - name: Install posture sidecar dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+          python -m pip install -r sidecar/posture-engine/requirements.txt
+
+      - name: Install frontend dependencies
+        working-directory: migration
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Apple signing secrets
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          for name in \
+            APPLE_CERTIFICATE \
+            APPLE_CERTIFICATE_PASSWORD \
+            APPLE_SIGNING_IDENTITY \
+            APPLE_API_KEY \
+            APPLE_API_ISSUER \
+            APPLE_API_KEY_P8
+          do
+            if [ -z "${!name}" ]; then
+              echo "${name} secret 이 필요합니다."
+              exit 1
+            fi
+          done
+
+      - name: Restore App Store Connect API key
+        shell: bash
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.private_keys"
+          printf '%s' "${APPLE_API_KEY_P8}" > "$HOME/.private_keys/AuthKey_${APPLE_API_KEY}.p8"
+          chmod 600 "$HOME/.private_keys/AuthKey_${APPLE_API_KEY}.p8"
+
+      - name: Import Apple signing certificate
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/developer-id-application.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/gbgr-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+
+          printf '%s' "${APPLE_CERTIFICATE}" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Create artifact build config
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const tauriConfigPath = path.join(
+            process.cwd(),
+            'migration',
+            'src-tauri',
+            'tauri.conf.json',
+          );
+          const targetPath = path.join(
+            process.cwd(),
+            'migration',
+            'src-tauri',
+            'tauri.artifact.conf.json',
+          );
+          const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf8'));
+          tauriConfig.bundle.resources = {
+            '../../sidecar/posture-engine/posture-engine':
+              'sidecar/posture-engine/posture-engine',
+            'locales/ko.lproj/InfoPlist.strings': 'ko.lproj/InfoPlist.strings',
+            'locales/en.lproj/InfoPlist.strings': 'en.lproj/InfoPlist.strings',
+          };
+          fs.writeFileSync(tauriConfigPath, `${JSON.stringify(tauriConfig, null, 2)}\n`);
+
+          const config = {
+            build: {
+              beforeBuildCommand: 'pnpm run build:release-frontend',
+            },
+          };
+
+          fs.writeFileSync(targetPath, `${JSON.stringify(config, null, 2)}\n`);
+          NODE
+
+      - name: Build macOS Apple Silicon DMG
+        shell: bash
+        working-directory: migration
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_PATH: /Users/runner/.private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8
+        run: |
+          set -euo pipefail
+          pnpm run tauri build --target aarch64-apple-darwin --config src-tauri/tauri.artifact.conf.json
+
+      - name: Verify signed app bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="migration/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Posture Turtle.app"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+
+      - name: Summarize artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          now="$(date +%s)"
+          started="$(cat "$RUNNER_TEMP/build-started-at" 2>/dev/null || echo "$now")"
+          seconds="$((now - started))"
+          echo "- total build time: $((seconds / 60))m $((seconds % 60))s" >> "$GITHUB_STEP_SUMMARY"
+          echo "- DMG files:" >> "$GITHUB_STEP_SUMMARY"
+          find migration/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg -maxdepth 1 -name '*.dmg' -print | sort | sed 's/^/  - `/' | sed 's/$/`/' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload macOS Apple Silicon DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: posture-turtle-macos-arm64-dmg
+          path: migration/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+          retention-days: ${{ inputs.retention_days }}

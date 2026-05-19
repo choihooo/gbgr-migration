@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>NSCameraUsageDescription</key>
-  <string>자세 측정을 위해 카메라 접근 권한이 필요합니다.</string>
+  <key>com.apple.security.device.camera</key>
+  <true/>
 </dict>
 </plist>

@@ -11,6 +11,11 @@ on:
         required: true
         default: true
         type: boolean
+      include_windows:
+        description: 'Windows 산출물을 빌드할지 여부'
+        required: true
+        default: true
+        type: boolean
       dry_run:
         description: '릴리즈 업로드 없이 matrix 생성까지만 검증'
         required: true
@@ -37,6 +42,7 @@ jobs:
         id: matrix
         env:
           INCLUDE_INTEL_MACOS: ${{ inputs.include_intel_macos }}
+          INCLUDE_WINDOWS: ${{ inputs.include_windows }}
         run: |
           set -euo pipefail
           MATRIX="$(node migration/scripts/create-tauri-release-matrix.mjs)"
@@ -45,6 +51,8 @@ jobs:
           echo '```json' >> "$GITHUB_STEP_SUMMARY"
           echo "${MATRIX}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "- include Windows: \`${INCLUDE_WINDOWS:-true}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- include Intel macOS: \`${INCLUDE_INTEL_MACOS:-true}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- dry run: \`${{ inputs.dry_run || false }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   publish-tauri:
