@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 from .posture_stabilizer import PostureStabilizer
 from .score_processor import ScoreProcessor
+
+MIN_SIGMA = 1e-3
 
 
 @dataclass
@@ -42,7 +44,7 @@ class PostureClassifier:
         self._mu: float = 0.0
         self._sigma: float = 1.0
 
-    def _next_ema(self, value: float, alpha: float = 0.25) -> float:
+    def next_pi_ema(self, value: float, alpha: float = 0.25) -> float:
         if self._ema_value is None:
             self._ema_value = value
         else:
@@ -52,13 +54,22 @@ class PostureClassifier:
     def set_calibration(self, mu: float, sigma: float) -> None:
         """캘리브레이션 결과(mu, sigma)를 설정한다."""
         self._mu = mu
-        self._sigma = sigma
+        self._sigma = max(abs(sigma), MIN_SIGMA)
 
-    def classify(self, pi_raw: float) -> Classification:
-        if self._sigma == 0:
-            return Classification("측정중", 0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
+    @property
+    def calibration(self) -> dict[str, float]:
+        return {"mu": self._mu, "sigma": self._sigma}
 
-        pi_ema = self._next_ema(pi_raw)
+    def classify(
+        self,
+        pi_raw: float,
+        mu: float | None = None,
+        sigma: float | None = None,
+    ) -> Classification:
+        if mu is not None and sigma is not None:
+            self.set_calibration(mu, sigma)
+
+        pi_ema = self.next_pi_ema(pi_raw)
         z_pi = (pi_ema - self._mu) / (self._sigma + 1e-6)
         gamma = 1.0
         raw_score = self._processor.next(gamma * z_pi)

@@ -8,7 +8,7 @@ from typing import Any
 import cv2
 import numpy as np
 
-# 레거시 PoseDetection.tsx와 동일한 키 랜드마크 인덱스
+# PoseDetection.tsx와 동일한 키 랜드마크 인덱스
 KEY_INDICES = [
     0,   # NOSE
     1,   # LEFT_EYE_INNER

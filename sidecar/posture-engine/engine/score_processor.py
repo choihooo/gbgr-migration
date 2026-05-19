@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 
+def _clamp_score(score: float) -> float:
+    clamped = max(-10.0, min(40.0, score))
+    return round(clamped, 12)
+
+
 def _apply_moving_average(scores: list[float], window: int) -> list[float]:
     smoothed: list[float] = []
     for index in range(len(scores)):
@@ -33,13 +38,13 @@ class ScoreProcessor:
             self.score_buffer.pop(0)
 
         if len(self.score_buffer) < 15:
-            return max(-10.0, min(40.0, score))
+            return _clamp_score(score)
 
-        filtered_scores = [max(-10.0, min(40.0, value)) for value in self.score_buffer]
+        filtered_scores = [_clamp_score(value) for value in self.score_buffer]
         smoothed = _apply_moving_average(filtered_scores, 7)
         ema_12 = _apply_ema(smoothed, 12)
         final_scores = _apply_ema(ema_12, 24)
-        return max(-10.0, min(40.0, final_scores[-1]))
+        return _clamp_score(final_scores[-1])
 
     def reset(self) -> None:
         self.score_buffer = []

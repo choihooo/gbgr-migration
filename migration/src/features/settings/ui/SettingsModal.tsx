@@ -335,16 +335,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="w-[339px]">
-      <div className="flex flex-col gap-4 rounded-[24px] border border-grey-0 bg-white p-4 shadow-[0_0_24px_rgba(0,0,0,0.12)] dark:bg-grey-1000">
-        <div className="rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
-          <h2 className="text-body-lg-semibold text-grey-900 dark:text-grey-100">
+      <div className="flex flex-col gap-4 rounded-[24px] border border-grey-50 bg-surface-modal p-4 shadow-[0_0_24px_rgba(0,0,0,0.12)]">
+        <div className="rounded-[12px] bg-surface-modal-container p-3">
+          <h2 className="text-body-lg-semibold text-grey-900">
             {t('settings.title')}
           </h2>
         </div>
 
-        <div className="flex items-center justify-between gap-3 rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
+        <div className="flex items-center justify-between gap-3 rounded-[12px] bg-surface-modal-container p-3">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-body-md-medium text-grey-900 dark:text-grey-100">
+            <span className="text-body-md-medium text-grey-900">
               {t('settings.language.label')}
             </span>
             <span className="font-['Pretendard'] text-[11px] leading-[150%] text-grey-500">
@@ -370,9 +370,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
+        <div className="flex items-center justify-between gap-3 rounded-[12px] bg-surface-modal-container p-3">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-body-md-medium text-grey-900 dark:text-grey-100">
+            <span className="text-body-md-medium text-grey-900">
               {t('settings.startup.label')}
             </span>
             <span className="font-['Pretendard'] text-[11px] leading-[150%] text-grey-500">
@@ -394,9 +394,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           />
         </div>
 
-        <div className="flex items-center justify-between gap-3 rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
+        <div className="flex items-center justify-between gap-3 rounded-[12px] bg-surface-modal-container p-3">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-body-md-medium text-grey-900 dark:text-grey-100">
+            <span className="text-body-md-medium text-grey-900">
               {t('settings.update.label')}
             </span>
             <span className="font-['Pretendard'] text-[11px] leading-[150%] text-grey-500">
@@ -423,17 +423,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           ) : null}
         </div>
 
-        <div className="flex flex-col overflow-hidden rounded-[12px] bg-grey-25 dark:bg-grey-900">
+        <div className="flex flex-col overflow-hidden rounded-[12px] bg-surface-modal-container">
           {actionItems.map((item, index) => (
             <button
               key={item.label}
               type="button"
               onClick={item.onClick}
               className={cn(
-                "font-['Pretendard'] flex cursor-pointer items-center gap-2 px-3 py-[10px] text-left text-[12px] font-medium leading-[150%] text-grey-700 hover:bg-grey-50 dark:text-grey-300 dark:hover:bg-grey-800",
+                "font-['Pretendard'] flex cursor-pointer items-center gap-2 px-3 py-[10px] text-left text-[12px] font-medium leading-[150%] text-grey-700 hover:bg-modal-button",
                 index === actionItems.length - 1
                   ? ''
-                  : 'border-b border-grey-50 dark:border-grey-800',
+                  : 'border-b border-grey-50',
               )}
             >
               <span className="flex size-6 shrink-0 items-center justify-center">

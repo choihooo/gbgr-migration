@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import time
-
 
 class PostureStabilizer:
     """급격한 자세 변화로 인한 잘못된 단계 전환을 방지하는 안정화 필터."""

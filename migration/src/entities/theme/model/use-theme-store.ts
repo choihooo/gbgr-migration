@@ -29,9 +29,10 @@ function resolveTheme(preference: ThemePreference): 'light' | 'dark' {
 export const useThemeStore = create<ThemeStore>()(
   persist(
     set => {
-      const initialResolved = getSystemTheme()
+      const initialPreference = 'dark' as ThemePreference
+      const initialResolved = resolveTheme(initialPreference)
       return {
-        preference: 'system' as ThemePreference,
+        preference: initialPreference,
         resolvedTheme: initialResolved,
         isDark: initialResolved === 'dark',
 

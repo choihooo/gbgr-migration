@@ -1,5 +1,7 @@
 use crate::{
-    commands::posture_engine::{apply_mode_change, ingest_background_result_with_notification},
+    commands::posture_engine::common::{
+        apply_mode_change, ingest_background_result_with_notification,
+    },
     state::posture_engine_state::{
         EngineMode, MeasurementSession, PostureEngineResult, PostureEngineState,
     },

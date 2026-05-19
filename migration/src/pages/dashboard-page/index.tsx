@@ -20,7 +20,7 @@ export default function DashboardPage() {
 
   return (
     <div className="bg-grey-25 flex h-screen min-h-0 flex-col overflow-hidden">
-      <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-8 pb-4">
         <MainContent
           activeTab={activeTab}
           onTabClick={onTabClick}

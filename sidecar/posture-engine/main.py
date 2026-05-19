@@ -284,7 +284,7 @@ class PostureEngineService:
             }
 
         # EMA 적용
-        pi_ema = self._classifier._next_ema(pi_data["PI_raw"])
+        pi_ema = self._classifier.next_pi_ema(pi_data["PI_raw"])
 
         # 정면성 체크
         frontality = check_frontality(landmarks)
@@ -337,7 +337,7 @@ class PostureEngineService:
         """캘리브레이션 완료: mu/sigma 계산."""
         self._calib_active = False
 
-        # 레거시 캘리브레이션은 완료 계산에서 정면성 필터를 건너뛴다.
+        # 완료 계산에서는 정면성 필터를 건너뛴다.
         # 실시간 step1/step2 오류로 자세 품질을 안내하고, 최종 mu/sigma는 수집된 PI로 계산한다.
         result = process_calibration_data(self._calib_buffer, skip_frontal_check=True)
 
@@ -354,7 +354,7 @@ class PostureEngineService:
         mu = payload.get("mu", 0.0)
         sigma = payload.get("sigma", 1.0)
         self._classifier.set_calibration(mu, sigma)
-        return {"status": "calibration_set", "mu": mu, "sigma": sigma}
+        return {"status": "calibration_set", **self._classifier.calibration}
 
 
 def main() -> int:

@@ -48,6 +48,8 @@ macOS의 `pnpm run tauri:build`는 기본 Tauri DMG bundler 대신 wrapper를 �
 ## 참고
 
 - 최종 번들 식별자는 `co.kr.bugi.desktop`을 사용합니다.
+- 처음 프로젝트를 보는 개발자는 [개발 온보딩 문서](./docs/onboarding.md)를 먼저 읽고,
+  더 자세한 구조는 [아키텍처 개요](./docs/architecture-overview.md)를 참고합니다.
 
 ## GitHub Releases 오토업데이트
 

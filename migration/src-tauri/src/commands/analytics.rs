@@ -4,7 +4,6 @@ use serde::Serialize;
 use tauri::State;
 
 const GA4_ENDPOINT: &str = "https://www.google-analytics.com/mp/collect";
-const GA4_DEBUG_ENDPOINT: &str = "https://www.google-analytics.com/debug/mp/collect";
 
 /// 분석 이벤트 파라미터 (key-value 쌍)
 type EventParams = std::collections::HashMap<String, serde_json::Value>;

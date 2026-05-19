@@ -42,13 +42,23 @@ def calculate_pi(landmarks: Iterable[dict], world_landmarks: list[dict]) -> dict
 
 
 def check_frontality(landmarks: list[dict]) -> dict[str, float | bool]:
+    if len(landmarks) <= 12:
+        return {"pass": False, "roll": 180.0, "centerRatio": 1.0}
+
     left_ear = landmarks[7]
     right_ear = landmarks[8]
     left_shoulder = landmarks[11]
     right_shoulder = landmarks[12]
     nose = landmarks[0]
 
-    roll = abs(degrees(atan2(abs(right_ear["y"] - left_ear["y"]), right_ear["x"] - left_ear["x"])))
+    roll = abs(
+        degrees(
+            atan2(
+                abs(right_ear["y"] - left_ear["y"]),
+                abs(right_ear["x"] - left_ear["x"]),
+            )
+        )
+    )
     shoulder_width_2d = sqrt(
         (right_shoulder["x"] - left_shoulder["x"]) ** 2
         + (right_shoulder["y"] - left_shoulder["y"]) ** 2
@@ -93,8 +103,10 @@ def process_calibration_data(
     pi_values: list[float] = []
 
     for frame in frames:
-        frontality = check_frontality(frame.get("lms", []))
-        should_include = skip_frontal_check or frontality["pass"]
+        should_include = skip_frontal_check
+        if not skip_frontal_check:
+            frontality = check_frontality(frame.get("lms", []))
+            should_include = frontality["pass"]
 
         if should_include and frame.get("pi") is not None:
             pi_value = frame.get("pi_ema", frame["pi"]["PI_raw"])

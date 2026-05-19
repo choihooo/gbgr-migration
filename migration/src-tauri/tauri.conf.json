@@ -1,7 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Posture Turtle",
-  "version": "0.1.7",
+  "mainBinaryName": "Posture Turtle",
+  "version": "0.1.8",
   "identifier": "co.kr.bugi.desktop",
   "build": {
     "beforeDevCommand": "pnpm run dev",
@@ -19,7 +20,13 @@
         "height": 800,
         "minWidth": 1280,
         "minHeight": 800,
-        "decorations": false
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 16,
+          "y": 16
+        }
       },
       {
         "label": "widget",
@@ -48,7 +55,7 @@
     "active": true,
     "targets": "all",
     "resources": {
-      "../../sidecar/posture-engine": "sidecar/posture-engine",
+      "../../sidecar/posture-engine/posture-engine": "sidecar/posture-engine/posture-engine",
       "locales/ko.lproj/InfoPlist.strings": "ko.lproj/InfoPlist.strings",
       "locales/en.lproj/InfoPlist.strings": "en.lproj/InfoPlist.strings"
     },

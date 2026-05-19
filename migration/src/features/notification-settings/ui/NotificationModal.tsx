@@ -64,10 +64,10 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="w-[339px]">
-      <div className="flex flex-col gap-2 rounded-[24px] border border-grey-0 bg-white p-4 shadow-[0_0_24px_rgba(0,0,0,0.12)] dark:bg-grey-1000">
+      <div className="flex flex-col gap-2 rounded-[24px] border border-grey-50 bg-surface-modal p-4 shadow-[0_0_24px_rgba(0,0,0,0.12)]">
         {/* 알림 허용 */}
-        <div className="flex items-center justify-between rounded-[12px] bg-grey-25 p-3 dark:bg-grey-900">
-          <span className="text-body-lg-semibold text-grey-900 dark:text-grey-100">
+        <div className="flex items-center justify-between rounded-[12px] bg-surface-modal-container p-3">
+          <span className="text-body-lg-semibold text-grey-900">
             {t('dashboard.notification.allow')}
           </span>
           <NotificationToggleSwitch
