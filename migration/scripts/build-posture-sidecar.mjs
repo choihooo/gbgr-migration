@@ -9,6 +9,11 @@ const repoRoot = resolve(migrationDir, '..')
 const sidecarDir = join(repoRoot, 'sidecar', 'posture-engine')
 const entryScriptPath = join(sidecarDir, 'main.py')
 const modelsDir = join(sidecarDir, 'models')
+const macosSidecarEntitlementsPath = join(
+  migrationDir,
+  'src-tauri',
+  'SidecarEntitlements.plist',
+)
 const outputName =
   process.platform === 'win32' ? 'posture-engine.exe' : 'posture-engine'
 const outputPath = join(sidecarDir, outputName)
@@ -196,6 +201,8 @@ function signMacosSidecar() {
       '--force',
       '--options',
       'runtime',
+      '--entitlements',
+      macosSidecarEntitlementsPath,
       '--timestamp',
       '--sign',
       identity,
@@ -221,7 +228,12 @@ function appendMacosPyInstallerSigningArgs(args) {
     return
   }
 
-  args.push('--codesign-identity', identity)
+  args.push(
+    '--codesign-identity',
+    identity,
+    '--osx-entitlements-file',
+    macosSidecarEntitlementsPath,
+  )
 }
 
 function cleanupPyInstallerArtifacts() {
@@ -235,6 +247,9 @@ function cleanupPyInstallerArtifacts() {
 ensurePathExists(sidecarDir, '자세 엔진 디렉터리')
 ensurePathExists(entryScriptPath, '자세 엔진 엔트리 스크립트')
 ensurePathExists(modelsDir, '자세 엔진 모델 디렉터리')
+if (process.platform === 'darwin') {
+  ensurePathExists(macosSidecarEntitlementsPath, 'macOS sidecar entitlement')
+}
 ensurePythonAvailable()
 ensurePythonPackage(
   'PyInstaller',
