@@ -378,27 +378,29 @@ mod tests {
 
     #[test]
     fn packaged_sidecar_candidates_are_executable_relative() {
-        let exe_dir = Path::new("/Applications/GBGR.app/Contents/MacOS");
+        let exe_dir = Path::new("/Applications/Posture Turtle.app/Contents/MacOS");
         let candidates = packaged_sidecar_binary_candidates_from_exe_dir(exe_dir, "posture-engine");
 
         assert_eq!(
             candidates,
             vec![
-                PathBuf::from("/Applications/GBGR.app/Contents/MacOS/sidecar/posture-engine"),
                 PathBuf::from(
-                    "/Applications/GBGR.app/Contents/MacOS/sidecar/posture-engine/posture-engine"
+                    "/Applications/Posture Turtle.app/Contents/MacOS/sidecar/posture-engine"
                 ),
                 PathBuf::from(
-                    "/Applications/GBGR.app/Contents/MacOS/resources/sidecar/posture-engine"
+                    "/Applications/Posture Turtle.app/Contents/MacOS/sidecar/posture-engine/posture-engine"
                 ),
                 PathBuf::from(
-                    "/Applications/GBGR.app/Contents/MacOS/resources/sidecar/posture-engine/posture-engine"
+                    "/Applications/Posture Turtle.app/Contents/MacOS/resources/sidecar/posture-engine"
                 ),
                 PathBuf::from(
-                    "/Applications/GBGR.app/Contents/MacOS/../Resources/sidecar/posture-engine"
+                    "/Applications/Posture Turtle.app/Contents/MacOS/resources/sidecar/posture-engine/posture-engine"
                 ),
                 PathBuf::from(
-                    "/Applications/GBGR.app/Contents/MacOS/../Resources/sidecar/posture-engine/posture-engine"
+                    "/Applications/Posture Turtle.app/Contents/MacOS/../Resources/sidecar/posture-engine"
+                ),
+                PathBuf::from(
+                    "/Applications/Posture Turtle.app/Contents/MacOS/../Resources/sidecar/posture-engine/posture-engine"
                 ),
             ]
         );

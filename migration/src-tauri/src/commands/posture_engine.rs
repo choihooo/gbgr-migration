@@ -307,7 +307,9 @@ pub fn start_posture_engine(
     let start_payload = serde_json::json!({"command": "start"});
     let sidecar_response = match sidecar_send(&state, &start_payload) {
         Ok(response) => response,
-        Err(error) if cfg!(debug_assertions) && std::env::var("GBGR_POSTURE_ENGINE_BIN").is_ok() => {
+        Err(error)
+            if cfg!(debug_assertions) && std::env::var("GBGR_POSTURE_ENGINE_BIN").is_ok() =>
+        {
             eprintln!(
                 "[posture-engine] debug binary sidecar start 실패, Python 스크립트로 재시도합니다: {error}"
             );

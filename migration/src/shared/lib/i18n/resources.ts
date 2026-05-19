@@ -303,7 +303,7 @@ export const resources = {
   en: {
     translation: {
       app: {
-        name: 'Posture turtle',
+        name: 'Posture Turtle',
       },
       auth: {
         slogan: 'Until every forward head posture stands tall like a giraffe',

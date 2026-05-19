@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "GBGR",
+  "productName": "Posture Turtle",
   "version": "0.1.7",
   "identifier": "co.kr.bugi.desktop",
   "build": {
@@ -14,15 +14,16 @@
     "windows": [
       {
         "label": "main",
-        "title": "거부기린",
+        "title": "Posture Turtle",
         "width": 1280,
         "height": 800,
         "minWidth": 1280,
-        "minHeight": 800
+        "minHeight": 800,
+        "decorations": false
       },
       {
         "label": "widget",
-        "title": "거부기린",
+        "title": "Posture Turtle",
         "url": "/widget",
         "create": false,
         "visible": false,
@@ -47,7 +48,9 @@
     "active": true,
     "targets": "all",
     "resources": {
-      "../../sidecar/posture-engine": "sidecar/posture-engine"
+      "../../sidecar/posture-engine": "sidecar/posture-engine",
+      "locales/ko.lproj/InfoPlist.strings": "ko.lproj/InfoPlist.strings",
+      "locales/en.lproj/InfoPlist.strings": "en.lproj/InfoPlist.strings"
     },
     "macOS": {
       "infoPlist": "Info.plist"
