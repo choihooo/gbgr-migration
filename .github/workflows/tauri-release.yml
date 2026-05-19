@@ -209,12 +209,28 @@ jobs:
           const fs = require('node:fs');
           const path = require('node:path');
 
+          const tauriConfigPath = path.join(
+            process.cwd(),
+            'migration',
+            'src-tauri',
+            'tauri.conf.json',
+          );
           const targetPath = path.join(
             process.cwd(),
             'migration',
             'src-tauri',
             'tauri.github-release.conf.json',
           );
+          const sidecarBinary =
+            process.platform === 'win32' ? 'posture-engine.exe' : 'posture-engine';
+          const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf8'));
+          tauriConfig.bundle.resources = {
+            [`../../sidecar/posture-engine/${sidecarBinary}`]:
+              `sidecar/posture-engine/${sidecarBinary}`,
+            'locales/ko.lproj/InfoPlist.strings': 'ko.lproj/InfoPlist.strings',
+            'locales/en.lproj/InfoPlist.strings': 'en.lproj/InfoPlist.strings',
+          };
+          fs.writeFileSync(tauriConfigPath, `${JSON.stringify(tauriConfig, null, 2)}\n`);
 
           const config = {
             build: {
