@@ -85,6 +85,7 @@ jobs:
 
       - name: Cache Rust build artifacts
         uses: Swatinem/rust-cache@v2
+        continue-on-error: true
         with:
           workspaces: migration/src-tauri -> target
           key: ${{ matrix.platform }}-${{ matrix.target || 'default' }}
