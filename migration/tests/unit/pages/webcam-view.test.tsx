@@ -56,10 +56,11 @@ describe('WebcamView', () => {
     mockUsePostureEngine.mockReturnValue({
       overlayLandmarks: [],
       latestResult: null,
+      streamUrl: 'http://127.0.0.1:49152/video?token=test-token',
       engineState: {
         engineStatus: 'ready',
         mode: 'foreground',
-        cameraOwner: 'react',
+        cameraOwner: 'python',
         updatedAt: new Date().toISOString(),
         message: null,
         recoverable: true,
@@ -68,14 +69,24 @@ describe('WebcamView', () => {
     })
   })
 
-  it('background 모드로 전환되면 브라우저 웹캠을 정지하고 언마운트한다', () => {
+  it('background 모드로 전환되어도 브라우저 웹캠을 열지 않는다', () => {
     const { rerender } = render(<WebcamView mode="foreground" />)
 
-    expect(screen.getByTestId('mock-webcam')).toBeInTheDocument()
+    expect(screen.queryByTestId('mock-webcam')).toBeNull()
 
     rerender(<WebcamView mode="background" />)
 
-    expect(stopTrack).toHaveBeenCalledTimes(1)
+    expect(stopTrack).not.toHaveBeenCalled()
     expect(screen.queryByTestId('mock-webcam')).toBeNull()
+  })
+
+  it('foreground 모드에서도 브라우저 웹캠 대신 sidecar 스트림을 표시한다', () => {
+    render(<WebcamView mode="foreground" />)
+
+    expect(screen.queryByTestId('mock-webcam')).toBeNull()
+    expect(screen.getByAltText('자세 측정 카메라 스트림')).toHaveAttribute(
+      'src',
+      'http://127.0.0.1:49152/video?token=test-token',
+    )
   })
 })

@@ -48,6 +48,9 @@ class PostureEngineService:
         if command == "calibrate_frame":
             return self._handle_calibrate_frame(payload)
 
+        if command == "calibrate_camera_frame":
+            return self._handle_calibrate_camera_frame(payload)
+
         if command == "calibrate_finish":
             return self._handle_calibrate_finish()
 
@@ -96,12 +99,20 @@ class PostureEngineService:
             self._state.recoverable = True
             self._state.updated_at = str(int(time.time()))
             return asdict(self._state)
+        self._background_loop.start()
+        if not self._background_loop.running:
+            self._state.engine_status = "error"
+            self._state.message = self._background_loop.last_error
+            self._state.recoverable = True
+            self._state.updated_at = str(int(time.time()))
+            return asdict(self._state)
         self._state.engine_status = "ready"
         self._state.mode = "foreground"
-        self._state.camera_owner = "react"
+        self._state.camera_owner = "python"
         self._state.updated_at = str(int(time.time()))
         self._state.message = None
         self._state.recoverable = True
+        self._state.stream_url = self._background_loop.stream_url
         return asdict(self._state)
 
     def _handle_frame(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -181,20 +192,13 @@ class PostureEngineService:
             self._state.updated_at = str(int(time.time()))
             return asdict(self._state)
 
-        self._background_loop.start()
-        if not self._background_loop.running:
-            self._state.engine_status = "error"
-            self._state.message = self._background_loop.last_error
-            self._state.recoverable = True
-            self._state.updated_at = str(int(time.time()))
-            return asdict(self._state)
-
         self._state.engine_status = "switching"
         self._state.mode = "background"
         self._state.camera_owner = "python"
         self._state.updated_at = str(int(time.time()))
         self._state.message = None
         self._state.recoverable = True
+        self._state.stream_url = self._background_loop.stream_url
         return asdict(self._state)
 
     def _handle_background_tick(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -209,15 +213,15 @@ class PostureEngineService:
         result = self._handle_frame(frame_payload)
         if "error" not in result:
             result["source"] = "python_camera"
-            result["engine_mode"] = "background"
+            result["engine_mode"] = self._state.mode
         return result
 
     def _handle_stop_background(self) -> dict[str, Any]:
-        self._background_loop.stop()
         self._state.engine_status = "ready"
         self._state.mode = "foreground"
-        self._state.camera_owner = "react"
+        self._state.camera_owner = "python"
         self._state.updated_at = str(int(time.time()))
+        self._state.stream_url = self._background_loop.stream_url
         return asdict(self._state)
 
     def _handle_stop(self) -> dict[str, Any]:
@@ -230,6 +234,7 @@ class PostureEngineService:
         self._state.updated_at = str(int(time.time()))
         self._state.message = None
         self._state.recoverable = True
+        self._state.stream_url = None
         return asdict(self._state)
 
     # ── 캘리브레이션 명령 ─────────────────────────────────
@@ -332,6 +337,23 @@ class PostureEngineService:
             "step1_error": step1_error,
             "step2_error": step2_error,
         }
+
+    def _handle_calibrate_camera_frame(self, payload: dict[str, Any]) -> dict[str, Any]:
+        image_payload = self._background_loop.read_frame_payload()
+        if image_payload is None:
+            return {
+                "status": "no_detection",
+                "frame_count": len(self._calib_buffer),
+                "step1_error": None,
+                "step2_error": None,
+            }
+
+        return self._handle_calibrate_frame(
+            {
+                "session_id": payload.get("session_id", ""),
+                "image_payload": image_payload,
+            }
+        )
 
     def _handle_calibrate_finish(self) -> dict[str, Any]:
         """캘리브레이션 완료: mu/sigma 계산."""

@@ -4,8 +4,9 @@ use super::common::{sidecar_error, sidecar_send, MAX_IMAGE_PAYLOAD_LEN};
 use crate::{
     posture_engine::sidecar::SidecarHandle,
     state::posture_engine_state::{
-        CalibrateFinishResponse, CalibrateFramePayload, CalibrateFrameResponse,
-        CalibrateStartResponse, PostureEngineState, SetCalibrationPayload, SetCalibrationResponse,
+        CalibrateCameraFramePayload, CalibrateFinishResponse, CalibrateFramePayload,
+        CalibrateFrameResponse, CalibrateStartResponse, PostureEngineState, SetCalibrationPayload,
+        SetCalibrationResponse,
     },
 };
 
@@ -61,7 +62,31 @@ pub fn calibrate_frame(
         return Err(error);
     }
 
-    Ok(CalibrateFrameResponse {
+    Ok(parse_calibrate_frame_response(&result))
+}
+
+#[tauri::command]
+pub fn calibrate_camera_frame(
+    payload: CalibrateCameraFramePayload,
+    state: State<'_, PostureEngineState>,
+) -> Result<CalibrateFrameResponse, String> {
+    let result = sidecar_send(
+        &state,
+        &serde_json::json!({
+            "command": "calibrate_camera_frame",
+            "session_id": payload.session_id,
+            "captured_at": payload.captured_at,
+        }),
+    )?;
+    if let Some(error) = sidecar_error(&result) {
+        return Err(error);
+    }
+
+    Ok(parse_calibrate_frame_response(&result))
+}
+
+fn parse_calibrate_frame_response(result: &serde_json::Value) -> CalibrateFrameResponse {
+    CalibrateFrameResponse {
         status: result
             .get("status")
             .and_then(|v| v.as_str())
@@ -79,7 +104,7 @@ pub fn calibrate_frame(
             .get("step2_error")
             .and_then(|v| v.as_str())
             .map(String::from),
-    })
+    }
 }
 
 #[tauri::command]

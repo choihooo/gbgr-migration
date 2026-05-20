@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type Webcam from 'react-webcam'
 import CalibrationGuide from '@/assets/common/images/calibration_guide.svg?react'
 import type { PostureEngineResult } from '@/entities/posture'
 import { usePostureEngineStore } from '@/entities/posture'
 import {
+  calibrateCameraFrame,
   calibrateFinish,
-  calibrateFrame,
   calibrateStart,
   useWindowVisibilitySync,
 } from '@/features/posture-engine'
@@ -18,22 +17,6 @@ import WelcomePanel from './components/WelcomePanel'
 
 const CALIBRATION_DURATION_MS = 5000
 const FRAME_INTERVAL_MS = 100
-
-const captureVideoFrame = (video: HTMLVideoElement) => {
-  const canvas = document.createElement('canvas')
-  canvas.width = video.videoWidth
-  canvas.height = video.videoHeight
-  const context = canvas.getContext('2d')
-  if (!context) return null
-  context.drawImage(video, 0, 0, canvas.width, canvas.height)
-  return {
-    imagePayload: canvas.toDataURL('image/jpeg', 0.7),
-    frameSize: {
-      width: canvas.width,
-      height: canvas.height,
-    },
-  }
-}
 
 const CalibrationPage = () => {
   const navigate = useNavigate()
@@ -51,7 +34,6 @@ const CalibrationPage = () => {
   )
   const [step2Error, setStep2Error] = useState<string | null>(null)
 
-  const webcamRef = useRef<Webcam>(null)
   const calibIntervalRef = useRef<number | null>(null)
 
   useWindowVisibilitySync(setMode)
@@ -106,18 +88,10 @@ const CalibrationPage = () => {
     const sessionId = localStorage.getItem('sessionId') ?? 'calibration-session'
 
     calibIntervalRef.current = window.setInterval(async () => {
-      const video = webcamRef.current?.video
-      if (!video || video.readyState < 2) return
-
-      const frame = captureVideoFrame(video)
-      if (!frame) return
-
       try {
-        const result = await calibrateFrame({
+        const result = await calibrateCameraFrame({
           sessionId,
-          imagePayload: frame.imagePayload,
           capturedAt: new Date().toISOString(),
-          frameSize: frame.frameSize,
         })
         const detected =
           result.status !== 'no_detection' && result.status !== 'no_pi'
@@ -253,9 +227,6 @@ const CalibrationPage = () => {
               showTimer={isCalibrating}
               remainingTime={remainingTime}
               onResultChange={setLatestResult}
-              onVideoRefReady={ref => {
-                webcamRef.current = ref.current
-              }}
               disableFramePush={isCalibrating}
             />
             {/* 캘리브레이션 가이드 오버레이 */}

@@ -11,6 +11,7 @@ class EngineStateMessage:
     updated_at: str
     message: str | None
     recoverable: bool
+    stream_url: str | None = None
 
 
 @dataclass

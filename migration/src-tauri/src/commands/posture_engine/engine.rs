@@ -3,6 +3,7 @@ use std::{sync::atomic::Ordering, thread};
 use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
+use super::background::spawn_camera_measurement_worker;
 use super::common::{
     emit_engine_status, emit_result, emit_warning, engine_status_from_response,
     handle_sidecar_failure, invalidate_sidecar, parse_result, set_engine_error, sidecar_error,
@@ -88,11 +89,16 @@ pub fn start_posture_engine(
     };
 
     // 4. 엔진 상태를 sidecar 응답 기반으로 업데이트
+    let stream_url = sidecar_response
+        .get("stream_url")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+
     {
         let mut engine_guard = state.engine_state.lock().map_err(|e| e.to_string())?;
         engine_guard.engine_status = engine_status_from_response(&sidecar_response, "ready");
         engine_guard.mode = EngineMode::Foreground;
-        engine_guard.camera_owner = CameraOwner::React;
+        engine_guard.camera_owner = CameraOwner::Python;
         engine_guard.updated_at = now_iso();
         engine_guard.message = None;
         engine_guard.recoverable = true;
@@ -100,10 +106,15 @@ pub fn start_posture_engine(
 
     emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
 
+    if let Some(session_id) = session_id.clone() {
+        spawn_camera_measurement_worker(app.clone(), state, session_id)?;
+    }
+
     Ok(StartPostureEngineResponse {
         engine_status: engine_status_from_response(&sidecar_response, "ready"),
         session_id,
         mode: EngineMode::Foreground,
+        stream_url,
     })
 }
 

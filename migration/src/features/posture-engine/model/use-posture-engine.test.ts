@@ -42,6 +42,7 @@ describe('usePostureEngine', () => {
       engineStatus: 'ready',
       sessionId: 'session-1',
       mode: 'foreground',
+      streamUrl: 'http://127.0.0.1:49152/video?token=test-token',
     })
     vi.spyOn(bridge, 'stopBackgroundMeasurement').mockResolvedValue({
       engineStatus: 'ready',

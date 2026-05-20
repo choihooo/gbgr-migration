@@ -24,6 +24,20 @@ def test_latest_result_matches_rust_result_contract():
     assert result["events"] == []
 
 
+def test_start_reports_python_camera_owner_and_stream_url(monkeypatch):
+    service = PostureEngineService()
+    monkeypatch.setattr(service._detector, "initialize", lambda: True)
+    monkeypatch.setattr(service._background_loop, "start", lambda: None)
+    service._background_loop.running = True
+    service._background_loop.stream_url = "http://127.0.0.1:49152/video?token=test-token"
+
+    result = service.handle({"command": "start"})
+
+    assert result["engine_status"] == "ready"
+    assert result["camera_owner"] == "python"
+    assert result["stream_url"] == "http://127.0.0.1:49152/video?token=test-token"
+
+
 def test_set_calibration_reports_effective_sigma():
     service = PostureEngineService()
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type Webcam from 'react-webcam'
 import type {
   EngineMode,
@@ -10,7 +10,6 @@ import { usePostureEngineStore } from '@/entities/posture'
 import {
   getLatestPostureState,
   isTauriRuntimeAvailable,
-  pushPostureFrame,
   setCalibration,
   startBackgroundMeasurement,
   startPostureEngine,
@@ -41,27 +40,11 @@ const buildFallbackSession = (
   lastErrorCode: null,
 })
 
-const captureVideoFrame = (video: HTMLVideoElement) => {
-  const canvas = document.createElement('canvas')
-  canvas.width = video.videoWidth
-  canvas.height = video.videoHeight
-  const context = canvas.getContext('2d')
-  if (!context) return null
-  context.drawImage(video, 0, 0, canvas.width, canvas.height)
-  return {
-    imagePayload: canvas.toDataURL('image/jpeg', 0.7),
-    frameSize: {
-      width: canvas.width,
-      height: canvas.height,
-    },
-  }
-}
-
 export const usePostureEngine = ({
   active,
   mode = 'foreground',
-  webcamRef,
-  disableFramePush = false,
+  webcamRef: _webcamRef,
+  disableFramePush: _disableFramePush = false,
 }: UsePostureEngineOptions) => {
   const runtimeAvailable = isTauriRuntimeAvailable()
   const {
@@ -78,6 +61,7 @@ export const usePostureEngine = ({
     markHydratedFromCache,
   } = usePostureEngineStore()
   const startedRef = useRef(false)
+  const [streamUrl, setStreamUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (!runtimeAvailable) {
@@ -92,6 +76,7 @@ export const usePostureEngine = ({
       setLatestResult(null)
       setRestoredResult(null)
       setSession(null)
+      setStreamUrl(null)
       markHydratedFromCache()
       return
     }
@@ -184,11 +169,12 @@ export const usePostureEngine = ({
       setEngineState({
         engineStatus: response.engineStatus,
         mode: response.mode,
-        cameraOwner: response.mode === 'foreground' ? 'react' : 'python',
+        cameraOwner: 'python',
         updatedAt: new Date().toISOString(),
         message: null,
         recoverable: true,
       })
+      setStreamUrl(response.streamUrl)
 
       if (response.sessionId) {
         setSession(buildFallbackSession(response.sessionId, response.mode))
@@ -243,11 +229,14 @@ export const usePostureEngine = ({
           })
           setSession(buildFallbackSession(currentSessionId, response.mode))
         } catch (err) {
-          console.error('[posture-engine] startBackgroundMeasurement 실패:', err)
+          console.error(
+            '[posture-engine] startBackgroundMeasurement 실패:',
+            err,
+          )
           setEngineState({
             engineStatus: 'error',
             mode: 'foreground',
-            cameraOwner: 'react',
+            cameraOwner: 'python',
             updatedAt: new Date().toISOString(),
             message: err instanceof Error ? err.message : String(err),
             recoverable: true,
@@ -263,7 +252,7 @@ export const usePostureEngine = ({
         setEngineState({
           engineStatus: response.engineStatus,
           mode: response.mode,
-          cameraOwner: 'react',
+          cameraOwner: 'python',
           updatedAt: new Date().toISOString(),
           message: null,
           recoverable: true,
@@ -284,54 +273,12 @@ export const usePostureEngine = ({
 
   useEffect(() => {
     if (!runtimeAvailable) return
-    if (
-      !active ||
-      disableFramePush ||
-      mode !== 'foreground' ||
-      !webcamRef?.current
-    ) {
-      return
-    }
-
-    const interval = window.setInterval(() => {
-      const video = webcamRef.current?.video
-      const currentSessionId =
-        session?.sessionId ?? localStorage.getItem('sessionId')
-
-      if (!video || !currentSessionId || video.readyState < 2) {
-        return
-      }
-
-      const frame = captureVideoFrame(video)
-      if (!frame) return
-
-      void pushPostureFrame({
-        sessionId: currentSessionId,
-        imagePayload: frame.imagePayload,
-        capturedAt: new Date().toISOString(),
-        frameSize: frame.frameSize,
-      })
-    }, 120)
-
-    return () => {
-      window.clearInterval(interval)
-    }
-  }, [
-    active,
-    disableFramePush,
-    mode,
-    runtimeAvailable,
-    session?.sessionId,
-    webcamRef,
-  ])
-
-  useEffect(() => {
-    if (!runtimeAvailable) return
     if (active) return
     if (!startedRef.current) return
 
     void stopPostureEngine()
     startedRef.current = false
+    setStreamUrl(null)
   }, [active, runtimeAvailable])
 
   const overlayLandmarks = useMemo<PoseLandmark[]>(
@@ -354,5 +301,6 @@ export const usePostureEngine = ({
     overlayLandmarks,
     engineState,
     warning,
+    streamUrl,
   }
 }

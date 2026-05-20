@@ -90,6 +90,7 @@ export interface StartPostureEngineResponse {
   engineStatus: Extract<PostureEngineStatus, 'starting' | 'ready'>
   sessionId: string | null
   mode: EngineMode
+  streamUrl: string | null
 }
 
 export interface StopPostureEngineResponse {
@@ -159,6 +160,11 @@ export interface CalibrateFramePayload {
     width: number
     height: number
   }
+}
+
+export interface CalibrateCameraFramePayload {
+  sessionId: string
+  capturedAt: string
 }
 
 export interface CalibrateFrameResponse {
