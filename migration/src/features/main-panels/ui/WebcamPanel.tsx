@@ -91,7 +91,7 @@ export function WebcamPanel() {
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <div className="relative aspect-video max-h-[198px] max-w-[352px]">
+      <div className="relative aspect-video max-h-[198px] w-full max-w-[352px] min-w-0 overflow-hidden">
         <WebcamView isActive={true} mode={mode} />
         <Button
           size="md"
