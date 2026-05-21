@@ -91,18 +91,20 @@ class PostureEngineService:
 
     def _handle_start(self) -> dict[str, Any]:
         self._classifier.reset()
-        if not self._detector_initialized:
-            self._detector_initialized = self._detector.initialize()
-        if not self._detector_initialized:
-            self._state.engine_status = "error"
-            self._state.message = self._detector.last_error or "detector_initialization_failed"
-            self._state.recoverable = True
-            self._state.updated_at = str(int(time.time()))
-            return asdict(self._state)
         self._background_loop.start()
         if not self._background_loop.running:
             self._state.engine_status = "error"
             self._state.message = self._background_loop.last_error
+            self._state.recoverable = True
+            self._state.updated_at = str(int(time.time()))
+            return asdict(self._state)
+
+        if not self._detector_initialized:
+            self._detector_initialized = self._detector.initialize()
+        if not self._detector_initialized:
+            self._background_loop.stop()
+            self._state.engine_status = "error"
+            self._state.message = self._detector.last_error or "detector_initialization_failed"
             self._state.recoverable = True
             self._state.updated_at = str(int(time.time()))
             return asdict(self._state)

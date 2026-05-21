@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import base64
+import os
+import re
 import secrets
+import shutil
+import subprocess
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -9,6 +13,21 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import cv2
+
+CAMERA_OPEN_RETRY_ATTEMPTS = 120
+CAMERA_OPEN_RETRY_INTERVAL_SECONDS = 0.5
+CAMERA_INDEX_ENV = "GBGR_CAMERA_INDEX"
+FFMPEG_CANDIDATES = ("ffmpeg", "/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg")
+PREFERRED_CAMERA_KEYWORDS = ("facetime", "built-in", "내장")
+AVOID_CAMERA_KEYWORDS = (
+    "iphone",
+    "아이폰",
+    "폰",
+    "continuity",
+    "desk view",
+    "데스크뷰",
+    "capture screen",
+)
 
 
 class BackgroundCameraLoop:
@@ -28,8 +47,8 @@ class BackgroundCameraLoop:
         if self.running:
             return
 
-        self._capture = cv2.VideoCapture(0)
-        if not self._capture.isOpened():
+        self._capture = self._open_capture_with_retry()
+        if self._capture is None:
             self.fail("camera_unavailable")
             return
 
@@ -42,6 +61,19 @@ class BackgroundCameraLoop:
             daemon=True,
         )
         self._capture_thread.start()
+
+    def _open_capture_with_retry(self) -> cv2.VideoCapture | None:
+        for candidate_indices in _camera_index_candidate_groups():
+            for _ in range(CAMERA_OPEN_RETRY_ATTEMPTS):
+                for index in candidate_indices:
+                    capture = cv2.VideoCapture(index)
+                    if capture.isOpened():
+                        return capture
+
+                    capture.release()
+                time.sleep(CAMERA_OPEN_RETRY_INTERVAL_SECONDS)
+
+        return None
 
     def stop(self) -> None:
         self.running = False
@@ -172,3 +204,122 @@ class BackgroundCameraLoop:
             "last_error": self.last_error,
             "stream_url": self.stream_url,
         }
+
+
+def _camera_index_candidates() -> list[int]:
+    return _dedupe_indices(
+        [
+            index
+            for candidate_group in _camera_index_candidate_groups()
+            for index in candidate_group
+        ]
+    )
+
+
+def _camera_index_candidate_groups() -> list[list[int]]:
+    env_index = _read_env_camera_index()
+    if env_index is not None:
+        return [[env_index]]
+
+    avfoundation_devices = _list_avfoundation_video_devices()
+    if not avfoundation_devices:
+        return [[0]]
+
+    preferred = [
+        index
+        for index, name in avfoundation_devices
+        if _matches_any(name, PREFERRED_CAMERA_KEYWORDS)
+        and not _matches_any(name, AVOID_CAMERA_KEYWORDS)
+    ]
+    fallback = [
+        index
+        for index, name in avfoundation_devices
+        if not _matches_any(name, AVOID_CAMERA_KEYWORDS)
+    ]
+    allowed = _dedupe_indices([*preferred, *fallback])
+
+    if allowed:
+        return [allowed]
+
+    return []
+
+
+def _read_env_camera_index() -> int | None:
+    raw = os.environ.get(CAMERA_INDEX_ENV)
+    if raw is None or raw.strip() == "":
+        return None
+
+    try:
+        index = int(raw)
+    except ValueError:
+        return None
+
+    return index if index >= 0 else None
+
+
+def _list_avfoundation_video_devices() -> list[tuple[int, str]]:
+    ffmpeg = _resolve_ffmpeg_command()
+    if ffmpeg is None:
+        return []
+
+    result = subprocess.run(
+        [
+            ffmpeg,
+            "-hide_banner",
+            "-f",
+            "avfoundation",
+            "-list_devices",
+            "true",
+            "-i",
+            "",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+    output = "\n".join(part for part in [result.stdout, result.stderr] if part)
+    return _parse_avfoundation_video_devices(output)
+
+
+def _parse_avfoundation_video_devices(output: str) -> list[tuple[int, str]]:
+    devices: list[tuple[int, str]] = []
+    in_video_section = False
+
+    for line in output.splitlines():
+        if "AVFoundation video devices:" in line:
+            in_video_section = True
+            continue
+        if "AVFoundation audio devices:" in line:
+            break
+        if not in_video_section:
+            continue
+
+        match = re.search(r"\[(\d+)\]\s+(.+)$", line)
+        if match is None:
+            continue
+
+        devices.append((int(match.group(1)), match.group(2).strip()))
+
+    return devices
+
+
+def _matches_any(value: str, keywords: tuple[str, ...]) -> bool:
+    lowered = value.lower()
+    return any(keyword in lowered for keyword in keywords)
+
+
+def _dedupe_indices(indices: list[int]) -> list[int]:
+    deduped: list[int] = []
+    for index in indices:
+        if index not in deduped:
+            deduped.append(index)
+    return deduped
+
+
+def _resolve_ffmpeg_command() -> str | None:
+    for candidate in FFMPEG_CANDIDATES:
+        resolved = shutil.which(candidate)
+        if resolved is not None:
+            return resolved
+    return None

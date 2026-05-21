@@ -18,6 +18,15 @@ const CameraPermissionButton = () => {
 
   const requestCameraPermission = async () => {
     try {
+      const isTauriRuntime =
+        typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+
+      if (isTauriRuntime) {
+        setShow()
+        navigate('/onboarding/calibration')
+        return
+      }
+
       const isWindows = navigator.platform.includes('Win')
 
       let stream: MediaStream | null = null

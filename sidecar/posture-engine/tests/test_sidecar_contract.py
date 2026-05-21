@@ -38,6 +38,27 @@ def test_start_reports_python_camera_owner_and_stream_url(monkeypatch):
     assert result["stream_url"] == "http://127.0.0.1:49152/video?token=test-token"
 
 
+def test_start_opens_camera_before_detector_initialization(monkeypatch):
+    service = PostureEngineService()
+    calls = []
+
+    def start_camera():
+        calls.append("camera")
+        service._background_loop.running = True
+
+    def initialize_detector():
+        calls.append("detector")
+        return True
+
+    monkeypatch.setattr(service._background_loop, "start", start_camera)
+    monkeypatch.setattr(service._detector, "initialize", initialize_detector)
+
+    result = service.handle({"command": "start"})
+
+    assert result["engine_status"] == "ready"
+    assert calls == ["camera", "detector"]
+
+
 def test_set_calibration_reports_effective_sigma():
     service = PostureEngineService()
 
