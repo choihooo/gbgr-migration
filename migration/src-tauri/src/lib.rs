@@ -16,7 +16,7 @@ mod state {
 mod widget;
 
 use commands::analytics::{analytics_log_event, analytics_set_user_id, AnalyticsState};
-use commands::api::api_request;
+use commands::api::{api_request, ApiClientState};
 use commands::posture_engine::{
     calibrate_camera_frame, calibrate_finish, calibrate_frame, calibrate_start,
     get_latest_posture_state, push_posture_frame, set_calibration, start_background_measurement,
@@ -71,6 +71,7 @@ pub fn run() {
     builder
         .manage(PostureEngineState::default())
         .manage(AnalyticsState::default())
+        .manage(ApiClientState::default())
         .manage(app_updates::PendingUpdate(Mutex::new(None)))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
