@@ -42,11 +42,17 @@ export function ProtectedRoute() {
   const userId = localStorage.getItem(AUTH_STORAGE_KEYS.userId)
   const gateState = getCalibrationGateState(userId)
 
-  if (gateState === 'initial_required') {
+  if (
+    gateState === 'initial_required' &&
+    location.pathname !== '/onboarding/init'
+  ) {
     return <Navigate to="/onboarding/init" replace />
   }
 
-  if (gateState === 'reset_requested') {
+  if (
+    gateState === 'reset_requested' &&
+    location.pathname !== '/onboarding/calibration'
+  ) {
     return <Navigate to="/onboarding/calibration" replace />
   }
 
