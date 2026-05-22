@@ -7,7 +7,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCameraStore } from '@/features/main-panels/model/use-camera-store'
-import { startPostureEngine, stopPostureEngine } from '@/features/posture-engine'
+import {
+  startPostureEngine,
+  stopPostureEngine,
+} from '@/features/posture-engine'
 import { getCameraPermissionErrorMessage } from '@/shared/lib/camera-permission'
 import { Button } from '@/shared/ui/button'
 
@@ -32,7 +35,10 @@ const CameraPermissionButton = () => {
         try {
           await stopPostureEngine()
         } catch (error) {
-          console.warn('[CameraPermission] 권한 확인 후 자세 엔진 정리 실패:', error)
+          console.warn(
+            '[CameraPermission] 권한 확인 후 자세 엔진 정리 실패:',
+            error,
+          )
         }
         setShow()
         navigate('/onboarding/calibration')

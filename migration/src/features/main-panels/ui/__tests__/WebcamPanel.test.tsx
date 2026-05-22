@@ -22,7 +22,10 @@ vi.mock('@/entities/dashboard/model/use-dashboard-queries', () => ({
 vi.mock('@/entities/session/model/use-session-mutations', () => ({
   useCreateSessionMutation: () => ({ mutate: vi.fn(), isPending: false }),
   useStopSessionMutation: () => ({ mutate: vi.fn(), isPending: false }),
-  usePauseSessionMutation: () => ({ mutate: pauseSessionMutate, isPending: false }),
+  usePauseSessionMutation: () => ({
+    mutate: pauseSessionMutate,
+    isPending: false,
+  }),
   useResumeSessionMutation: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
