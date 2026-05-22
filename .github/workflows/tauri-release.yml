@@ -229,12 +229,10 @@ jobs:
             'src-tauri',
             'tauri.github-release.conf.json',
           );
-          const sidecarBinary =
-            process.platform === 'win32' ? 'posture-engine.exe' : 'posture-engine';
           const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf8'));
           tauriConfig.bundle.resources = {
-            [`../../sidecar/posture-engine/${sidecarBinary}`]:
-              `sidecar/posture-engine/${sidecarBinary}`,
+            '../../sidecar/posture-engine/posture-engine/':
+              'sidecar/posture-engine/',
             'locales/ko.lproj/InfoPlist.strings': 'ko.lproj/InfoPlist.strings',
             'locales/en.lproj/InfoPlist.strings': 'en.lproj/InfoPlist.strings',
           };
