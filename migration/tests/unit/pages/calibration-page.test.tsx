@@ -28,7 +28,7 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('@/features/posture-engine', () => ({
   calibrateStart: () => mockCalibrateStart(),
-  calibrateFrame: (payload: unknown) => mockCalibrateFrame(payload),
+  calibrateCameraFrame: (payload: unknown) => mockCalibrateFrame(payload),
   calibrateFinish: () => mockCalibrateFinish(),
   useWindowVisibilitySync: vi.fn(),
 }))
@@ -41,11 +41,9 @@ vi.mock('@/pages/calibration-page/components/WebcamView', () => ({
   default: ({
     remainingTime,
     onResultChange,
-    onVideoRefReady,
   }: {
     remainingTime?: number
     onResultChange?: (result: unknown) => void
-    onVideoRefReady?: (ref: { current: { video: HTMLVideoElement } }) => void
   }) => {
     const didNotifyWebcamReadyRef = React.useRef(false)
 
@@ -65,17 +63,7 @@ vi.mock('@/pages/calibration-page/components/WebcamView', () => ({
         engineMode: 'foreground',
         events: [],
       })
-
-      onVideoRefReady?.({
-        current: {
-          video: {
-            readyState: 4,
-            videoWidth: 100,
-            videoHeight: 100,
-          } as HTMLVideoElement,
-        },
-      })
-    }, [onResultChange, onVideoRefReady])
+    }, [onResultChange])
 
     return <div>{`timer-${remainingTime ?? -1}`}</div>
   },
@@ -93,26 +81,10 @@ describe('CalibrationPage', () => {
     usePostureEngineStore.getState().setEngineState({
       engineStatus: 'ready',
       mode: 'foreground',
-      cameraOwner: 'react',
+      cameraOwner: 'python',
       updatedAt: new Date().toISOString(),
       message: null,
       recoverable: true,
-    })
-
-    const actualCreateElement = document.createElement.bind(document)
-    vi.spyOn(document, 'createElement').mockImplementation(tagName => {
-      if (tagName === 'canvas') {
-        return {
-          width: 0,
-          height: 0,
-          getContext: () => ({
-            drawImage: vi.fn(),
-          }),
-          toDataURL: () => 'data:image/jpeg;base64,abc',
-        } as unknown as HTMLCanvasElement
-      }
-
-      return actualCreateElement(tagName)
     })
   })
 

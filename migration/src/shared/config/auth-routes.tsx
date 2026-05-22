@@ -6,6 +6,12 @@ import { getPostAuthRedirectPath } from '@/features/auth/model/use-auth-redirect
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { getCalibrationGateState } from '@/shared/lib/calibration-gate'
 
+const INITIAL_CALIBRATION_ALLOWED_PATHS = new Set([
+  '/onboarding',
+  '/onboarding/init',
+  '/onboarding/calibration',
+])
+
 function AuthPendingScreen() {
   return <div className="min-h-screen bg-grey-0" />
 }
@@ -42,11 +48,17 @@ export function ProtectedRoute() {
   const userId = localStorage.getItem(AUTH_STORAGE_KEYS.userId)
   const gateState = getCalibrationGateState(userId)
 
-  if (gateState === 'initial_required') {
+  if (
+    gateState === 'initial_required' &&
+    !INITIAL_CALIBRATION_ALLOWED_PATHS.has(location.pathname)
+  ) {
     return <Navigate to="/onboarding/init" replace />
   }
 
-  if (gateState === 'reset_requested') {
+  if (
+    gateState === 'reset_requested' &&
+    location.pathname !== '/onboarding/calibration'
+  ) {
     return <Navigate to="/onboarding/calibration" replace />
   }
 

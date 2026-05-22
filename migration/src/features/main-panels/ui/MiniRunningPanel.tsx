@@ -91,7 +91,7 @@ function ExitPanel() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[400px] items-center justify-center">
+      <div className="flex h-full min-h-0 items-center justify-center">
         <p className="text-body-lg-medium text-grey-400">
           {t('dashboard.panels.report.loading')}
         </p>
@@ -101,7 +101,7 @@ function ExitPanel() {
 
   if (error) {
     return (
-      <div className="flex h-[400px] items-center justify-center">
+      <div className="flex h-full min-h-0 items-center justify-center">
         <p className="text-body-lg-medium text-error-500">
           {t('dashboard.panels.report.error')}
         </p>
@@ -111,7 +111,7 @@ function ExitPanel() {
 
   if (!data) {
     return (
-      <div className="flex h-[400px] items-center justify-center">
+      <div className="flex h-full min-h-0 items-center justify-center">
         <p className="text-body-lg-medium text-grey-400">
           {t('dashboard.panels.report.empty')}
         </p>
@@ -120,8 +120,8 @@ function ExitPanel() {
   }
 
   return (
-    <div className="bg-grey-0 rounded-xl py-6">
-      <div className="mb-12 flex flex-col">
+    <div className="bg-grey-0 flex h-full min-h-0 flex-col rounded-xl">
+      <div className="mb-[clamp(10px,2vh,24px)] flex shrink-0 flex-col">
         <h2 className="text-caption-sm-medium text-grey-400">
           {t('dashboard.panels.report.todayReport')}
         </h2>
@@ -132,7 +132,7 @@ function ExitPanel() {
         </p>
       </div>
 
-      <div className="relative mb-12 flex justify-center">
+      <div className="relative mb-[clamp(10px,2vh,24px)] h-[212.5px] shrink-0">
         <ResponsiveContainer width="100%" height={212.5}>
           <PieChart>
             <Pie
@@ -180,7 +180,7 @@ function ExitPanel() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-7">
+      <div className="flex min-h-0 shrink flex-col gap-[clamp(8px,1.5vh,18px)]">
         <div className="flex items-center">
           <div
             className="h-4 w-2 rounded-full"
@@ -196,8 +196,8 @@ function ExitPanel() {
           </p>
         </div>
 
-        <div className="bg-grey-25 flex flex-col rounded-[24px] p-5">
-          <p className="flex flex-col gap-2 px-5">
+        <div className="bg-grey-25 flex flex-col rounded-[20px] p-3">
+          <p className="flex flex-col gap-1 px-3">
             <span className="text-body-sm-medium text-grey-400">
               {t('dashboard.panels.report.postureScore')}
             </span>

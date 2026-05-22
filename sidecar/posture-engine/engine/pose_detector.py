@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 import os
+import sys
+import types
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +30,13 @@ KEY_INDICES = [
 MODEL_FILENAME = "pose_landmarker_full.task"
 
 
+def _install_matplotlib_stub() -> None:
+    if "matplotlib" not in sys.modules:
+        sys.modules["matplotlib"] = types.ModuleType("matplotlib")
+    if "matplotlib.pyplot" not in sys.modules:
+        sys.modules["matplotlib.pyplot"] = types.ModuleType("matplotlib.pyplot")
+
+
 class PoseDetector:
     """MediaPipe Pose Landmarker를 사용한 포즈 감지."""
 
@@ -48,9 +57,10 @@ class PoseDetector:
             return False
 
         try:
-            import mediapipe as mp
+            _install_matplotlib_stub()
             from mediapipe.tasks import python
             from mediapipe.tasks.python import vision
+            from mediapipe.tasks.python.vision.core.image import Image, ImageFormat
         except ImportError as exc:
             self.last_error = f"mediapipe_import_failed: {exc}"
             return False
@@ -65,8 +75,8 @@ class PoseDetector:
                 min_tracking_confidence=0.2,
             )
             self._landmarker = vision.PoseLandmarker.create_from_options(options)
-            self._image_type = mp.Image
-            self._image_format = mp.ImageFormat
+            self._image_type = Image
+            self._image_format = ImageFormat
             return True
         except Exception as exc:
             self.last_error = f"mediapipe_initialization_failed: {exc}"

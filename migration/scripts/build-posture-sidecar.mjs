@@ -16,7 +16,8 @@ const macosSidecarEntitlementsPath = join(
 )
 const outputName =
   process.platform === 'win32' ? 'posture-engine.exe' : 'posture-engine'
-const outputPath = join(sidecarDir, outputName)
+const outputPath = join(sidecarDir, 'posture-engine')
+const outputExecutablePath = join(outputPath, outputName)
 const buildDir = join(sidecarDir, '.pyinstaller-build')
 const specDir = join(sidecarDir, '.pyinstaller-spec')
 const dataSeparator = process.platform === 'win32' ? ';' : ':'
@@ -113,34 +114,6 @@ function ensurePythonPackage(moduleName, installHint) {
   )
 }
 
-function warmMatplotlibCache() {
-  const result = spawnSync(
-    python,
-    [
-      '-c',
-      [
-        'import matplotlib',
-        'from matplotlib import font_manager',
-        'font_manager._load_fontmanager()',
-        'print("matplotlib font cache ready")',
-      ].join('; '),
-    ],
-    {
-      encoding: 'utf8',
-      timeout: 180000,
-    },
-  )
-
-  if (result.status === 0) {
-    return
-  }
-
-  fail(
-    'Matplotlib font cache를 준비하지 못했습니다.',
-    result.stderr?.trim() || result.stdout?.trim(),
-  )
-}
-
 function resolveMediaPipeBinaryPath() {
   const libName =
     process.platform === 'win32'
@@ -206,7 +179,7 @@ function signMacosSidecar() {
       '--timestamp',
       '--sign',
       identity,
-      outputPath,
+      outputExecutablePath,
     ],
     {
       encoding: 'utf8',
@@ -259,11 +232,6 @@ ensurePythonPackage(
   'mediapipe',
   '`pip install -r sidecar/posture-engine/requirements.txt`로 MediaPipe 의존성을 설치해주세요.',
 )
-ensurePythonPackage(
-  'matplotlib',
-  '`pip install matplotlib` 또는 프로젝트 요구사항 설치가 필요합니다.',
-)
-warmMatplotlibCache()
 const mediaPipeBinaryPath = resolveMediaPipeBinaryPath()
 
 for (const path of [outputPath, buildDir, specDir]) {
@@ -276,7 +244,7 @@ const args = [
   '-m',
   'PyInstaller',
   '--clean',
-  '--onefile',
+  '--onedir',
   '--name',
   'posture-engine',
   '--distpath',
@@ -306,6 +274,8 @@ const args = [
   '--exclude-module',
   'tensorflow',
   '--exclude-module',
+  'matplotlib',
+  '--exclude-module',
   'sounddevice',
   entryScriptPath,
 ]
@@ -330,15 +300,15 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1)
 }
 
-if (!existsSync(outputPath)) {
-  console.error(`자세 엔진 실행 파일 산출 실패: ${outputPath}`)
+if (!existsSync(outputExecutablePath)) {
+  console.error(`자세 엔진 실행 파일 산출 실패: ${outputExecutablePath}`)
   process.exit(1)
 }
 
 signMacosSidecar()
 
-const smoke = spawnSync(outputPath, {
-  input: `${JSON.stringify({ command: 'start' })}\n`,
+const smoke = spawnSync(outputExecutablePath, {
+  input: `${JSON.stringify({ command: 'latest_result', session_id: 'smoke' })}\n`,
   encoding: 'utf8',
   timeout: 300000,
 })
@@ -352,11 +322,11 @@ if (smoke.status !== 0) {
 }
 
 const response = smoke.stdout.trim()
-if (!response.includes('"engine_status": "ready"')) {
+if (!response.includes('"session_id": "smoke"')) {
   console.error(`자세 엔진 smoke 응답이 올바르지 않음: ${response}`)
   process.exit(1)
 }
 
 cleanupPyInstallerArtifacts()
 
-console.log(`자세 엔진 실행 파일 생성 완료: ${outputPath}`)
+console.log(`자세 엔진 실행 파일 생성 완료: ${outputExecutablePath}`)

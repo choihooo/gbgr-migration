@@ -4,8 +4,7 @@ use crate::state::posture_engine_state::{
 
 pub fn transition_ownership(current_owner: CameraOwner, mode: &EngineMode) -> CameraOwnershipState {
     let requested_owner = match mode {
-        EngineMode::Foreground => CameraOwner::React,
-        EngineMode::Background => CameraOwner::Python,
+        EngineMode::Foreground | EngineMode::Background => CameraOwner::Python,
     };
 
     let lock_state = if current_owner == requested_owner {

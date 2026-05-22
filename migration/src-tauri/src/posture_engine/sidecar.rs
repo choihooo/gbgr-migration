@@ -5,7 +5,7 @@ use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::thread;
 use std::time::Duration;
 
-const SIDECAR_RESPONSE_TIMEOUT: Duration = Duration::from_secs(60);
+const SIDECAR_RESPONSE_TIMEOUT: Duration = Duration::from_secs(180);
 const SIDECAR_TIMEOUT_ERROR_CODE: &str = "SIDECAR_TIMEOUT";
 
 enum SidecarCommand {
@@ -374,6 +374,14 @@ mod tests {
     #[test]
     fn timeout_error_code_is_stable() {
         assert_eq!(SIDECAR_TIMEOUT_ERROR_CODE, "SIDECAR_TIMEOUT");
+    }
+
+    #[test]
+    fn response_timeout_allows_packaged_sidecar_cold_start() {
+        assert!(
+            SIDECAR_RESPONSE_TIMEOUT >= Duration::from_secs(120),
+            "PyInstaller/MediaPipe cold start can exceed 60 seconds on macOS"
+        );
     }
 
     #[test]

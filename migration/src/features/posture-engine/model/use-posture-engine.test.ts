@@ -42,6 +42,7 @@ describe('usePostureEngine', () => {
       engineStatus: 'ready',
       sessionId: 'session-1',
       mode: 'foreground',
+      streamUrl: 'http://127.0.0.1:49152/video?token=test-token',
     })
     vi.spyOn(bridge, 'stopBackgroundMeasurement').mockResolvedValue({
       engineStatus: 'ready',
@@ -78,5 +79,54 @@ describe('usePostureEngine', () => {
     expect(usePostureEngineStore.getState().session?.sessionId).toBe(
       'session-1',
     )
+  })
+
+  it('활성화된 상태로 언마운트되면 sidecar 카메라를 정리한다', async () => {
+    vi.spyOn(bridge, 'isTauriRuntimeAvailable').mockReturnValue(true)
+    vi.spyOn(bridge, 'getLatestPostureState').mockResolvedValue({
+      session: null,
+      latestResult: null,
+      engineState: {
+        engineStatus: 'idle',
+        mode: 'foreground',
+        cameraOwner: 'none',
+        updatedAt: new Date().toISOString(),
+        message: null,
+        recoverable: true,
+      },
+    })
+    vi.spyOn(bridge, 'subscribeToPostureResults').mockResolvedValue(() => {})
+    vi.spyOn(bridge, 'subscribeToPostureEngineStatus').mockResolvedValue(
+      () => {},
+    )
+    vi.spyOn(bridge, 'subscribeToPostureWarnings').mockResolvedValue(() => {})
+    vi.spyOn(bridge, 'startPostureEngine').mockResolvedValue({
+      engineStatus: 'ready',
+      sessionId: 'session-cleanup',
+      mode: 'foreground',
+      streamUrl: 'http://127.0.0.1:49152/video?token=test-token',
+    })
+    vi.spyOn(bridge, 'stopBackgroundMeasurement').mockResolvedValue({
+      engineStatus: 'ready',
+      mode: 'foreground',
+    })
+    const stopPostureEngine = vi
+      .spyOn(bridge, 'stopPostureEngine')
+      .mockResolvedValue({
+        engineStatus: 'idle',
+        releasedOwner: 'python',
+      })
+
+    const { unmount } = renderHook(() => usePostureEngine({ active: true }))
+
+    await waitFor(() => {
+      expect(bridge.startPostureEngine).toHaveBeenCalled()
+    })
+
+    unmount()
+
+    await waitFor(() => {
+      expect(stopPostureEngine).toHaveBeenCalled()
+    })
   })
 })

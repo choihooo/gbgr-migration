@@ -1,10 +1,9 @@
 import { type RefObject, useEffect, useRef, useState } from 'react'
-import Webcam from 'react-webcam'
+import type Webcam from 'react-webcam'
 import SleepIcon from '@/assets/common/icons/sleep.svg'
 import { PoseOverlayCanvas, type PostureEngineResult } from '@/entities/posture'
 import { useCameraStore } from '@/features/main-panels/model/use-camera-store'
 import { usePostureEngine } from '@/features/posture-engine'
-import { getCameraPermissionErrorMessage } from '@/shared/lib/camera-permission'
 import { Timer } from '@/shared/ui/timer'
 
 interface WebcamViewProps {
@@ -27,20 +26,23 @@ const WebcamView = ({
   onResultChange,
   disableFramePush = false,
 }: WebcamViewProps) => {
-  const webcamRef = useRef<Webcam>(null)
-  const mediaStreamRef = useRef<MediaStream | null>(null)
-  const { overlayLandmarks, latestResult, engineState, runtimeAvailable } =
-    usePostureEngine({
-      active: isActive,
-      mode,
-      webcamRef,
-      disableFramePush,
-    })
-  const { cameraState, setShow } = useCameraStore()
+  const emptyWebcamRef = useRef<Webcam>(null)
+  const {
+    overlayLandmarks,
+    latestResult,
+    engineState,
+    runtimeAvailable,
+    streamUrl,
+  } = usePostureEngine({
+    active: isActive,
+    mode,
+    disableFramePush,
+  })
+  const { cameraState } = useCameraStore()
 
   useEffect(() => {
     if (onVideoRefReady) {
-      onVideoRefReady(webcamRef as RefObject<Webcam>)
+      onVideoRefReady(emptyWebcamRef as RefObject<Webcam>)
     }
   }, [onVideoRefReady])
 
@@ -53,81 +55,31 @@ const WebcamView = ({
     width: 760,
     height: 428,
   })
-  const [preferredDeviceId, setPreferredDeviceId] = useState(() =>
-    localStorage.getItem('preferred-camera-device'),
-  )
-  const [cameraError, setCameraError] = useState<string | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
-    if (container) {
+    if (!container) return
+
+    const updateDimensions = () => {
       const { clientWidth, clientHeight } = container
       if (clientWidth > 0 && clientHeight > 0) {
         setVideoDimensions({ width: clientWidth, height: clientHeight })
       }
     }
+
+    updateDimensions()
+
+    if (typeof ResizeObserver === 'undefined') return
+
+    const observer = new ResizeObserver(updateDimensions)
+    observer.observe(container)
+
+    return () => {
+      observer.disconnect()
+    }
   }, [])
 
-  const videoConstraints = preferredDeviceId
-    ? {
-        deviceId: { ideal: preferredDeviceId },
-        width: { ideal: 1000 },
-        height: { ideal: 563 },
-      }
-    : { facingMode: 'user', width: { ideal: 1000 }, height: { ideal: 563 } }
-  const shouldRenderLiveWebcam = cameraState === 'show' && mode === 'foreground'
-
-  const handleUserMedia = (stream: MediaStream | null) => {
-    setCameraError(null)
-    mediaStreamRef.current = stream
-
-    if (stream) {
-      setShow()
-      const videoTrack = stream.getVideoTracks()[0]
-      if (videoTrack) {
-        const settings = videoTrack.getSettings()
-        if (settings.deviceId) {
-          localStorage.setItem('preferred-camera-device', settings.deviceId)
-          setPreferredDeviceId(settings.deviceId)
-        }
-        setVideoDimensions({
-          width: settings.width || 760,
-          height: settings.height || 428,
-        })
-      }
-    }
-  }
-
-  const handleUserMediaError = (error: string | DOMException) => {
-    const message =
-      typeof error === 'string' ? error : getCameraPermissionErrorMessage(error)
-    console.error('[WebcamView] 카메라 연결 실패:', error)
-
-    if (preferredDeviceId) {
-      localStorage.removeItem('preferred-camera-device')
-      setPreferredDeviceId(null)
-      setCameraError('저장된 카메라 정보를 다시 연결하는 중입니다')
-      return
-    }
-
-    setCameraError(message || '카메라를 연결할 수 없습니다')
-  }
-
-  useEffect(() => {
-    if (
-      cameraState === 'hide' ||
-      cameraState === 'exit' ||
-      mode === 'background'
-    ) {
-      const stream =
-        mediaStreamRef.current ??
-        (webcamRef.current?.video?.srcObject as MediaStream | null)
-      stream?.getTracks().forEach(track => {
-        track.stop()
-      })
-      mediaStreamRef.current = null
-    }
-  }, [cameraState, mode])
+  const shouldRenderSidecarStream = cameraState === 'show' && Boolean(streamUrl)
 
   const isEngineAvailable =
     runtimeAvailable && engineState.engineStatus !== 'error'
@@ -135,11 +87,7 @@ const WebcamView = ({
   if (!isEngineAvailable) {
     return (
       <div
-        className="bg-grey-50 flex items-center justify-center rounded-2xl"
-        style={{
-          width: containerRef.current?.clientWidth || videoDimensions.width,
-          height: containerRef.current?.clientHeight || videoDimensions.height,
-        }}
+        className="bg-grey-50 flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden rounded-2xl"
         ref={containerRef}
       >
         <div className="text-grey-300 flex flex-col items-center text-center">
@@ -149,12 +97,6 @@ const WebcamView = ({
                 브라우저 미리보기에서는
                 <br />
                 자세 측정 엔진이 동작하지 않습니다
-              </>
-            ) : cameraError ? (
-              <>
-                카메라 뷰 영역
-                <br />
-                {cameraError}
               </>
             ) : (
               <>
@@ -171,17 +113,13 @@ const WebcamView = ({
 
   return (
     <div className="relative h-full w-full" ref={containerRef}>
-      {shouldRenderLiveWebcam ? (
-        <div className="relative">
-          <Webcam
-            key={preferredDeviceId ?? 'default-camera'}
-            ref={webcamRef}
-            autoPlay
-            playsInline
-            videoConstraints={videoConstraints}
-            onUserMedia={handleUserMedia}
-            onUserMediaError={handleUserMediaError}
+      {shouldRenderSidecarStream ? (
+        <div className="relative h-full w-full">
+          <img
+            src={streamUrl ?? undefined}
+            alt="자세 측정 카메라 스트림"
             className="media-display pointer-events-none h-full w-full scale-x-[-1] rounded-[24px] object-fill select-none"
+            draggable={false}
           />
           {overlayLandmarks.length > 0 ? (
             <PoseOverlayCanvas
@@ -209,37 +147,16 @@ const WebcamView = ({
           ) : null}
         </div>
       ) : cameraState === 'show' ? (
-        <div
-          className="bg-grey-50 flex items-center justify-center rounded-2xl"
-          style={{
-            width: containerRef.current?.clientWidth || videoDimensions.width,
-            height:
-              containerRef.current?.clientHeight || videoDimensions.height,
-          }}
-        />
+        <div className="bg-grey-50 flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden rounded-2xl" />
       ) : cameraState === 'hide' ? (
-        <div
-          className="bg-grey-50 flex items-center justify-center rounded-2xl"
-          style={{
-            width: containerRef.current?.clientWidth || videoDimensions.width,
-            height:
-              containerRef.current?.clientHeight || videoDimensions.height,
-          }}
-        >
+        <div className="bg-grey-50 flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden rounded-2xl">
           <div className="text-grey-300 text-center">
             측정을 멈췄어요! <br />
             준비되면 카메라 버튼을 눌러주세요.
           </div>
         </div>
       ) : (
-        <div
-          className="bg-grey-50 flex items-center justify-center rounded-2xl"
-          style={{
-            width: containerRef.current?.clientWidth || videoDimensions.width,
-            height:
-              containerRef.current?.clientHeight || videoDimensions.height,
-          }}
-        >
+        <div className="bg-grey-50 flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden rounded-2xl">
           <div className="text-grey-300 flex flex-col items-center text-center">
             <div className="flex flex-col items-center gap-6">
               오늘 한걸음 나아갔네요 <br />

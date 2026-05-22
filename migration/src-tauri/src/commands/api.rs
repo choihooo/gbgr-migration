@@ -3,6 +3,7 @@ use std::time::Duration;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tauri::State;
 use url::Url;
 
 const API_BASE_URL: &str = "https://api.bugi.co.kr";
@@ -25,6 +26,24 @@ pub struct ApiResponse {
     status_text: String,
     headers: Vec<(String, String)>,
     data: Value,
+}
+
+pub struct ApiClientState {
+    client: reqwest::Client,
+}
+
+impl Default for ApiClientState {
+    fn default() -> Self {
+        Self {
+            client: build_api_client().expect("API 클라이언트 생성 실패"),
+        }
+    }
+}
+
+fn build_api_client() -> Result<reqwest::Client, reqwest::Error> {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(API_REQUEST_TIMEOUT_SECONDS))
+        .build()
 }
 
 fn validate_api_url(url: Url) -> Result<String, String> {
@@ -93,16 +112,14 @@ fn build_headers(entries: &[(String, String)]) -> Result<HeaderMap, String> {
 }
 
 #[tauri::command]
-pub async fn api_request(request: ApiRequest) -> Result<ApiResponse, String> {
+pub async fn api_request(
+    state: State<'_, ApiClientState>,
+    request: ApiRequest,
+) -> Result<ApiResponse, String> {
     let url = resolve_api_url(&request.url)?;
     let method = parse_allowed_method(&request.method)?;
     let headers = build_headers(&request.headers)?;
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(API_REQUEST_TIMEOUT_SECONDS))
-        .build()
-        .map_err(|error| format!("API 클라이언트 생성 실패: {error}"))?;
-
-    let mut builder = client.request(method, url).headers(headers);
+    let mut builder = state.client.request(method, url).headers(headers);
 
     if let Some(body) = request.body {
         builder = builder.json(&body);

@@ -18,6 +18,7 @@ pub struct StartPostureEngineResponse {
     pub engine_status: String,
     pub session_id: Option<String>,
     pub mode: EngineMode,
+    pub stream_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -98,6 +99,13 @@ pub struct CalibrateFramePayload {
     pub image_payload: String,
     pub captured_at: String,
     pub frame_size: FrameSize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalibrateCameraFramePayload {
+    pub session_id: String,
+    pub captured_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

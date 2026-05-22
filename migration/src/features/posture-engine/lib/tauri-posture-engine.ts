@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import type {
   BackgroundMeasurementResponse,
+  CalibrateCameraFramePayload,
   CalibrateFinishResponse,
   CalibrateFramePayload,
   CalibrateFrameResponse,
@@ -34,6 +35,7 @@ export async function startPostureEngine() {
       engineStatus: 'ready',
       sessionId: null,
       mode: 'foreground',
+      streamUrl: null,
     } satisfies StartPostureEngineResponse
   }
 
@@ -161,6 +163,20 @@ export async function calibrateFrame(
     }
   }
   return invoke<CalibrateFrameResponse>('calibrate_frame', { payload })
+}
+
+export async function calibrateCameraFrame(
+  payload: CalibrateCameraFramePayload,
+): Promise<CalibrateFrameResponse> {
+  if (!isTauriRuntimeAvailable()) {
+    return {
+      status: 'no_detection',
+      frameCount: 0,
+      step1Error: null,
+      step2Error: null,
+    }
+  }
+  return invoke<CalibrateFrameResponse>('calibrate_camera_frame', { payload })
 }
 
 export async function calibrateFinish(): Promise<CalibrateFinishResponse> {

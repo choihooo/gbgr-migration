@@ -61,10 +61,10 @@ export function WebcamPanel() {
       return
     }
 
+    setCameraState('exit')
     stopSession.mutate(currentSessionId, {
       onSettled: () => {
         flushMetrics()
-        setCameraState('exit')
       },
     })
   }
@@ -73,15 +73,17 @@ export function WebcamPanel() {
     if (isExit) return
 
     if (isWebcamOn && currentSessionId) {
+      setCameraState('hide')
       pauseSession.mutate(currentSessionId, {
-        onSettled: () => setCameraState('hide'),
+        onError: () => setCameraState('hide'),
       })
       return
     }
 
     if (!isWebcamOn && currentSessionId) {
+      setCameraState('show')
       resumeSession.mutate(currentSessionId, {
-        onSettled: () => setCameraState('show'),
+        onError: () => setCameraState('show'),
       })
       return
     }
@@ -91,8 +93,8 @@ export function WebcamPanel() {
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <div className="relative aspect-video max-h-[198px] max-w-[352px]">
-        <WebcamView isActive={true} mode={mode} />
+      <div className="relative aspect-video max-h-[198px] w-full max-w-[352px] min-w-0 overflow-hidden">
+        <WebcamView isActive={isWebcamOn} mode={mode} />
         <Button
           size="md"
           variant="grey"
