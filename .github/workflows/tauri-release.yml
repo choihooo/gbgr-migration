@@ -230,9 +230,18 @@ jobs:
             'tauri.github-release.conf.json',
           );
           const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf8'));
+          const postureSidecarResources =
+            process.platform === 'darwin'
+              ? {
+                  '../../sidecar/posture-engine/posture-engine':
+                    'sidecar/posture-engine/posture-engine',
+                }
+              : {
+                  '../../sidecar/posture-engine/posture-engine/':
+                    'sidecar/posture-engine/',
+                };
           tauriConfig.bundle.resources = {
-            '../../sidecar/posture-engine/posture-engine/':
-              'sidecar/posture-engine/',
+            ...postureSidecarResources,
             'locales/ko.lproj/InfoPlist.strings': 'ko.lproj/InfoPlist.strings',
             'locales/en.lproj/InfoPlist.strings': 'en.lproj/InfoPlist.strings',
           };
@@ -272,6 +281,7 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY_PATH: /Users/runner/.private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8
+          GBGR_MACOS_SIDECAR_ONEFILE: ${{ startsWith(matrix.platform, 'macos') && '1' || '0' }}
         with:
           projectPath: migration
           tauriScript: pnpm run tauri

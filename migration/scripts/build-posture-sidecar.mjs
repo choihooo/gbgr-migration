@@ -25,8 +25,13 @@ const macosSidecarEntitlementsPath = join(
 )
 const outputName =
   process.platform === 'win32' ? 'posture-engine.exe' : 'posture-engine'
+const shouldBuildMacosOnefile =
+  process.platform === 'darwin' &&
+  process.env.GBGR_MACOS_SIDECAR_ONEFILE === '1'
 const outputPath = join(sidecarDir, 'posture-engine')
-const outputExecutablePath = join(outputPath, outputName)
+const outputExecutablePath = shouldBuildMacosOnefile
+  ? outputPath
+  : join(outputPath, outputName)
 const buildDir = join(sidecarDir, '.pyinstaller-build')
 const specDir = join(sidecarDir, '.pyinstaller-spec')
 const dataSeparator = process.platform === 'win32' ? ';' : ':'
@@ -289,6 +294,12 @@ function signMacosSidecar() {
     return
   }
 
+  if (shouldBuildMacosOnefile) {
+    signMacosPath(outputExecutablePath, identity, { entitlements: true })
+    verifyMacosSignature(outputExecutablePath)
+    return
+  }
+
   materializeMacosPythonAliases()
 
   const binaryPaths = collectRegularFiles(outputPath)
@@ -358,7 +369,7 @@ const args = [
   '-m',
   'PyInstaller',
   '--clean',
-  '--onedir',
+  shouldBuildMacosOnefile ? '--onefile' : '--onedir',
   '--name',
   'posture-engine',
   '--distpath',
