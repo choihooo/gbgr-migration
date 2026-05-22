@@ -256,8 +256,20 @@ function materializeSymlink(path) {
   chmodSync(path, realStats.mode)
 }
 
-function materializeMacosPythonAliases() {
-  materializeSymlink(join(outputPath, '_internal', 'Python'))
+function materializeMacosBinarySymlinks(rootPath) {
+  for (const entry of readdirSync(rootPath)) {
+    const path = join(rootPath, entry)
+    const stats = lstatSync(path)
+
+    if (stats.isSymbolicLink()) {
+      materializeSymlink(path)
+      continue
+    }
+
+    if (stats.isDirectory()) {
+      materializeMacosBinarySymlinks(path)
+    }
+  }
 }
 
 function signMacosPath(
@@ -300,7 +312,7 @@ function signMacosSidecar() {
     return
   }
 
-  materializeMacosPythonAliases()
+  materializeMacosBinarySymlinks(outputPath)
 
   const binaryPaths = collectRegularFiles(outputPath)
     .filter(path => path !== outputExecutablePath)
