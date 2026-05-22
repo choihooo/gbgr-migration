@@ -1,5 +1,14 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, readdirSync, rmSync, statSync } from 'node:fs'
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  lstatSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  statSync,
+} from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -220,6 +229,37 @@ function isMacosBinary(path) {
   return result.status === 0 && result.stdout.includes('Mach-O')
 }
 
+function materializeSymlink(path) {
+  if (!existsSync(path)) {
+    return
+  }
+
+  const stats = lstatSync(path)
+  if (!stats.isSymbolicLink()) {
+    return
+  }
+
+  const realPath = realpathSync(path)
+  const realStats = statSync(realPath)
+
+  if (!realStats.isFile() || !isMacosBinary(realPath)) {
+    return
+  }
+
+  rmSync(path)
+  copyFileSync(realPath, path)
+  chmodSync(path, realStats.mode)
+}
+
+function materializeMacosPythonAliases() {
+  for (const path of [
+    join(outputPath, '_internal', 'Python'),
+    join(outputPath, '_internal', 'Python.framework', 'Python'),
+  ]) {
+    materializeSymlink(path)
+  }
+}
+
 function signMacosPath(path, identity, { entitlements = false } = {}) {
   const args = ['--force', '--options', 'runtime', '--timestamp']
 
@@ -245,6 +285,8 @@ function signMacosSidecar() {
   if (process.platform !== 'darwin' || !identity) {
     return
   }
+
+  materializeMacosPythonAliases()
 
   const binaryPaths = collectRegularFiles(outputPath)
     .filter(path => path !== outputExecutablePath)
