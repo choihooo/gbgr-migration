@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, rmSync } from 'node:fs'
+import { existsSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -161,6 +161,84 @@ function resolveMediaPipeBinaryPath() {
   return resolvedPath
 }
 
+function runCodesign(args, failureMessage) {
+  const result = spawnSync('codesign', args, {
+    encoding: 'utf8',
+  })
+
+  if (result.status !== 0) {
+    fail(failureMessage, result.stderr?.trim() || result.stdout?.trim())
+  }
+}
+
+function collectRegularFiles(rootPath) {
+  const entries = []
+
+  for (const entry of readdirSync(rootPath)) {
+    const path = join(rootPath, entry)
+    const stats = statSync(path)
+
+    if (stats.isDirectory()) {
+      entries.push(...collectRegularFiles(path))
+      continue
+    }
+
+    if (stats.isFile()) {
+      entries.push(path)
+    }
+  }
+
+  return entries
+}
+
+function collectFrameworkDirs(rootPath) {
+  const entries = []
+
+  for (const entry of readdirSync(rootPath)) {
+    const path = join(rootPath, entry)
+    const stats = statSync(path)
+
+    if (!stats.isDirectory()) {
+      continue
+    }
+
+    if (entry.endsWith('.framework')) {
+      entries.push(path)
+    }
+
+    entries.push(...collectFrameworkDirs(path))
+  }
+
+  return entries
+}
+
+function isMacosBinary(path) {
+  const result = spawnSync('file', ['-b', path], {
+    encoding: 'utf8',
+  })
+
+  return result.status === 0 && result.stdout.includes('Mach-O')
+}
+
+function signMacosPath(path, identity, { entitlements = false } = {}) {
+  const args = ['--force', '--options', 'runtime', '--timestamp']
+
+  if (entitlements) {
+    args.push('--entitlements', macosSidecarEntitlementsPath)
+  }
+
+  args.push('--sign', identity, path)
+
+  runCodesign(args, `macOS sidecar 코드 서명에 실패했습니다: ${path}`)
+}
+
+function verifyMacosSignature(path) {
+  runCodesign(
+    ['--verify', '--strict', '--verbose=2', path],
+    `macOS sidecar 코드 서명 검증에 실패했습니다: ${path}`,
+  )
+}
+
 function signMacosSidecar() {
   const identity = process.env.APPLE_SIGNING_IDENTITY
 
@@ -168,30 +246,21 @@ function signMacosSidecar() {
     return
   }
 
-  const result = spawnSync(
-    'codesign',
-    [
-      '--force',
-      '--options',
-      'runtime',
-      '--entitlements',
-      macosSidecarEntitlementsPath,
-      '--timestamp',
-      '--sign',
-      identity,
-      outputExecutablePath,
-    ],
-    {
-      encoding: 'utf8',
-    },
-  )
+  const binaryPaths = collectRegularFiles(outputPath)
+    .filter(path => path !== outputExecutablePath)
+    .filter(isMacosBinary)
+    .sort((left, right) => right.split('/').length - left.split('/').length)
 
-  if (result.status !== 0) {
-    fail(
-      '자세 엔진 실행 파일 서명에 실패했습니다.',
-      result.stderr?.trim() || result.stdout?.trim(),
-    )
+  for (const binaryPath of binaryPaths) {
+    signMacosPath(binaryPath, identity)
   }
+
+  for (const frameworkPath of collectFrameworkDirs(outputPath)) {
+    signMacosPath(frameworkPath, identity)
+  }
+
+  signMacosPath(outputExecutablePath, identity, { entitlements: true })
+  verifyMacosSignature(outputExecutablePath)
 }
 
 function appendMacosPyInstallerSigningArgs(args) {
