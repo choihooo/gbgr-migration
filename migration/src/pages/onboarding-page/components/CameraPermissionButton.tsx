@@ -22,15 +22,30 @@ const CameraPermissionButton = () => {
   const requestStream = (constraints: MediaStreamConstraints) =>
     navigator.mediaDevices.getUserMedia(constraints)
 
+  const stopStream = (stream: MediaStream | null) => {
+    stream?.getTracks().forEach(track => {
+      track.stop()
+    })
+  }
+
   const requestCameraPermission = async () => {
     if (isRequesting) return
 
     setIsRequesting(true)
+    let stream: MediaStream | null = null
     try {
       const isTauriRuntime =
         typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
       if (isTauriRuntime) {
+        stream = await requestStream({
+          video: true,
+          audio: false,
+        })
+        stopStream(stream)
+        stream = null
+        await new Promise(resolve => setTimeout(resolve, 100))
+
         await startPostureEngine()
         try {
           await stopPostureEngine()
@@ -47,7 +62,6 @@ const CameraPermissionButton = () => {
 
       const isWindows = navigator.platform.includes('Win')
 
-      let stream: MediaStream | null = null
       let selectedDeviceId: string | null = null
 
       if (isWindows) {
@@ -87,9 +101,8 @@ const CameraPermissionButton = () => {
         throw new Error('사용 가능한 카메라를 찾을 수 없습니다.')
       }
 
-      stream.getTracks().forEach(track => {
-        track.stop()
-      })
+      stopStream(stream)
+      stream = null
 
       await new Promise(resolve => setTimeout(resolve, 100))
 
@@ -103,6 +116,7 @@ const CameraPermissionButton = () => {
       console.error('[CameraPermission] 카메라 권한 요청 실패:', error)
       window.alert(getCameraPermissionErrorMessage(error))
     } finally {
+      stopStream(stream)
       setIsRequesting(false)
     }
   }

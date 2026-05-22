@@ -282,6 +282,11 @@ fn packaged_sidecar_binary_candidates_from_exe_dir(
                 .join("sidecar")
                 .join("posture-engine")
                 .join(executable_name),
+            base_dir
+                .join("sidecar")
+                .join("posture-engine")
+                .join("posture-engine")
+                .join(executable_name),
         ]
     })
     .collect()
@@ -399,16 +404,25 @@ mod tests {
                     "/Applications/Posture Turtle.app/Contents/MacOS/sidecar/posture-engine/posture-engine"
                 ),
                 PathBuf::from(
+                    "/Applications/Posture Turtle.app/Contents/MacOS/sidecar/posture-engine/posture-engine/posture-engine"
+                ),
+                PathBuf::from(
                     "/Applications/Posture Turtle.app/Contents/MacOS/resources/sidecar/posture-engine"
                 ),
                 PathBuf::from(
                     "/Applications/Posture Turtle.app/Contents/MacOS/resources/sidecar/posture-engine/posture-engine"
                 ),
                 PathBuf::from(
+                    "/Applications/Posture Turtle.app/Contents/MacOS/resources/sidecar/posture-engine/posture-engine/posture-engine"
+                ),
+                PathBuf::from(
                     "/Applications/Posture Turtle.app/Contents/MacOS/../Resources/sidecar/posture-engine"
                 ),
                 PathBuf::from(
                     "/Applications/Posture Turtle.app/Contents/MacOS/../Resources/sidecar/posture-engine/posture-engine"
+                ),
+                PathBuf::from(
+                    "/Applications/Posture Turtle.app/Contents/MacOS/../Resources/sidecar/posture-engine/posture-engine/posture-engine"
                 ),
             ]
         );

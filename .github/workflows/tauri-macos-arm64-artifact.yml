@@ -154,8 +154,8 @@ jobs:
           );
           const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf8'));
           tauriConfig.bundle.resources = {
-            '../../sidecar/posture-engine/posture-engine':
-              'sidecar/posture-engine/posture-engine',
+            '../../sidecar/posture-engine/posture-engine/':
+              'sidecar/posture-engine/',
             'locales/ko.lproj/InfoPlist.strings': 'ko.lproj/InfoPlist.strings',
             'locales/en.lproj/InfoPlist.strings': 'en.lproj/InfoPlist.strings',
           };
@@ -189,7 +189,35 @@ jobs:
         run: |
           set -euo pipefail
           APP_PATH="migration/src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Posture Turtle.app"
+          SIDECAR="$APP_PATH/Contents/Resources/sidecar/posture-engine/posture-engine"
+
+          test -x "$SIDECAR"
+          test ! -e "$APP_PATH/Contents/Resources/sidecar/posture-engine/main.py"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          python3 - "$SIDECAR" <<'PY'
+          import json
+          import subprocess
+          import sys
+
+          sidecar = sys.argv[1]
+          payload = json.dumps(
+              {"command": "latest_result", "session_id": "bundle-smoke"}
+          ) + "\n"
+          result = subprocess.run(
+              [sidecar],
+              input=payload,
+              text=True,
+              capture_output=True,
+              timeout=300,
+              check=False,
+          )
+          if result.returncode != 0:
+              print(result.stderr, file=sys.stderr)
+              raise SystemExit(result.returncode)
+          response = json.loads(result.stdout)
+          if response.get("session_id") != "bundle-smoke":
+              raise SystemExit(f"unexpected sidecar response: {response!r}")
+          PY
 
       - name: Summarize artifacts
         shell: bash
