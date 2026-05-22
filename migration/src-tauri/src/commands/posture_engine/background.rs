@@ -57,7 +57,12 @@ pub fn start_background_measurement(
     };
 
     emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
-    spawn_camera_measurement_worker(app.clone(), state, payload.session_id.clone())?;
+    spawn_camera_measurement_worker(
+        app.clone(),
+        state,
+        payload.session_id.clone(),
+        EngineMode::Background,
+    )?;
 
     Ok(response)
 }
@@ -66,6 +71,7 @@ pub(super) fn spawn_camera_measurement_worker(
     app: AppHandle,
     state: State<'_, PostureEngineState>,
     session_id: String,
+    mode: EngineMode,
 ) -> Result<(), String> {
     let stop_flag = Arc::new(AtomicBool::new(false));
     {
@@ -97,19 +103,21 @@ pub(super) fn spawn_camera_measurement_worker(
                 }
             };
 
-            if let Some(result_data) = parse_result(&result, EngineMode::Background) {
+            if let Some(result_data) = parse_result(&result, mode.clone()) {
                 let notification =
                     ingest_background_result_with_notification(&state, result_data.clone())
                         .unwrap_or(None);
                 let _ = emit_engine_status(&app_clone, &state);
                 let _ = emit_result(&app_clone, &result_data);
-                if let Some(message) = notification {
-                    let _ = emit_warning(
-                        &app_clone,
-                        "bad_posture_detected",
-                        Some(result_data.session_id.clone()),
-                        &message,
-                    );
+                if matches!(&mode, EngineMode::Background) {
+                    if let Some(message) = notification {
+                        let _ = emit_warning(
+                            &app_clone,
+                            "bad_posture_detected",
+                            Some(result_data.session_id.clone()),
+                            &message,
+                        );
+                    }
                 }
             }
 
@@ -166,7 +174,7 @@ pub fn stop_background_measurement(
     Ok(response)
 }
 
-fn stop_camera_measurement_worker(state: &PostureEngineState) -> Result<(), String> {
+pub(super) fn stop_camera_measurement_worker(state: &PostureEngineState) -> Result<(), String> {
     let mut worker_guard = state
         .background_worker_stop
         .lock()

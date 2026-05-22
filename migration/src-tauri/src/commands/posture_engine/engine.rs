@@ -3,6 +3,7 @@ use std::{sync::atomic::Ordering, thread};
 use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
+use super::background::{spawn_camera_measurement_worker, stop_camera_measurement_worker};
 use super::common::{
     emit_engine_status, emit_result, emit_warning, engine_status_from_response,
     handle_sidecar_failure, invalidate_sidecar, parse_result, set_engine_error, sidecar_error,
@@ -105,6 +106,10 @@ pub fn start_posture_engine(
 
     emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
 
+    if let Some(session_id) = session_id.clone() {
+        spawn_camera_measurement_worker(app.clone(), state, session_id, EngineMode::Foreground)?;
+    }
+
     Ok(StartPostureEngineResponse {
         engine_status: engine_status_from_response(&sidecar_response, "ready"),
         session_id,
@@ -127,6 +132,7 @@ pub fn stop_posture_engine(
             stop_flag.store(true, Ordering::SeqCst);
         }
     }
+    stop_camera_measurement_worker(&state)?;
 
     // 1. sidecar에 stop 명령 전송
     {

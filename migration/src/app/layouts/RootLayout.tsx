@@ -5,6 +5,10 @@ import { Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { Header } from '@/features/layout/ui/Header'
+import {
+  useAutoStartPostureEngine,
+  usePostureEngine,
+} from '@/features/posture-engine'
 import { cn } from '@/shared/lib/cn'
 
 function RootLayout() {
@@ -15,6 +19,9 @@ function RootLayout() {
   const isMainRoute = location.pathname.startsWith('/main')
   const shouldShowGlobalHeader =
     isAuthenticated && !location.pathname.startsWith('/main') && !isWidgetRoute
+
+  usePostureEngine({ active: false })
+  useAutoStartPostureEngine(!isWidgetRoute)
 
   return (
     <div

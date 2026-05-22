@@ -258,6 +258,8 @@ export const usePostureEngine = ({
         return
       }
 
+      if (engineState.mode !== 'background') return
+
       try {
         const response = await stopBackgroundMeasurement({
           sessionId: currentSessionId,
@@ -278,6 +280,7 @@ export const usePostureEngine = ({
   }, [
     active,
     disableFramePush,
+    engineState.mode,
     mode,
     runtimeAvailable,
     session?.sessionId,
