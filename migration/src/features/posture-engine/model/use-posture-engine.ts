@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type Webcam from 'react-webcam'
 import type {
   EngineMode,
@@ -44,7 +44,7 @@ export const usePostureEngine = ({
   active,
   mode = 'foreground',
   webcamRef: _webcamRef,
-  disableFramePush: _disableFramePush = false,
+  disableFramePush = false,
 }: UsePostureEngineOptions) => {
   const runtimeAvailable = isTauriRuntimeAvailable()
   const {
@@ -62,6 +62,14 @@ export const usePostureEngine = ({
   } = usePostureEngineStore()
   const startedRef = useRef(false)
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
+
+  const stopStartedEngine = useCallback(() => {
+    if (!startedRef.current) return
+
+    void stopPostureEngine()
+    startedRef.current = false
+    setStreamUrl(null)
+  }, [])
 
   useEffect(() => {
     if (!runtimeAvailable) {
@@ -163,7 +171,10 @@ export const usePostureEngine = ({
         console.error('[posture-engine] startPostureEngine 실패:', err)
         return
       }
-      if (cancelled) return
+      if (cancelled) {
+        void stopPostureEngine()
+        return
+      }
 
       startedRef.current = true
       setEngineState({
@@ -196,12 +207,14 @@ export const usePostureEngine = ({
 
     return () => {
       cancelled = true
+      stopStartedEngine()
     }
-  }, [active, runtimeAvailable, setEngineState, setSession])
+  }, [active, runtimeAvailable, setEngineState, setSession, stopStartedEngine])
 
   useEffect(() => {
     if (!runtimeAvailable) return
     if (!active || !startedRef.current) return
+    if (disableFramePush) return
 
     const currentSessionId =
       session?.sessionId ?? localStorage.getItem('sessionId') ?? 'local-session'
@@ -264,6 +277,7 @@ export const usePostureEngine = ({
     })()
   }, [
     active,
+    disableFramePush,
     mode,
     runtimeAvailable,
     session?.sessionId,
@@ -274,12 +288,9 @@ export const usePostureEngine = ({
   useEffect(() => {
     if (!runtimeAvailable) return
     if (active) return
-    if (!startedRef.current) return
 
-    void stopPostureEngine()
-    startedRef.current = false
-    setStreamUrl(null)
-  }, [active, runtimeAvailable])
+    stopStartedEngine()
+  }, [active, runtimeAvailable, stopStartedEngine])
 
   const overlayLandmarks = useMemo<PoseLandmark[]>(
     () =>

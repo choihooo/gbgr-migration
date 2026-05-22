@@ -4,24 +4,36 @@
  * 포팅 원본: src/renderer/src/pages/onboarding-page/components/CameraPermissionButton.tsx
  */
 
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCameraStore } from '@/features/main-panels/model/use-camera-store'
+import { startPostureEngine, stopPostureEngine } from '@/features/posture-engine'
 import { getCameraPermissionErrorMessage } from '@/shared/lib/camera-permission'
 import { Button } from '@/shared/ui/button'
 
 const CameraPermissionButton = () => {
   const navigate = useNavigate()
   const setShow = useCameraStore(state => state.setShow)
+  const [isRequesting, setIsRequesting] = useState(false)
 
   const requestStream = (constraints: MediaStreamConstraints) =>
     navigator.mediaDevices.getUserMedia(constraints)
 
   const requestCameraPermission = async () => {
+    if (isRequesting) return
+
+    setIsRequesting(true)
     try {
       const isTauriRuntime =
         typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
       if (isTauriRuntime) {
+        await startPostureEngine()
+        try {
+          await stopPostureEngine()
+        } catch (error) {
+          console.warn('[CameraPermission] 권한 확인 후 자세 엔진 정리 실패:', error)
+        }
         setShow()
         navigate('/onboarding/calibration')
         return
@@ -84,6 +96,8 @@ const CameraPermissionButton = () => {
     } catch (error) {
       console.error('[CameraPermission] 카메라 권한 요청 실패:', error)
       window.alert(getCameraPermissionErrorMessage(error))
+    } finally {
+      setIsRequesting(false)
     }
   }
 
@@ -94,6 +108,7 @@ const CameraPermissionButton = () => {
       className="w-[440px]"
       text="카메라 권한 허용"
       onClick={requestCameraPermission}
+      disabled={isRequesting}
     />
   )
 }

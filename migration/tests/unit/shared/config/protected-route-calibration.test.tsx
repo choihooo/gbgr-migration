@@ -14,6 +14,7 @@ function renderProtectedRoute(route: string) {
     <MemoryRouter initialEntries={[route]}>
       <Routes>
         <Route path="/onboarding" element={<ProtectedRoute />}>
+          <Route index element={<div>카메라 권한 화면</div>} />
           <Route path="init" element={<div>보정 시작 화면</div>} />
           <Route path="calibration" element={<div>보정 측정 화면</div>} />
         </Route>
@@ -47,6 +48,14 @@ describe('ProtectedRoute calibration routing', () => {
     expect(screen.getByText('보정 시작 화면')).toBeInTheDocument()
   })
 
+  it('초기 보정 대상자가 소개 완료 후 /onboarding 권한 화면에 있으면 자식 화면을 렌더링한다', () => {
+    markCalibrationInitialRequired('user-1')
+
+    renderProtectedRoute('/onboarding')
+
+    expect(screen.getByText('카메라 권한 화면')).toBeInTheDocument()
+  })
+
   it('보정 재설정 대상자가 이미 /onboarding/calibration에 있으면 자식 화면을 렌더링한다', () => {
     requestCalibrationReset('user-1')
 
@@ -55,4 +64,3 @@ describe('ProtectedRoute calibration routing', () => {
     expect(screen.getByText('보정 측정 화면')).toBeInTheDocument()
   })
 })
-

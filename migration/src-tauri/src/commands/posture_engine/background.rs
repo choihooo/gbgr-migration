@@ -57,6 +57,7 @@ pub fn start_background_measurement(
     };
 
     emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
+    spawn_camera_measurement_worker(app.clone(), state, payload.session_id.clone())?;
 
     Ok(response)
 }
@@ -125,6 +126,8 @@ pub fn stop_background_measurement(
     payload: BackgroundMeasurementPayload,
     state: State<'_, PostureEngineState>,
 ) -> Result<BackgroundMeasurementResponse, String> {
+    stop_camera_measurement_worker(&state)?;
+
     // sidecar에 명령 전송
     let sidecar_response = match sidecar_send(
         &state,
@@ -161,4 +164,15 @@ pub fn stop_background_measurement(
     emit_engine_status(&app, &state).map_err(|e| e.to_string())?;
 
     Ok(response)
+}
+
+fn stop_camera_measurement_worker(state: &PostureEngineState) -> Result<(), String> {
+    let mut worker_guard = state
+        .background_worker_stop
+        .lock()
+        .map_err(|e| e.to_string())?;
+    if let Some(stop_flag) = worker_guard.take() {
+        stop_flag.store(true, Ordering::SeqCst);
+    }
+    Ok(())
 }
