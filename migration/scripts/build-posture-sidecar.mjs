@@ -234,10 +234,6 @@ function isMacosBinary(path) {
   return result.status === 0 && result.stdout.includes('Mach-O')
 }
 
-function isInsideFramework(path) {
-  return path.split('/').some(part => part.endsWith('.framework'))
-}
-
 function materializeSymlink(path) {
   if (!existsSync(path)) {
     return
@@ -260,20 +256,8 @@ function materializeSymlink(path) {
   chmodSync(path, realStats.mode)
 }
 
-function materializeMacosBinarySymlinks(rootPath) {
-  for (const entry of readdirSync(rootPath)) {
-    const path = join(rootPath, entry)
-    const stats = lstatSync(path)
-
-    if (stats.isSymbolicLink()) {
-      materializeSymlink(path)
-      continue
-    }
-
-    if (stats.isDirectory()) {
-      materializeMacosBinarySymlinks(path)
-    }
-  }
+function materializeMacosPythonAliases() {
+  materializeSymlink(join(outputPath, '_internal', 'Python'))
 }
 
 function signMacosPath(
@@ -316,11 +300,10 @@ function signMacosSidecar() {
     return
   }
 
-  materializeMacosBinarySymlinks(outputPath)
+  materializeMacosPythonAliases()
 
   const binaryPaths = collectRegularFiles(outputPath)
     .filter(path => path !== outputExecutablePath)
-    .filter(path => !isInsideFramework(path))
     .filter(isMacosBinary)
     .sort((left, right) => right.split('/').length - left.split('/').length)
 

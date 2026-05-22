@@ -154,8 +154,8 @@ jobs:
           );
           const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf8'));
           tauriConfig.bundle.resources = {
-            '../../sidecar/posture-engine/posture-engine/':
-              'sidecar/posture-engine/',
+            '../../sidecar/posture-engine/posture-engine':
+              'sidecar/posture-engine/posture-engine',
             'locales/ko.lproj/InfoPlist.strings': 'ko.lproj/InfoPlist.strings',
             'locales/en.lproj/InfoPlist.strings': 'en.lproj/InfoPlist.strings',
           };
@@ -180,6 +180,7 @@ jobs:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY_PATH: /Users/runner/.private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8
+          GBGR_MACOS_SIDECAR_ONEFILE: '1'
         run: |
           set -euo pipefail
           pnpm run tauri build --target aarch64-apple-darwin --config src-tauri/tauri.artifact.conf.json
