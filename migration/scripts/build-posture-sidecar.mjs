@@ -234,6 +234,10 @@ function isMacosBinary(path) {
   return result.status === 0 && result.stdout.includes('Mach-O')
 }
 
+function isInsideFramework(path) {
+  return path.split('/').some(part => part.endsWith('.framework'))
+}
+
 function materializeSymlink(path) {
   if (!existsSync(path)) {
     return
@@ -316,6 +320,7 @@ function signMacosSidecar() {
 
   const binaryPaths = collectRegularFiles(outputPath)
     .filter(path => path !== outputExecutablePath)
+    .filter(path => !isInsideFramework(path))
     .filter(isMacosBinary)
     .sort((left, right) => right.split('/').length - left.split('/').length)
 
