@@ -185,7 +185,7 @@ function collectRegularFiles(rootPath) {
 
   for (const entry of readdirSync(rootPath)) {
     const path = join(rootPath, entry)
-    const stats = statSync(path)
+    const stats = lstatSync(path)
 
     if (stats.isDirectory()) {
       entries.push(...collectRegularFiles(path))
@@ -252,16 +252,19 @@ function materializeSymlink(path) {
 }
 
 function materializeMacosPythonAliases() {
-  for (const path of [
-    join(outputPath, '_internal', 'Python'),
-    join(outputPath, '_internal', 'Python.framework', 'Python'),
-  ]) {
-    materializeSymlink(path)
-  }
+  materializeSymlink(join(outputPath, '_internal', 'Python'))
 }
 
-function signMacosPath(path, identity, { entitlements = false } = {}) {
+function signMacosPath(
+  path,
+  identity,
+  { deep = false, entitlements = false } = {},
+) {
   const args = ['--force', '--options', 'runtime', '--timestamp']
+
+  if (deep) {
+    args.push('--deep')
+  }
 
   if (entitlements) {
     args.push('--entitlements', macosSidecarEntitlementsPath)
@@ -298,7 +301,7 @@ function signMacosSidecar() {
   }
 
   for (const frameworkPath of collectFrameworkDirs(outputPath)) {
-    signMacosPath(frameworkPath, identity)
+    signMacosPath(frameworkPath, identity, { deep: true })
   }
 
   signMacosPath(outputExecutablePath, identity, { entitlements: true })
