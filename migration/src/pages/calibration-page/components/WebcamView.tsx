@@ -15,6 +15,8 @@ interface WebcamViewProps {
   onResultChange?: (result: PostureEngineResult | null) => void
   /** true면 usePostureEngine의 프레임 전송(120ms)을 비활성화 */
   disableFramePush?: boolean
+  /** true면 대시보드용 전역 카메라 표시 상태를 무시 */
+  ignoreCameraState?: boolean
 }
 
 const WebcamView = ({
@@ -25,6 +27,7 @@ const WebcamView = ({
   mode = 'foreground',
   onResultChange,
   disableFramePush = false,
+  ignoreCameraState = false,
 }: WebcamViewProps) => {
   const emptyWebcamRef = useRef<Webcam>(null)
   const {
@@ -79,7 +82,8 @@ const WebcamView = ({
     }
   }, [])
 
-  const shouldRenderSidecarStream = cameraState === 'show' && Boolean(streamUrl)
+  const isCameraVisible = ignoreCameraState || cameraState === 'show'
+  const shouldRenderSidecarStream = isCameraVisible && Boolean(streamUrl)
 
   const isEngineAvailable =
     runtimeAvailable && engineState.engineStatus !== 'error'
@@ -146,7 +150,7 @@ const WebcamView = ({
             </div>
           ) : null}
         </div>
-      ) : cameraState === 'show' ? (
+      ) : isCameraVisible ? (
         <div className="bg-grey-50 flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden rounded-2xl" />
       ) : cameraState === 'hide' ? (
         <div className="bg-grey-50 flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden rounded-2xl">

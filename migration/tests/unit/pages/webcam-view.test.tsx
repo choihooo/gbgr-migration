@@ -89,4 +89,20 @@ describe('WebcamView', () => {
       'http://127.0.0.1:49152/video?token=test-token',
     )
   })
+
+  it('카메라 상태 무시 옵션이 있으면 exit 상태에서도 sidecar 스트림을 표시한다', () => {
+    useCameraStore.setState({ cameraState: 'exit', widgetState: 'hide' })
+    const CalibrationWebcamView = WebcamView as React.ComponentType<{
+      mode: 'foreground'
+      ignoreCameraState: boolean
+    }>
+
+    render(<CalibrationWebcamView mode="foreground" ignoreCameraState={true} />)
+
+    expect(screen.queryByText(/오늘 한걸음 나아갔네요/)).not.toBeInTheDocument()
+    expect(screen.getByAltText('자세 측정 카메라 스트림')).toHaveAttribute(
+      'src',
+      'http://127.0.0.1:49152/video?token=test-token',
+    )
+  })
 })

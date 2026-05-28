@@ -228,6 +228,7 @@ const CalibrationPage = () => {
               remainingTime={remainingTime}
               onResultChange={setLatestResult}
               disableFramePush={isCalibrating}
+              ignoreCameraState={true}
             />
             {/* 캘리브레이션 가이드 오버레이 */}
             <div className="pointer-events-none absolute inset-x-0 top-[50px] bottom-0 flex items-center justify-center">
