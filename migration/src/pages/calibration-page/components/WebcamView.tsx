@@ -3,7 +3,14 @@ import type Webcam from 'react-webcam'
 import SleepIcon from '@/assets/common/icons/sleep.svg'
 import { PoseOverlayCanvas, type PostureEngineResult } from '@/entities/posture'
 import { useCameraStore } from '@/features/main-panels/model/use-camera-store'
-import { usePostureEngine } from '@/features/posture-engine'
+import {
+  CameraPermissionModal,
+  usePostureEngine,
+} from '@/features/posture-engine'
+import {
+  getSidecarCameraErrorMessage,
+  isSidecarCameraPermissionError,
+} from '@/shared/lib/camera-permission'
 import { Timer } from '@/shared/ui/timer'
 
 interface WebcamViewProps {
@@ -15,6 +22,8 @@ interface WebcamViewProps {
   onResultChange?: (result: PostureEngineResult | null) => void
   /** true면 usePostureEngine의 프레임 전송(120ms)을 비활성화 */
   disableFramePush?: boolean
+  /** true면 대시보드용 전역 카메라 표시 상태를 무시 */
+  ignoreCameraState?: boolean
 }
 
 const WebcamView = ({
@@ -25,6 +34,7 @@ const WebcamView = ({
   mode = 'foreground',
   onResultChange,
   disableFramePush = false,
+  ignoreCameraState = false,
 }: WebcamViewProps) => {
   const emptyWebcamRef = useRef<Webcam>(null)
   const {
@@ -32,6 +42,7 @@ const WebcamView = ({
     latestResult,
     engineState,
     runtimeAvailable,
+    retryStart,
     streamUrl,
   } = usePostureEngine({
     active: isActive,
@@ -79,7 +90,16 @@ const WebcamView = ({
     }
   }, [])
 
-  const shouldRenderSidecarStream = cameraState === 'show' && Boolean(streamUrl)
+  const isCameraVisible = ignoreCameraState || cameraState === 'show'
+  const shouldRenderSidecarStream = isCameraVisible && Boolean(streamUrl)
+  const cameraErrorMessage = getSidecarCameraErrorMessage(engineState.message)
+  const [dismissedCameraErrorMessage, setDismissedCameraErrorMessage] =
+    useState<string | null>(null)
+  const shouldShowCameraPermissionModal =
+    runtimeAvailable &&
+    engineState.engineStatus === 'error' &&
+    isSidecarCameraPermissionError(engineState.message) &&
+    dismissedCameraErrorMessage !== engineState.message
 
   const isEngineAvailable =
     runtimeAvailable && engineState.engineStatus !== 'error'
@@ -90,6 +110,14 @@ const WebcamView = ({
         className="bg-grey-50 flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden rounded-2xl"
         ref={containerRef}
       >
+        <CameraPermissionModal
+          isOpen={shouldShowCameraPermissionModal}
+          message={
+            cameraErrorMessage ?? '카메라 권한을 확인한 뒤 다시 시도해주세요.'
+          }
+          onClose={() => setDismissedCameraErrorMessage(engineState.message)}
+          onRetry={retryStart}
+        />
         <div className="text-grey-300 flex flex-col items-center text-center">
           <div className="flex flex-col items-center gap-6">
             {!runtimeAvailable ? (
@@ -113,6 +141,14 @@ const WebcamView = ({
 
   return (
     <div className="relative h-full w-full" ref={containerRef}>
+      <CameraPermissionModal
+        isOpen={shouldShowCameraPermissionModal}
+        message={
+          cameraErrorMessage ?? '카메라 권한을 확인한 뒤 다시 시도해주세요.'
+        }
+        onClose={() => setDismissedCameraErrorMessage(engineState.message)}
+        onRetry={retryStart}
+      />
       {shouldRenderSidecarStream ? (
         <div className="relative h-full w-full">
           <img
@@ -146,7 +182,7 @@ const WebcamView = ({
             </div>
           ) : null}
         </div>
-      ) : cameraState === 'show' ? (
+      ) : isCameraVisible ? (
         <div className="bg-grey-50 flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden rounded-2xl" />
       ) : cameraState === 'hide' ? (
         <div className="bg-grey-50 flex h-full min-h-0 w-full min-w-0 items-center justify-center overflow-hidden rounded-2xl">

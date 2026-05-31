@@ -20,6 +20,33 @@ export type PostureEngineStatus =
 export type CameraOwner = 'react' | 'python' | 'none'
 export type CameraLockState = 'free' | 'releasing' | 'acquiring' | 'held'
 
+export type CameraErrorCode =
+  | 'camera_permission_denied'
+  | 'camera_unavailable'
+  | 'camera_busy'
+  | 'camera_frame_unavailable'
+  | 'camera_api_unavailable'
+  | 'camera_stream_unauthorized'
+  | 'camera_unknown'
+
+export type CameraDiagnosticTransition =
+  | 'idle->checking'
+  | 'checking->ready'
+  | 'checking->error'
+  | 'ready->paused'
+  | 'paused->checking'
+  | 'ready->stopped'
+  | 'error->checking'
+  | 'unknown'
+
+export interface CameraDiagnosticEvent {
+  errorCode: CameraErrorCode | null
+  permissionState: 'unknown' | 'prompt' | 'granted' | 'denied' | 'unavailable'
+  transition: CameraDiagnosticTransition
+  durationMs: number | null
+  occurredAt: string
+}
+
 export type PostureClass = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
 export interface PoseLandmark {
@@ -47,7 +74,7 @@ export interface PostureEngineResult {
   score: number
   pi: number | null
   landmarks: PoseLandmark[]
-  source: 'react_frame' | 'python_camera'
+  source: 'python_camera'
   engineMode: EngineMode
   events: string[]
 }
@@ -59,6 +86,7 @@ export interface EngineStateEvent {
   updatedAt: string
   message: string | null
   recoverable: boolean
+  cameraDiagnostics?: CameraDiagnosticEvent[]
 }
 
 export interface CameraOwnershipState {
@@ -93,14 +121,14 @@ export interface StartPostureEngineResponse {
   streamUrl: string | null
 }
 
+export interface WarmupPostureEngineResponse {
+  engineStatus: Extract<PostureEngineStatus, 'ready' | 'error'>
+  message: string | null
+}
+
 export interface StopPostureEngineResponse {
   engineStatus: 'idle'
   releasedOwner: CameraOwner
-}
-
-export interface PushPostureFrameResponse {
-  accepted: boolean
-  reason: string | null
 }
 
 export interface BackgroundMeasurementResponse {
@@ -109,16 +137,6 @@ export interface BackgroundMeasurementResponse {
     'switching' | 'measuring' | 'ready'
   >
   mode: EngineMode
-}
-
-export interface PushPostureFramePayload {
-  sessionId: string
-  imagePayload: string
-  capturedAt: string
-  frameSize: {
-    width: number
-    height: number
-  }
 }
 
 export interface StartBackgroundMeasurementPayload {
@@ -137,6 +155,7 @@ export const createEmptyEngineState = (): EngineStateEvent => ({
   updatedAt: new Date(0).toISOString(),
   message: null,
   recoverable: true,
+  cameraDiagnostics: [],
 })
 
 export const createEmptyOwnershipState = (): CameraOwnershipState => ({

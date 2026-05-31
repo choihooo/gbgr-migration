@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLevelQuery } from '@/entities/dashboard/model/use-dashboard-queries'
 import {
@@ -7,7 +6,6 @@ import {
   useResumeSessionMutation,
   useStopSessionMutation,
 } from '@/entities/session/model/use-session-mutations'
-import { useWindowVisibilitySync } from '@/features/posture-engine'
 import { useAutoMetricsSender } from '@/features/posture-engine/model/use-auto-metrics-sender'
 import { useMetricsCollector } from '@/features/posture-engine/model/use-metrics-collector'
 import { useSessionCleanup } from '@/features/posture-engine/model/use-session-cleanup'
@@ -19,7 +17,6 @@ import { useCameraStore } from '../model/use-camera-store'
 
 export function WebcamPanel() {
   const { t } = useTranslation()
-  const [mode, setMode] = useState<'foreground' | 'background'>('foreground')
   const { cameraState, setCameraState } = useCameraStore()
   const { toggleWidget } = useWidget()
   const isWebcamOn = cameraState === 'show'
@@ -32,8 +29,6 @@ export function WebcamPanel() {
   const stopSession = useStopSessionMutation()
   const pauseSession = usePauseSessionMutation()
   const resumeSession = useResumeSessionMutation()
-
-  useWindowVisibilitySync(setMode)
 
   const { flushMetrics } = useMetricsCollector()
   useAutoMetricsSender(flushMetrics)
@@ -94,7 +89,7 @@ export function WebcamPanel() {
   return (
     <div className="flex w-full flex-col gap-3">
       <div className="relative aspect-video max-h-[198px] w-full max-w-[352px] min-w-0 overflow-hidden">
-        <WebcamView isActive={isWebcamOn} mode={mode} />
+        <WebcamView isActive={isWebcamOn} mode="foreground" />
         <Button
           size="md"
           variant="grey"

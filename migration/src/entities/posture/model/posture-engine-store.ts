@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type {
+  CameraDiagnosticEvent,
   CameraOwnershipState,
   EngineStateEvent,
   MeasurementSession,
@@ -18,6 +19,7 @@ interface PostureEngineStore {
   engineState: EngineStateEvent
   ownership: CameraOwnershipState
   warning: PostureWarningEvent | null
+  cameraDiagnostics: CameraDiagnosticEvent[]
   isHydratedFromCache: boolean
   setSession: (session: MeasurementSession | null) => void
   setLatestResult: (result: PostureEngineResult | null) => void
@@ -25,6 +27,8 @@ interface PostureEngineStore {
   setEngineState: (state: EngineStateEvent) => void
   setOwnership: (state: Partial<CameraOwnershipState>) => void
   setWarning: (warning: PostureWarningEvent | null) => void
+  appendCameraDiagnostic: (event: CameraDiagnosticEvent) => void
+  setCameraDiagnostics: (events: CameraDiagnosticEvent[]) => void
   markHydratedFromCache: () => void
   reset: () => void
 }
@@ -36,6 +40,7 @@ const initialState = {
   engineState: createEmptyEngineState(),
   ownership: createEmptyOwnershipState(),
   warning: null,
+  cameraDiagnostics: [],
   isHydratedFromCache: false,
 }
 
@@ -85,6 +90,14 @@ export const usePostureEngineStore = create<PostureEngineStore>()(set => ({
       },
     })),
   setWarning: warning => set({ warning }),
+  appendCameraDiagnostic: event =>
+    set(state => ({
+      cameraDiagnostics: [...state.cameraDiagnostics, event].slice(-50),
+    })),
+  setCameraDiagnostics: events =>
+    set({
+      cameraDiagnostics: events.slice(-50),
+    }),
   markHydratedFromCache: () => set({ isHydratedFromCache: true }),
   reset: () => set(initialState),
 }))

@@ -23,6 +23,13 @@ pub struct StartPostureEngineResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct WarmupPostureEngineResponse {
+    pub engine_status: String,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StopPostureEngineResponse {
     pub engine_status: String,
     pub released_owner: CameraOwner,
@@ -30,25 +37,9 @@ pub struct StopPostureEngineResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PushPostureFramePayload {
-    pub session_id: String,
-    pub image_payload: String,
-    pub captured_at: String,
-    pub frame_size: FrameSize,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct FrameSize {
     pub width: u32,
     pub height: u32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PushPostureFrameResponse {
-    pub accepted: bool,
-    pub reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -11,14 +11,13 @@ import type {
   LatestPostureStateResponse,
   PostureEngineResult,
   PostureWarningEvent,
-  PushPostureFramePayload,
-  PushPostureFrameResponse,
   SetCalibrationPayload,
   SetCalibrationResponse,
   StartBackgroundMeasurementPayload,
   StartPostureEngineResponse,
   StopBackgroundMeasurementPayload,
   StopPostureEngineResponse,
+  WarmupPostureEngineResponse,
 } from '@/entities/posture'
 import { createEmptyEngineState } from '@/entities/posture'
 
@@ -28,6 +27,17 @@ export const POSTURE_WARNING_EVENT = 'posture://warning'
 
 export const isTauriRuntimeAvailable = () =>
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+
+export async function warmupPostureEngine() {
+  if (!isTauriRuntimeAvailable()) {
+    return {
+      engineStatus: 'error',
+      message: 'tauri_runtime_unavailable',
+    } satisfies WarmupPostureEngineResponse
+  }
+
+  return invoke<WarmupPostureEngineResponse>('warmup_posture_engine')
+}
 
 export async function startPostureEngine() {
   if (!isTauriRuntimeAvailable()) {
@@ -51,17 +61,6 @@ export async function stopPostureEngine() {
   }
 
   return invoke<StopPostureEngineResponse>('stop_posture_engine')
-}
-
-export async function pushPostureFrame(payload: PushPostureFramePayload) {
-  if (!isTauriRuntimeAvailable()) {
-    return {
-      accepted: false,
-      reason: 'tauri_runtime_unavailable',
-    } satisfies PushPostureFrameResponse
-  }
-
-  return invoke<PushPostureFrameResponse>('push_posture_frame', { payload })
 }
 
 export async function startBackgroundMeasurement(
@@ -106,6 +105,21 @@ export async function getLatestPostureState() {
   return invoke<LatestPostureStateResponse>('get_latest_posture_state')
 }
 
+const isExpectedTauriUnlistenCleanupError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error)
+
+  return (
+    message.includes('listeners[eventId]') ||
+    message.includes("Couldn't find callback id")
+  )
+}
+
+const handleUnlistenError = (event: string, error: unknown) => {
+  if (isExpectedTauriUnlistenCleanupError(error)) return
+
+  console.warn(`[posture-engine] ${event} 이벤트 해제 실패:`, error)
+}
+
 const listenWhenAvailable = async <T>(
   event: string,
   handler: (payload: T) => void,
@@ -124,9 +138,22 @@ const listenWhenAvailable = async <T>(
     if (disposed) return
     disposed = true
 
-    void Promise.resolve(unlisten()).catch(error => {
-      console.warn(`[posture-engine] ${event} 이벤트 해제 실패:`, error)
-    })
+    try {
+      const result = (unlisten as () => unknown)()
+
+      if (
+        typeof result === 'object' &&
+        result !== null &&
+        'then' in result &&
+        typeof result.then === 'function'
+      ) {
+        void Promise.resolve(result).catch(error =>
+          handleUnlistenError(event, error),
+        )
+      }
+    } catch (error) {
+      handleUnlistenError(event, error)
+    }
   }) satisfies UnlistenFn
 }
 

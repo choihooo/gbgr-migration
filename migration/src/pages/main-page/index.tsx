@@ -2,18 +2,14 @@
  * /main 라우트 — DashboardPage로 위임
  * @legacy src/renderer/src/features/dashboard/ui/MainHeader.tsx (레이아웃)
  */
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useNotificationScheduler } from '@/features/notification-settings/model/use-notification-scheduler'
-import { useWindowVisibilitySync } from '@/features/posture-engine'
 import DashboardPage from '@/pages/dashboard-page'
 import { AnalyticsEvents, GA_STORAGE_KEYS } from '@/shared/lib/analytics'
 
 const MAIN_WINDOW_ACTIVE_KEY = 'main-window-active'
 
 function MainPage() {
-  const [, setMode] = useState<'foreground' | 'background'>('foreground')
-
-  useWindowVisibilitySync(setMode)
   useNotificationScheduler()
 
   useEffect(() => {

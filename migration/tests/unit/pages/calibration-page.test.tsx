@@ -9,6 +9,7 @@ const mockNavigate = vi.fn()
 const mockCalibrateStart = vi.fn()
 const mockCalibrateFrame = vi.fn()
 const mockCalibrateFinish = vi.fn()
+const webcamViewProps: Array<{ mode?: string }> = []
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -30,7 +31,6 @@ vi.mock('@/features/posture-engine', () => ({
   calibrateStart: () => mockCalibrateStart(),
   calibrateCameraFrame: (payload: unknown) => mockCalibrateFrame(payload),
   calibrateFinish: () => mockCalibrateFinish(),
-  useWindowVisibilitySync: vi.fn(),
 }))
 
 vi.mock('@/assets/common/images/calibration_guide.svg?react', () => ({
@@ -39,13 +39,16 @@ vi.mock('@/assets/common/images/calibration_guide.svg?react', () => ({
 
 vi.mock('@/pages/calibration-page/components/WebcamView', () => ({
   default: ({
+    mode,
     remainingTime,
     onResultChange,
   }: {
+    mode?: string
     remainingTime?: number
     onResultChange?: (result: unknown) => void
   }) => {
     const didNotifyWebcamReadyRef = React.useRef(false)
+    webcamViewProps.push({ mode })
 
     React.useEffect(() => {
       if (didNotifyWebcamReadyRef.current) return
@@ -59,7 +62,7 @@ vi.mock('@/pages/calibration-page/components/WebcamView', () => ({
         score: 1,
         pi: 0.1,
         landmarks: [{ x: 0.1, y: 0.1, z: 0.1 }],
-        source: 'react_frame',
+        source: 'python_camera',
         engineMode: 'foreground',
         events: [],
       })
@@ -77,6 +80,7 @@ describe('CalibrationPage', () => {
     mockCalibrateStart.mockReset()
     mockCalibrateFrame.mockReset()
     mockCalibrateFinish.mockReset()
+    webcamViewProps.length = 0
     usePostureEngineStore.getState().reset()
     usePostureEngineStore.getState().setEngineState({
       engineStatus: 'ready',
@@ -137,5 +141,11 @@ describe('CalibrationPage', () => {
     expect(
       screen.getByText('자세 감지가 끊겨 측정을 다시 준비하고 있어요'),
     ).toBeInTheDocument()
+  })
+
+  it('캘리브레이션에서는 visibility sync 없이 foreground 모드만 사용한다', () => {
+    render(<CalibrationPage />)
+
+    expect(webcamViewProps[webcamViewProps.length - 1]?.mode).toBe('foreground')
   })
 })

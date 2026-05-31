@@ -23,7 +23,6 @@ pub struct PostureEngineState {
     pub ownership: Mutex<CameraOwnershipState>,
     pub session_metrics: Mutex<SessionMetricsSnapshot>,
     pub sidecar: Mutex<Option<SidecarHandle>>,
-    pub frame_inflight: Mutex<bool>,
     pub background_worker_stop: Mutex<Option<Arc<AtomicBool>>>,
 }
 
@@ -39,6 +38,7 @@ impl Default for PostureEngineState {
                 updated_at: now_iso(),
                 message: None,
                 recoverable: true,
+                camera_diagnostics: Vec::new(),
             }),
             ownership: Mutex::new(CameraOwnershipState {
                 owner: CameraOwner::None,
@@ -48,7 +48,6 @@ impl Default for PostureEngineState {
             }),
             session_metrics: Mutex::new(SessionMetricsSnapshot::default()),
             sidecar: Mutex::new(None),
-            frame_inflight: Mutex::new(false),
             background_worker_stop: Mutex::new(None),
         }
     }

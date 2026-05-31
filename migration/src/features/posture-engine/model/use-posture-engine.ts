@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type Webcam from 'react-webcam'
 import type {
+  CameraDiagnosticEvent,
+  CameraDiagnosticTransition,
+  CameraErrorCode,
   EngineMode,
   MeasurementSession,
   PoseLandmark,
@@ -40,6 +43,72 @@ const buildFallbackSession = (
   lastErrorCode: null,
 })
 
+const DEFAULT_PREVIEW_READY_TIMEOUT_MS = 5000
+
+const getPreviewReadyTimeoutMs = () => {
+  const configured = (
+    globalThis as {
+      __GBGR_CAMERA_PREVIEW_TIMEOUT_MS__?: number
+    }
+  ).__GBGR_CAMERA_PREVIEW_TIMEOUT_MS__
+
+  return typeof configured === 'number'
+    ? configured
+    : DEFAULT_PREVIEW_READY_TIMEOUT_MS
+}
+
+const CAMERA_ERROR_CODES = new Set<CameraErrorCode>([
+  'camera_permission_denied',
+  'camera_unavailable',
+  'camera_busy',
+  'camera_frame_unavailable',
+  'camera_api_unavailable',
+  'camera_stream_unauthorized',
+  'camera_unknown',
+])
+
+const toCameraErrorCode = (error: unknown): CameraErrorCode => {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : ''
+
+  return CAMERA_ERROR_CODES.has(message as CameraErrorCode)
+    ? (message as CameraErrorCode)
+    : 'camera_unknown'
+}
+
+const waitForUsableStream = async (
+  response: StartPostureEngineResponse,
+): Promise<StartPostureEngineResponse> => {
+  if (response.streamUrl) return response
+
+  await new Promise(resolve => {
+    window.setTimeout(resolve, getPreviewReadyTimeoutMs())
+  })
+
+  throw new Error('camera_frame_unavailable')
+}
+
+const buildCameraDiagnostic = ({
+  errorCode,
+  transition,
+  durationMs,
+}: {
+  errorCode: CameraErrorCode | null
+  transition: CameraDiagnosticTransition
+  durationMs: number | null
+}): CameraDiagnosticEvent => ({
+  errorCode,
+  permissionState:
+    errorCode === 'camera_permission_denied' ? 'denied' : 'unknown',
+  transition,
+  durationMs,
+  occurredAt: new Date().toISOString(),
+})
+
 export const usePostureEngine = ({
   active,
   mode = 'foreground',
@@ -58,10 +127,17 @@ export const usePostureEngine = ({
     setRestoredResult,
     setSession,
     setWarning,
+    appendCameraDiagnostic,
     markHydratedFromCache,
   } = usePostureEngineStore()
   const startedRef = useRef(false)
+  const engineStatusRef = useRef(engineState.engineStatus)
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
+  const [restartToken, setRestartToken] = useState(0)
+
+  useEffect(() => {
+    engineStatusRef.current = engineState.engineStatus
+  }, [engineState.engineStatus])
 
   const stopStartedEngine = useCallback(() => {
     if (!startedRef.current) return
@@ -69,7 +145,27 @@ export const usePostureEngine = ({
     void stopPostureEngine()
     startedRef.current = false
     setStreamUrl(null)
-  }, [])
+    appendCameraDiagnostic(
+      buildCameraDiagnostic({
+        errorCode: null,
+        transition: 'ready->stopped',
+        durationMs: null,
+      }),
+    )
+  }, [appendCameraDiagnostic])
+
+  const retryStart = useCallback(() => {
+    startedRef.current = false
+    setStreamUrl(null)
+    appendCameraDiagnostic(
+      buildCameraDiagnostic({
+        errorCode: null,
+        transition: 'error->checking',
+        durationMs: null,
+      }),
+    )
+    setRestartToken(value => value + 1)
+  }, [appendCameraDiagnostic])
 
   useEffect(() => {
     if (!runtimeAvailable) {
@@ -159,16 +255,47 @@ export const usePostureEngine = ({
 
   useEffect(() => {
     if (!runtimeAvailable) return
+    // retryStart bumps restartToken so this effect can run again after a
+    // recoverable camera-start failure.
+    void restartToken
     if (!active || startedRef.current) return
 
     let cancelled = false
 
     void (async () => {
       let response: StartPostureEngineResponse
+      const startedAt = Date.now()
+      appendCameraDiagnostic(
+        buildCameraDiagnostic({
+          errorCode: null,
+          transition:
+            engineStatusRef.current === 'error'
+              ? 'error->checking'
+              : 'idle->checking',
+          durationMs: null,
+        }),
+      )
       try {
-        response = await startPostureEngine()
+        response = await waitForUsableStream(await startPostureEngine())
       } catch (err) {
         console.error('[posture-engine] startPostureEngine 실패:', err)
+        const errorCode = toCameraErrorCode(err)
+        appendCameraDiagnostic(
+          buildCameraDiagnostic({
+            errorCode,
+            transition: 'checking->error',
+            durationMs: Date.now() - startedAt,
+          }),
+        )
+        setEngineState({
+          engineStatus: 'error',
+          mode: 'foreground',
+          cameraOwner: 'none',
+          updatedAt: new Date().toISOString(),
+          message: errorCode,
+          recoverable: true,
+        })
+        setStreamUrl(null)
         return
       }
       if (cancelled) {
@@ -177,6 +304,13 @@ export const usePostureEngine = ({
       }
 
       startedRef.current = true
+      appendCameraDiagnostic(
+        buildCameraDiagnostic({
+          errorCode: null,
+          transition: 'checking->ready',
+          durationMs: Date.now() - startedAt,
+        }),
+      )
       setEngineState({
         engineStatus: response.engineStatus,
         mode: response.mode,
@@ -209,7 +343,15 @@ export const usePostureEngine = ({
       cancelled = true
       stopStartedEngine()
     }
-  }, [active, runtimeAvailable, setEngineState, setSession, stopStartedEngine])
+  }, [
+    active,
+    appendCameraDiagnostic,
+    restartToken,
+    runtimeAvailable,
+    setEngineState,
+    setSession,
+    stopStartedEngine,
+  ])
 
   useEffect(() => {
     if (!runtimeAvailable) return
@@ -316,5 +458,6 @@ export const usePostureEngine = ({
     engineState,
     warning,
     streamUrl,
+    retryStart,
   }
 }

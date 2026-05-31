@@ -28,6 +28,7 @@ class PostureEngineService:
             updated_at="0",
             message=None,
             recoverable=True,
+            camera_diagnostics=[],
         )
         # 캘리브레이션 상태
         self._calib_buffer: list[dict[str, Any]] = []
@@ -39,8 +40,8 @@ class PostureEngineService:
         if command == "start":
             return self._handle_start()
 
-        if command == "frame":
-            return self._handle_frame(payload)
+        if command == "warmup":
+            return self._handle_warmup()
 
         if command == "calibrate_start":
             return self._handle_calibrate_start()
@@ -89,14 +90,34 @@ class PostureEngineService:
 
     # ── 기존 명령 ──────────────────────────────────────────
 
+    def _handle_warmup(self) -> dict[str, Any]:
+        if not self._detector_initialized:
+            self._detector_initialized = self._detector.initialize()
+
+        if not self._detector_initialized:
+            self._state.engine_status = "error"
+            self._state.message = self._detector.last_error or "detector_initialization_failed"
+            self._state.recoverable = True
+            self._state.updated_at = str(int(time.time()))
+            return asdict(self._state)
+
+        self._state.engine_status = "ready"
+        self._state.updated_at = str(int(time.time()))
+        self._state.message = None
+        self._state.recoverable = True
+        return asdict(self._state)
+
     def _handle_start(self) -> dict[str, Any]:
         self._classifier.reset()
         self._background_loop.start()
         if not self._background_loop.running:
             self._state.engine_status = "error"
+            self._state.mode = "foreground"
+            self._state.camera_owner = "none"
             self._state.message = self._background_loop.last_error
             self._state.recoverable = True
             self._state.updated_at = str(int(time.time()))
+            self._state.stream_url = None
             return asdict(self._state)
 
         if not self._detector_initialized:
@@ -104,9 +125,12 @@ class PostureEngineService:
         if not self._detector_initialized:
             self._background_loop.stop()
             self._state.engine_status = "error"
+            self._state.mode = "foreground"
+            self._state.camera_owner = "none"
             self._state.message = self._detector.last_error or "detector_initialization_failed"
             self._state.recoverable = True
             self._state.updated_at = str(int(time.time()))
+            self._state.stream_url = None
             return asdict(self._state)
         self._state.engine_status = "ready"
         self._state.mode = "foreground"
@@ -117,8 +141,8 @@ class PostureEngineService:
         self._state.stream_url = self._background_loop.stream_url
         return asdict(self._state)
 
-    def _handle_frame(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """프레임 이미지를 받아 MediaPipe 포즈 분석 결과를 반환."""
+    def _analyze_camera_frame(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """카메라 프레임 이미지를 받아 MediaPipe 포즈 분석 결과를 반환."""
         session_id = payload.get("session_id", "")
         timestamp = str(int(time.time()))
 
@@ -139,7 +163,7 @@ class PostureEngineService:
                     score=0.0,
                     pi=None,
                     landmarks=[],
-                    source="react_frame",
+                    source="python_camera",
                     engine_mode=self._state.mode,
                     events=[],
                 )
@@ -160,7 +184,7 @@ class PostureEngineService:
                     score=0.0,
                     pi=None,
                     landmarks=landmarks,
-                    source="react_frame",
+                    source="python_camera",
                     engine_mode=self._state.mode,
                     events=[],
                 )
@@ -178,7 +202,7 @@ class PostureEngineService:
                 score=classification.Score,
                 pi=pi_data["PI_raw"],
                 landmarks=landmarks,
-                source="react_frame",
+                source="python_camera",
                 engine_mode=self._state.mode,
                 events=classification.events,
             )
@@ -212,7 +236,7 @@ class PostureEngineService:
             "session_id": payload.get("session_id", ""),
             "image_payload": image_payload,
         }
-        result = self._handle_frame(frame_payload)
+        result = self._analyze_camera_frame(frame_payload)
         if "error" not in result:
             result["source"] = "python_camera"
             result["engine_mode"] = self._state.mode
@@ -232,6 +256,7 @@ class PostureEngineService:
         self._detector.close()
         self._detector_initialized = False
         self._state.engine_status = "idle"
+        self._state.mode = "foreground"
         self._state.camera_owner = "none"
         self._state.updated_at = str(int(time.time()))
         self._state.message = None

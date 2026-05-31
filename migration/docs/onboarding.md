@@ -66,6 +66,21 @@ pnpm run tauri:dev
 
 ## 가장 중요한 사용자 흐름
 
+### 카메라 권한과 로컬 엔진 준비
+
+온보딩과 측정 진입은 두 단계를 모두 통과해야 합니다.
+
+1. React renderer가 `navigator.mediaDevices.getUserMedia({ video: true, audio: false })`
+   로 앱뷰 카메라 권한을 확인합니다.
+2. 확인용 stream은 즉시 `track.stop()`으로 정리합니다.
+3. Tauri `start_posture_engine` 명령이 Python sidecar를 시작하고, sidecar가
+   OpenCV 카메라 루프와 로컬 MJPEG stream을 준비합니다.
+4. `streamUrl`이 준비된 뒤에만 캘리브레이션/측정 화면으로 이동합니다.
+
+이 흐름은 사용자에게 권한 요청 전 사용 목적과 로컬 처리 방식을 먼저 보여줍니다.
+마이크 권한은 요청하지 않습니다. 권한 거부, 카메라 없음, 다른 앱의 카메라 점유,
+프레임 읽기 실패는 각각 다른 복구 안내로 매핑됩니다.
+
 ### 앱 시작
 
 ```mermaid
@@ -106,8 +121,8 @@ sequenceDiagram
     View->>Hook: active=true
     Hook->>Tauri: start_posture_engine
     Tauri->>Sidecar: start
-    Hook->>Tauri: push_posture_frame every 120ms
-    Tauri->>Sidecar: frame
+    Sidecar-->>Tauri: stream_url ready
+    Tauri->>Sidecar: background_tick
     Sidecar-->>Tauri: posture result
     Tauri-->>Store: posture://result
     Store-->>View: overlay landmarks, latest result
@@ -151,7 +166,6 @@ React에서 Rust 함수를 직접 호출하는 통로입니다. 프런트엔드�
 대표 예:
 
 - `start_posture_engine`
-- `push_posture_frame`
 - `start_background_measurement`
 - `calibrate_frame`
 - `api_request`
@@ -165,17 +179,22 @@ MediaPipe와 OpenCV 의존성을 직접 품지 않아도 됩니다.
 
 ### Foreground와 Background
 
-foreground 모드에서는 React 웹캠이 카메라를 잡고 프레임을 sidecar로 보냅니다.
-background 모드에서는 Python sidecar가 OpenCV로 카메라를 직접 잡고 프레임을
-분석합니다.
+foreground와 background 모드 모두 Python sidecar가 OpenCV로 카메라를 직접 잡고
+프레임을 분석합니다. React는 token이 포함된 loopback `streamUrl`을 이미지로
+렌더링하고, raw frame이나 카메라 장치 식별자를 저장하지 않습니다.
 
 카메라 소유권은 이렇게 봅니다.
 
 | 모드 | 카메라 소유자 | 프레임 소스 |
 | --- | --- | --- |
-| foreground | React | `react-webcam` JPEG |
+| foreground | Python | OpenCV 캡처 + local MJPEG preview |
 | background | Python | OpenCV `VideoCapture(0)` |
 | idle | none | 없음 |
+
+사용자가 카메라를 숨기면 measurement pause로 처리합니다. `WebcamPanel`은
+`WebcamView`의 `isActive`를 즉시 `false`로 내리고, `usePostureEngine`은 sidecar
+카메라 루프를 멈춰 새 frame 수집을 중단합니다. 다시 표시할 때는 로컬 엔진 준비를
+재확인한 뒤 preview를 복구합니다.
 
 ### Posture result
 
