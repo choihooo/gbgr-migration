@@ -7,7 +7,6 @@ import {
   calibrateCameraFrame,
   calibrateFinish,
   calibrateStart,
-  useWindowVisibilitySync,
 } from '@/features/posture-engine'
 import { AUTH_STORAGE_KEYS } from '@/shared/lib/auth'
 import { lockCalibrationGate } from '@/shared/lib/calibration-gate'
@@ -20,7 +19,6 @@ const FRAME_INTERVAL_MS = 100
 
 const CalibrationPage = () => {
   const navigate = useNavigate()
-  const [mode, setMode] = useState<'foreground' | 'background'>('foreground')
   const [latestResult, setLatestResult] = useState<PostureEngineResult | null>(
     null,
   )
@@ -35,8 +33,6 @@ const CalibrationPage = () => {
   const [step2Error, setStep2Error] = useState<string | null>(null)
 
   const calibIntervalRef = useRef<number | null>(null)
-
-  useWindowVisibilitySync(setMode)
 
   const { engineState } = usePostureEngineStore()
   const isEngineAvailable =
@@ -223,7 +219,7 @@ const CalibrationPage = () => {
           <div className="relative w-full max-w-[760px] shrink-0">
             <WebcamView
               isActive={true}
-              mode={mode}
+              mode="foreground"
               showTimer={isCalibrating}
               remainingTime={remainingTime}
               onResultChange={setLatestResult}
@@ -240,11 +236,7 @@ const CalibrationPage = () => {
             <MeasuringPanel
               step1Error={step1Error}
               step2Error={step2Error}
-              engineMessage={
-                mode === 'background'
-                  ? '앱이 숨겨져 있어 최신 상태만 유지하고 있어요'
-                  : null
-              }
+              engineMessage={null}
             />
           ) : (
             <WelcomePanel

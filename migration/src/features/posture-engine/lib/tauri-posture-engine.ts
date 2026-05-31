@@ -105,6 +105,21 @@ export async function getLatestPostureState() {
   return invoke<LatestPostureStateResponse>('get_latest_posture_state')
 }
 
+const isExpectedTauriUnlistenCleanupError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error)
+
+  return (
+    message.includes('listeners[eventId]') ||
+    message.includes("Couldn't find callback id")
+  )
+}
+
+const handleUnlistenError = (event: string, error: unknown) => {
+  if (isExpectedTauriUnlistenCleanupError(error)) return
+
+  console.warn(`[posture-engine] ${event} 이벤트 해제 실패:`, error)
+}
+
 const listenWhenAvailable = async <T>(
   event: string,
   handler: (payload: T) => void,
@@ -123,9 +138,22 @@ const listenWhenAvailable = async <T>(
     if (disposed) return
     disposed = true
 
-    void Promise.resolve(unlisten()).catch(error => {
-      console.warn(`[posture-engine] ${event} 이벤트 해제 실패:`, error)
-    })
+    try {
+      const result = (unlisten as () => unknown)()
+
+      if (
+        typeof result === 'object' &&
+        result !== null &&
+        'then' in result &&
+        typeof result.then === 'function'
+      ) {
+        void Promise.resolve(result).catch(error =>
+          handleUnlistenError(event, error),
+        )
+      }
+    } catch (error) {
+      handleUnlistenError(event, error)
+    }
   }) satisfies UnlistenFn
 }
 

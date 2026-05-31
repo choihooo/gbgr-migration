@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCameraStore } from '../../model/use-camera-store'
 import { WebcamPanel } from '../WebcamPanel'
 
-const webcamViewProps: Array<{ isActive?: boolean }> = []
+const webcamViewProps: Array<{ isActive?: boolean; mode?: string }> = []
 const pauseSessionMutate = vi.fn()
 
 const latestWebcamViewProps = () => webcamViewProps[webcamViewProps.length - 1]
 
 vi.mock('@/pages/calibration-page/components/WebcamView', () => ({
-  default: (props: { isActive?: boolean }) => {
+  default: (props: { isActive?: boolean; mode?: string }) => {
     webcamViewProps.push(props)
     return <div data-testid="webcam-view" />
   },
@@ -27,10 +27,6 @@ vi.mock('@/entities/session/model/use-session-mutations', () => ({
     isPending: false,
   }),
   useResumeSessionMutation: () => ({ mutate: vi.fn(), isPending: false }),
-}))
-
-vi.mock('@/features/posture-engine', () => ({
-  useWindowVisibilitySync: vi.fn(),
 }))
 
 vi.mock('@/features/posture-engine/model/use-auto-metrics-sender', () => ({
@@ -73,6 +69,21 @@ describe('WebcamPanel', () => {
     render(<WebcamPanel />)
 
     expect(latestWebcamViewProps()?.isActive).toBe(true)
+  })
+
+  it('앱 visibility 변화와 무관하게 preview mode는 foreground로 유지한다', () => {
+    localStorage.setItem('sessionId', 'session-1')
+    useCameraStore.setState({ cameraState: 'show' })
+
+    render(<WebcamPanel />)
+
+    document.dispatchEvent(new Event('visibilitychange'))
+
+    expect(latestWebcamViewProps()).toMatchObject({
+      isActive: true,
+      mode: 'foreground',
+    })
+    expect(useCameraStore.getState().cameraState).toBe('show')
   })
 
   it('카메라 감추기 클릭 즉시 자세 엔진 카메라를 비활성화한다', async () => {
