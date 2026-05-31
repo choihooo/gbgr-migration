@@ -131,4 +131,30 @@ describe('useAutoStartPostureEngine', () => {
     })
     expect(startPostureEngine).not.toHaveBeenCalled()
   })
+
+  it('권한 확인 후 sidecar 시작 실패를 recoverable 에러로 기록한다', async () => {
+    vi.spyOn(bridge, 'isTauriRuntimeAvailable').mockReturnValue(true)
+    vi.spyOn(bridge, 'getLatestPostureState').mockResolvedValue({
+      session: null,
+      latestResult: null,
+      engineState: idleEngineState,
+    })
+    vi.spyOn(bridge, 'startPostureEngine').mockRejectedValue(
+      new Error('camera_busy'),
+    )
+
+    renderHook(() => useAutoStartPostureEngine(true))
+
+    await waitFor(() => {
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled()
+      expect(bridge.startPostureEngine).toHaveBeenCalled()
+      expect(usePostureEngineStore.getState().engineState).toMatchObject({
+        engineStatus: 'error',
+        cameraOwner: 'none',
+        message: 'camera_busy',
+        recoverable: true,
+      })
+    })
+    expect(usePostureEngineStore.getState().session).toBeNull()
+  })
 })

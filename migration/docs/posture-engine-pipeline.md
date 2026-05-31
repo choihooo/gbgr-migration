@@ -5,7 +5,7 @@
 자세 추론 파이프라인은 웹캠 프레임을 입력받아 사용자의 자세 상태를 6단계로 분류하는 시스템입니다. 전체 흐름은 다음과 같습니다.
 
 ```
-웹캠 프레임 (base64)
+Python sidecar 카메라 프레임
   → MediaPipe Pose Landmarker (33개 랜드마크 추출)
   → 키 랜드마크 13개 추출
   → PI (Posture Index) 계산
@@ -20,21 +20,16 @@
 
 ## 1. 프레임 입력
 
-### 1.1 Foreground 모드 (React → Sidecar)
+측정 진입 전에는 React 앱뷰 권한 확인과 Python sidecar 카메라 시작을 모두
+완료해야 합니다. 앱뷰 권한 확인용 stream은 즉시 중지하고, 실제 측정과 preview는
+Python sidecar의 OpenCV 루프가 소유합니다. sidecar가 loopback MJPEG `stream_url`
+을 반환하지 않으면 측정 준비 완료로 보지 않습니다.
 
-React 웹캠(`react-webcam`)에서 매 프레임을 base64 JPEG로 캡처합니다. Tauri 명령어를 통해 stdin으로 sidecar 프로세스에 JSON 형태로 전달됩니다.
+### 1.1 Foreground/Background 모드 (Python 카메라)
 
-```json
-{
-  "command": "frame",
-  "session_id": "abc-123",
-  "image_payload": "data:image/jpeg;base64,/9j/4AAQ..."
-}
-```
-
-### 1.2 Background 모드 (Python 카메라)
-
-React가 백그라운드에 있을 때는 Python의 `BackgroundCameraLoop`(OpenCV 기반)이 직접 카메라를 제어합니다. `background_tick` 명령이 들어오면 Python이 캡처한 프레임으로 동일한 분석을 수행합니다.
+Python의 `BackgroundCameraLoop`(OpenCV 기반)가 직접 카메라를 제어합니다.
+Rust 측정 워커가 `background_tick` 명령을 보내면 Python이 최신 캡처 프레임으로
+분석을 수행합니다.
 
 ```json
 {
@@ -43,7 +38,20 @@ React가 백그라운드에 있을 때는 Python의 `BackgroundCameraLoop`(OpenC
 }
 ```
 
-### 1.3 프레임 디코딩
+### 1.2 로컬 preview stream
+
+`BackgroundCameraLoop`는 `127.0.0.1`에만 바인딩된 MJPEG stream을 만들고,
+session마다 새 token이 포함된 `/video?token=...` URL을 반환합니다. token이
+없거나 틀리거나 `/video`가 아닌 경로는 frame bytes 없이 거부됩니다. 이 URL은
+React `WebcamView`의 `<img>` preview에만 쓰이며 외부 API로 전송하지 않습니다.
+
+### 1.3 카메라 숨김과 중지
+
+사용자가 카메라를 숨기거나 측정을 종료하면 `stop_posture_engine` 경로가 sidecar
+카메라 캡처, stream server, 최신 JPEG 캐시, Rust background worker를 정리합니다.
+숨김 상태에서는 새 frame을 수집하지 않습니다.
+
+### 1.4 프레임 디코딩
 
 `pose_detector.py`의 `detect()` 메서드에서 base64 문자열을 numpy 이미지로 변환합니다.
 

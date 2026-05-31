@@ -7,8 +7,25 @@ import { installMockStorage } from '../../setup/auth-test-storage'
 
 const mockUsePostureEngine = vi.fn()
 const stopTrack = vi.fn()
+const cameraPermissionModalProps: Array<{
+  isOpen: boolean
+  message: string
+  onRetry: () => void
+}> = []
 
 vi.mock('@/features/posture-engine', () => ({
+  CameraPermissionModal: (props: {
+    isOpen: boolean
+    message: string
+    onRetry: () => void
+  }) => {
+    cameraPermissionModalProps.push(props)
+    return props.isOpen ? (
+      <button type="button" onClick={props.onRetry}>
+        {props.message}
+      </button>
+    ) : null
+  },
   usePostureEngine: (...args: unknown[]) => mockUsePostureEngine(...args),
 }))
 
@@ -50,6 +67,7 @@ vi.mock('react-webcam', () => {
 describe('WebcamView', () => {
   beforeEach(() => {
     installMockStorage()
+    cameraPermissionModalProps.length = 0
     useCameraStore.setState({ cameraState: 'show', widgetState: 'hide' })
     mockUsePostureEngine.mockReset()
     stopTrack.mockReset()
@@ -104,5 +122,43 @@ describe('WebcamView', () => {
       'src',
       'http://127.0.0.1:49152/video?token=test-token',
     )
+  })
+
+  it.each([
+    ['camera_permission_denied', '권한'],
+    ['camera_unavailable', '카메라를 열 수 없어요'],
+    ['camera_busy', '다른 앱'],
+    ['camera_frame_unavailable', '프레임'],
+  ])('recoverable 카메라 에러 %s 안내와 재시도를 제공한다', (message, text) => {
+    const retryStart = vi.fn()
+    mockUsePostureEngine.mockReturnValue({
+      overlayLandmarks: [],
+      latestResult: null,
+      streamUrl: null,
+      retryStart,
+      engineState: {
+        engineStatus: 'error',
+        mode: 'foreground',
+        cameraOwner: 'none',
+        updatedAt: new Date().toISOString(),
+        message,
+        recoverable: true,
+      },
+      runtimeAvailable: true,
+    })
+
+    render(<WebcamView mode="foreground" />)
+
+    const retryButton = screen.getByRole('button', {
+      name: new RegExp(text),
+    })
+    retryButton.click()
+
+    expect(
+      cameraPermissionModalProps[cameraPermissionModalProps.length - 1],
+    ).toMatchObject({
+      isOpen: true,
+    })
+    expect(retryStart).toHaveBeenCalledTimes(1)
   })
 })

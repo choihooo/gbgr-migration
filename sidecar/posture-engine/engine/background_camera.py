@@ -14,7 +14,7 @@ from urllib.parse import parse_qs, urlparse
 
 import cv2
 
-CAMERA_OPEN_RETRY_ATTEMPTS = 120
+CAMERA_OPEN_RETRY_ATTEMPTS = 3
 CAMERA_OPEN_RETRY_INTERVAL_SECONDS = 0.5
 CAMERA_INDEX_ENV = "GBGR_CAMERA_INDEX"
 FFMPEG_CANDIDATES = ("ffmpeg", "/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg")
@@ -42,6 +42,7 @@ class BackgroundCameraLoop:
         self._token = secrets.token_urlsafe(24)
         self._lock = threading.Lock()
         self._latest_jpeg: bytes | None = None
+        self._last_open_error: str | None = None
 
     def start(self) -> None:
         if self.running:
@@ -49,9 +50,10 @@ class BackgroundCameraLoop:
 
         self._capture = self._open_capture_with_retry()
         if self._capture is None:
-            self.fail("camera_unavailable")
+            self.fail(self._last_open_error or "camera_unavailable")
             return
 
+        self._token = secrets.token_urlsafe(24)
         self.running = True
         self.last_error = None
         self._start_stream_server()
@@ -63,6 +65,7 @@ class BackgroundCameraLoop:
         self._capture_thread.start()
 
     def _open_capture_with_retry(self) -> cv2.VideoCapture | None:
+        self._last_open_error = None
         for candidate_indices in _camera_index_candidate_groups():
             for _ in range(CAMERA_OPEN_RETRY_ATTEMPTS):
                 for index in candidate_indices:
@@ -71,6 +74,12 @@ class BackgroundCameraLoop:
                         return capture
 
                     capture.release()
+                    if _is_camera_permission_denied():
+                        self._last_open_error = "camera_permission_denied"
+                        return None
+                    if _is_camera_busy():
+                        self._last_open_error = "camera_busy"
+                        return None
                 time.sleep(CAMERA_OPEN_RETRY_INTERVAL_SECONDS)
 
         return None
@@ -123,10 +132,9 @@ class BackgroundCameraLoop:
 
         class StreamHandler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # noqa: N802
-                parsed = urlparse(self.path)
-                token = parse_qs(parsed.query).get("token", [""])[0]
-                if parsed.path != "/video" or token != camera_loop._token:
-                    self.send_response(404)
+                if not is_authorized_stream_request(self.path, camera_loop._token):
+                    self.send_response(403)
+                    self.send_header("Cache-Control", "no-store")
                     self.end_headers()
                     return
 
@@ -323,3 +331,17 @@ def _resolve_ffmpeg_command() -> str | None:
         if resolved is not None:
             return resolved
     return None
+
+
+def _is_camera_permission_denied() -> bool:
+    return os.environ.get("GBGR_CAMERA_PERMISSION_DENIED") == "1"
+
+
+def _is_camera_busy() -> bool:
+    return os.environ.get("GBGR_CAMERA_BUSY") == "1"
+
+
+def is_authorized_stream_request(path: str, current_token: str) -> bool:
+    parsed = urlparse(path)
+    token = parse_qs(parsed.query).get("token", [""])[0]
+    return parsed.path == "/video" and token == current_token

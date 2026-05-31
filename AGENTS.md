@@ -46,3 +46,9 @@ Pull requests should follow `.github/PULL_REQUEST_TEMPLATE.md`: include a summar
 ## Security & Configuration Tips
 
 Do not commit updater signing keys, Apple credentials, API secrets, generated bundles, `node_modules`, or virtual environments. Keep release-only configuration in GitHub Secrets and prefer the existing release scripts under `migration/scripts/` over ad hoc packaging steps.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read
+`specs/016-camera-stream-permission/plan.md`.
+<!-- SPECKIT END -->

@@ -11,14 +11,13 @@ import type {
   LatestPostureStateResponse,
   PostureEngineResult,
   PostureWarningEvent,
-  PushPostureFramePayload,
-  PushPostureFrameResponse,
   SetCalibrationPayload,
   SetCalibrationResponse,
   StartBackgroundMeasurementPayload,
   StartPostureEngineResponse,
   StopBackgroundMeasurementPayload,
   StopPostureEngineResponse,
+  WarmupPostureEngineResponse,
 } from '@/entities/posture'
 import { createEmptyEngineState } from '@/entities/posture'
 
@@ -28,6 +27,17 @@ export const POSTURE_WARNING_EVENT = 'posture://warning'
 
 export const isTauriRuntimeAvailable = () =>
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+
+export async function warmupPostureEngine() {
+  if (!isTauriRuntimeAvailable()) {
+    return {
+      engineStatus: 'error',
+      message: 'tauri_runtime_unavailable',
+    } satisfies WarmupPostureEngineResponse
+  }
+
+  return invoke<WarmupPostureEngineResponse>('warmup_posture_engine')
+}
 
 export async function startPostureEngine() {
   if (!isTauriRuntimeAvailable()) {
@@ -51,17 +61,6 @@ export async function stopPostureEngine() {
   }
 
   return invoke<StopPostureEngineResponse>('stop_posture_engine')
-}
-
-export async function pushPostureFrame(payload: PushPostureFramePayload) {
-  if (!isTauriRuntimeAvailable()) {
-    return {
-      accepted: false,
-      reason: 'tauri_runtime_unavailable',
-    } satisfies PushPostureFrameResponse
-  }
-
-  return invoke<PushPostureFrameResponse>('push_posture_frame', { payload })
 }
 
 export async function startBackgroundMeasurement(

@@ -9,8 +9,8 @@ use crate::{
         session_metrics::record_session_result,
     },
     state::posture_engine_state::{
-        now_iso, BackgroundMeasurementResponse, CameraOwner, EngineMode, PostureEngineResult,
-        PostureEngineState,
+        now_iso, BackgroundMeasurementResponse, CameraDiagnosticEvent, CameraOwner, EngineMode,
+        PostureEngineResult, PostureEngineState,
     },
 };
 
@@ -99,6 +99,21 @@ pub(super) fn set_engine_error(state: &PostureEngineState, message: &str) {
         guard.message = Some(message.to_string());
         guard.recoverable = true;
         guard.updated_at = now_iso();
+        guard.camera_diagnostics.push(CameraDiagnosticEvent {
+            error_code: Some(message.to_string()),
+            permission_state: if message == "camera_permission_denied" {
+                "denied".to_string()
+            } else {
+                "unknown".to_string()
+            },
+            transition: "checking->error".to_string(),
+            duration_ms: None,
+            occurred_at: now_iso(),
+        });
+        if guard.camera_diagnostics.len() > 50 {
+            let excess = guard.camera_diagnostics.len() - 50;
+            guard.camera_diagnostics.drain(0..excess);
+        }
     }
 }
 

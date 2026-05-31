@@ -6,8 +6,8 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { useAuthSessionStore } from '@/entities/session/model/use-auth-session-store'
 import { Header } from '@/features/layout/ui/Header'
 import {
-  useAutoStartPostureEngine,
   usePostureEngine,
+  usePostureEngineWarmup,
 } from '@/features/posture-engine'
 import { cn } from '@/shared/lib/cn'
 
@@ -21,7 +21,7 @@ function RootLayout() {
     isAuthenticated && !location.pathname.startsWith('/main') && !isWidgetRoute
 
   usePostureEngine({ active: false })
-  useAutoStartPostureEngine(!isWidgetRoute)
+  usePostureEngineWarmup(!isWidgetRoute)
 
   return (
     <div

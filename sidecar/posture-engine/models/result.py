@@ -4,6 +4,15 @@ from dataclasses import dataclass
 
 
 @dataclass
+class CameraDiagnosticEvent:
+    error_code: str | None
+    permission_state: str
+    transition: str
+    duration_ms: int | None
+    occurred_at: str
+
+
+@dataclass
 class EngineStateMessage:
     engine_status: str
     mode: str
@@ -12,6 +21,7 @@ class EngineStateMessage:
     message: str | None
     recoverable: bool
     stream_url: str | None = None
+    camera_diagnostics: list[CameraDiagnosticEvent | dict] | None = None
 
 
 @dataclass

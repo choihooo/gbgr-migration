@@ -38,6 +38,25 @@ def test_start_reports_python_camera_owner_and_stream_url(monkeypatch):
     assert result["stream_url"] == "http://127.0.0.1:49152/video?token=test-token"
 
 
+def test_start_failure_reports_recoverable_camera_error_without_stream(monkeypatch):
+    service = PostureEngineService()
+
+    def fail_camera_start():
+        service._background_loop.running = False
+        service._background_loop.last_error = "camera_busy"
+        service._background_loop.stream_url = "http://127.0.0.1:49152/video?token=old"
+
+    monkeypatch.setattr(service._background_loop, "start", fail_camera_start)
+
+    result = service.handle({"command": "start"})
+
+    assert result["engine_status"] == "error"
+    assert result["camera_owner"] == "none"
+    assert result["message"] == "camera_busy"
+    assert result["recoverable"] is True
+    assert result["stream_url"] is None
+
+
 def test_start_opens_camera_before_detector_initialization(monkeypatch):
     service = PostureEngineService()
     calls = []

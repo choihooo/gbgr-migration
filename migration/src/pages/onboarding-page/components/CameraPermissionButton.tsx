@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useCameraStore } from '@/features/main-panels/model/use-camera-store'
 import {
@@ -15,6 +16,7 @@ import { getCameraPermissionErrorMessage } from '@/shared/lib/camera-permission'
 import { Button } from '@/shared/ui/button'
 
 const CameraPermissionButton = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const setShow = useCameraStore(state => state.setShow)
   const [isRequesting, setIsRequesting] = useState(false)
@@ -126,7 +128,7 @@ const CameraPermissionButton = () => {
       variant="primary"
       size="xl"
       className="w-[440px]"
-      text="카메라 권한 허용"
+      text={t('onboarding.camera.button')}
       onClick={requestCameraPermission}
       disabled={isRequesting}
     />

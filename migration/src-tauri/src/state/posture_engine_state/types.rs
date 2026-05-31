@@ -68,6 +68,16 @@ pub struct PostureEngineResult {
     pub events: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct CameraDiagnosticEvent {
+    pub error_code: Option<String>,
+    pub permission_state: String,
+    pub transition: String,
+    pub duration_ms: Option<u64>,
+    pub occurred_at: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EngineStateEvent {
@@ -77,4 +87,6 @@ pub struct EngineStateEvent {
     pub updated_at: String,
     pub message: Option<String>,
     pub recoverable: bool,
+    #[serde(default)]
+    pub camera_diagnostics: Vec<CameraDiagnosticEvent>,
 }

@@ -12,10 +12,10 @@
 
 ## 한 줄 요약
 
-거부기린은 React 렌더러가 사용자 화면과 웹캠 프레임 캡처를 담당하고, Tauri
+거부기린은 React 렌더러가 사용자 화면과 로컬 preview 표시를 담당하고, Tauri
 Rust 계층이 네이티브 창, 안전한 API 프록시, sidecar 프로세스, 이벤트 브리지를
-담당하며, Python sidecar가 MediaPipe 기반 자세 분석과 캘리브레이션 계산을
-수행하는 데스크톱 앱입니다.
+담당하며, Python sidecar가 카메라 캡처, MediaPipe 기반 자세 분석, 캘리브레이션
+계산을 수행하는 데스크톱 앱입니다.
 
 ## 시스템 컨텍스트
 
@@ -31,11 +31,11 @@ graph LR
     OS["Desktop OS<br/>window, notification, autostart, updater"]
 
     User -->|"로그인, 측정, 설정"| Renderer
-    Camera -->|"foreground video frame"| Renderer
+    Camera -->|"local OpenCV capture"| Sidecar
     Renderer -->|"invoke commands"| Tauri
     Tauri -->|"stdin/stdout JSON"| Sidecar
     Sidecar -->|"load"| Model
-    Sidecar -->|"background camera frame"| Camera
+    Sidecar -->|"tokenized loopback MJPEG"| Renderer
     Tauri -->|"validated HTTP proxy"| Api
     Tauri -->|"events and plugins"| OS
     Tauri -->|"posture events"| Renderer
@@ -93,6 +93,9 @@ graph TB
 - 자세 엔진 클라이언트는 `features/posture-engine/model/use-posture-engine.ts`가
   맡고, Tauri 명령 wrapper는 `features/posture-engine/lib/tauri-posture-engine.ts`
   에 모여 있습니다.
+- 카메라 권한 진입은 앱뷰 `getUserMedia` 권한 확인 후 확인용 stream을 중지하고,
+  Tauri `start_posture_engine`이 Python sidecar 카메라 루프와 `streamUrl`을 준비한
+  뒤에만 측정 화면을 활성화합니다.
 - 자세 결과 저장소는 `entities/posture/model/posture-engine-store.ts`의 Zustand
   store입니다. foreground 결과는 즉시 `latestResult`에 들어가고, background
   결과는 `restoredResult`에도 보존되어 웹캠이 꺼진 상태에서도 최근 자세 상태를
@@ -144,13 +147,11 @@ sequenceDiagram
     UI->>Hook: active=true, mode=foreground
     Hook->>Tauri: start_posture_engine()
     Tauri->>Sidecar: {"command":"start"}
+    Sidecar->>Sidecar: open camera and start local stream
     Sidecar-->>Tauri: EngineStateMessage ready
-    Tauri->>State: create session, set cameraOwner=react
+    Tauri->>State: create session, set cameraOwner=python
     Tauri-->>Hook: StartPostureEngineResponse
-    Hook->>UI: interval every 120ms
-    UI->>Hook: capture JPEG frame
-    Hook->>Tauri: push_posture_frame(payload)
-    Tauri->>Sidecar: {"command":"frame", ...}
+    Tauri->>Sidecar: {"command":"background_tick", ...}
     Sidecar-->>Tauri: ResultMessage
     Tauri->>State: latest_result, metrics, session update
     Tauri-->>Store: posture://result
@@ -203,8 +204,21 @@ stateDiagram-v2
 
 이 상태는 Rust `PostureEngineState.engine_state`와 프런트엔드
 `EngineStateEvent` 타입이 공유합니다. 카메라 소유권은 `react`, `python`, `none`
-으로 표현되고, foreground는 React 웹캠이, background는 Python OpenCV 루프가
-카메라를 소유합니다.
+으로 표현되지만, 현재 측정 경로의 foreground/background 카메라 캡처는 모두
+Python OpenCV 루프가 소유합니다. React는 `127.0.0.1` loopback `streamUrl`을
+표시만 합니다.
+
+## 카메라 프라이버시와 진단
+
+- 로컬 preview stream은 `127.0.0.1`에 바인딩되고 session-specific token이 필요합니다.
+- token이 없거나 틀린 요청, `/video`가 아닌 요청은 frame bytes 없이 거부합니다.
+- `tauri.conf.json`의 CSP는 production image source에서 remote HTTPS 이미지를
+  카메라 preview 경로로 허용하지 않고, local stream origin만 허용합니다.
+- 진단 상태는 error code, coarse permission state, transition, duration, timestamp만
+  저장합니다. raw video, captured frame, camera name, camera device id, stream token은
+  진단이나 store에 저장하지 않습니다.
+- 사용자가 카메라를 숨기면 measurement pause로 처리하고, sidecar capture와 preview
+  stream을 정리해 새 frame 수집을 중단합니다.
 
 ## 캘리브레이션 흐름
 
@@ -247,7 +261,6 @@ Rust와 Python sidecar는 stdin/stdout의 newline-delimited JSON으로 통신합
 | 명령 | 호출 위치 | 응답 성격 |
 | --- | --- | --- |
 | `start` | `start_posture_engine` | `EngineStateMessage` |
-| `frame` | `push_posture_frame` | `ResultMessage` |
 | `start_background` | `start_background_measurement` | `EngineStateMessage` |
 | `background_tick` | Rust background worker | `ResultMessage` |
 | `stop_background` | `stop_background_measurement` | `EngineStateMessage` |
@@ -268,7 +281,7 @@ Rust와 Python sidecar는 stdin/stdout의 newline-delimited JSON으로 통신합
   "score": -0.287,
   "pi": -0.154,
   "landmarks": [{ "x": 0.5, "y": 0.2, "z": -0.1, "visibility": 0.99 }],
-  "source": "react_frame",
+  "source": "python_camera",
   "engine_mode": "foreground",
   "events": ["enter_bad"]
 }
@@ -365,11 +378,8 @@ graph LR
 - `sidecar/posture-engine/engine/pose_detector.py`는 MediaPipe 33개 랜드마크 중
   13개 키 랜드마크만 반환합니다. 프런트엔드 오버레이가 사용하는 인덱스는 이
   축약 배열 기준이므로 MediaPipe 원본 인덱스와 혼동하지 않아야 합니다.
-- foreground/background 전환은 카메라 소유권 전환이 핵심입니다. React webcam
-  stream을 멈추기 전에 Python background camera가 열리면 OS별 카메라 충돌이 날 수
-  있습니다.
-- `push_posture_frame`은 `frame_inflight`로 동시 프레임 처리 폭주를 막습니다.
-  프레임 주기, sidecar timeout, 모델 성능을 함께 튜닝해야 합니다.
+- foreground/background 전환은 Python sidecar 카메라 루프와 측정 워커 상태를 함께
+  맞추는 것이 핵심입니다.
 - 캘리브레이션 결과는 localStorage에 저장되고 앱 시작 시 `set_calibration`으로
   sidecar classifier에 복원됩니다. 앱 시작 직후 측정 전에 복원이 실패해도 치명
   오류로 처리하지 않습니다.

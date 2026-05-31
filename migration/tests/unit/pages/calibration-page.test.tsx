@@ -59,7 +59,7 @@ vi.mock('@/pages/calibration-page/components/WebcamView', () => ({
         score: 1,
         pi: 0.1,
         landmarks: [{ x: 0.1, y: 0.1, z: 0.1 }],
-        source: 'react_frame',
+        source: 'python_camera',
         engineMode: 'foreground',
         events: [],
       })
