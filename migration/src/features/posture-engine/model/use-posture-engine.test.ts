@@ -1,16 +1,31 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PostureEngineResult } from '@/entities/posture'
+import type {
+  PostureEngineResult,
+  StartPostureEngineResponse,
+} from '@/entities/posture'
 import {
   createEmptyEngineState,
   usePostureEngineStore,
 } from '@/entities/posture'
+import { useCameraStore } from '@/features/main-panels/model/use-camera-store'
 import * as bridge from '../lib/tauri-posture-engine'
 import { usePostureEngine } from './use-posture-engine'
+
+const createDeferred = <T>() => {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
 
 describe('usePostureEngine', () => {
   beforeEach(() => {
     usePostureEngineStore.getState().reset()
+    useCameraStore.getState().resetCameraLifecycle()
     localStorage.clear()
     delete (
       globalThis as {
@@ -319,6 +334,125 @@ describe('usePostureEngine', () => {
     await waitFor(() => {
       expect(stopPostureEngine).toHaveBeenCalledTimes(1)
       expect(result.current.streamUrl).toBeNull()
+    })
+  })
+
+  it('카메라 시작 중에는 lifecycle starting을 발행하고 stream 준비 후 ready로 전환한다', async () => {
+    const deferred = createDeferred<StartPostureEngineResponse>()
+    useCameraStore.getState().setShow()
+    vi.spyOn(bridge, 'isTauriRuntimeAvailable').mockReturnValue(true)
+    vi.spyOn(bridge, 'getLatestPostureState').mockResolvedValue({
+      session: null,
+      latestResult: null,
+      engineState: createEmptyEngineState(),
+    })
+    vi.spyOn(bridge, 'subscribeToPostureResults').mockResolvedValue(() => {})
+    vi.spyOn(bridge, 'subscribeToPostureEngineStatus').mockResolvedValue(
+      () => {},
+    )
+    vi.spyOn(bridge, 'subscribeToPostureWarnings').mockResolvedValue(() => {})
+    vi.spyOn(bridge, 'startPostureEngine').mockReturnValue(deferred.promise)
+
+    renderHook(() => usePostureEngine({ active: true }))
+
+    await waitFor(() => {
+      expect(useCameraStore.getState().cameraLifecycle).toMatchObject({
+        intent: 'show',
+        runtime: 'starting',
+        streamUrl: null,
+      })
+    })
+
+    deferred.resolve({
+      engineStatus: 'ready',
+      sessionId: 'session-lifecycle',
+      mode: 'foreground',
+      streamUrl: 'http://127.0.0.1:49152/video?token=test-token',
+    })
+
+    await waitFor(() => {
+      expect(useCameraStore.getState().cameraLifecycle).toMatchObject({
+        intent: 'show',
+        runtime: 'ready',
+        streamUrl: 'http://127.0.0.1:49152/video?token=test-token',
+        errorCode: null,
+      })
+    })
+  })
+
+  it('비활성 전환 후 늦게 도착한 시작 성공은 lifecycle ready로 반영하지 않는다', async () => {
+    const deferred = createDeferred<StartPostureEngineResponse>()
+    useCameraStore.getState().setShow()
+    vi.spyOn(bridge, 'isTauriRuntimeAvailable').mockReturnValue(true)
+    vi.spyOn(bridge, 'getLatestPostureState').mockResolvedValue({
+      session: null,
+      latestResult: null,
+      engineState: createEmptyEngineState(),
+    })
+    vi.spyOn(bridge, 'subscribeToPostureResults').mockResolvedValue(() => {})
+    vi.spyOn(bridge, 'subscribeToPostureEngineStatus').mockResolvedValue(
+      () => {},
+    )
+    vi.spyOn(bridge, 'subscribeToPostureWarnings').mockResolvedValue(() => {})
+    vi.spyOn(bridge, 'startPostureEngine').mockReturnValue(deferred.promise)
+    vi.spyOn(bridge, 'stopPostureEngine').mockResolvedValue({
+      engineStatus: 'idle',
+      releasedOwner: 'python',
+    })
+
+    const { rerender } = renderHook(
+      ({ active }) => usePostureEngine({ active }),
+      { initialProps: { active: true } },
+    )
+
+    await waitFor(() => {
+      expect(useCameraStore.getState().cameraLifecycle.runtime).toBe('starting')
+    })
+
+    useCameraStore.getState().setHide()
+    rerender({ active: false })
+    deferred.resolve({
+      engineStatus: 'ready',
+      sessionId: 'session-late',
+      mode: 'foreground',
+      streamUrl: 'http://127.0.0.1:49152/video?token=late-token',
+    })
+
+    await waitFor(() => {
+      expect(useCameraStore.getState().cameraLifecycle).toMatchObject({
+        intent: 'hide',
+        runtime: 'idle',
+        streamUrl: null,
+      })
+    })
+  })
+
+  it('카메라 시작 실패는 show intent를 유지하고 lifecycle error와 null streamUrl을 기록한다', async () => {
+    useCameraStore.getState().setShow()
+    vi.spyOn(bridge, 'isTauriRuntimeAvailable').mockReturnValue(true)
+    vi.spyOn(bridge, 'getLatestPostureState').mockResolvedValue({
+      session: null,
+      latestResult: null,
+      engineState: createEmptyEngineState(),
+    })
+    vi.spyOn(bridge, 'subscribeToPostureResults').mockResolvedValue(() => {})
+    vi.spyOn(bridge, 'subscribeToPostureEngineStatus').mockResolvedValue(
+      () => {},
+    )
+    vi.spyOn(bridge, 'subscribeToPostureWarnings').mockResolvedValue(() => {})
+    vi.spyOn(bridge, 'startPostureEngine').mockRejectedValue(
+      new Error('camera_busy'),
+    )
+
+    renderHook(() => usePostureEngine({ active: true }))
+
+    await waitFor(() => {
+      expect(useCameraStore.getState().cameraLifecycle).toMatchObject({
+        intent: 'show',
+        runtime: 'error',
+        streamUrl: null,
+        errorCode: 'camera_busy',
+      })
     })
   })
 

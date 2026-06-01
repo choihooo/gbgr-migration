@@ -68,7 +68,14 @@ describe('WebcamView', () => {
   beforeEach(() => {
     installMockStorage()
     cameraPermissionModalProps.length = 0
-    useCameraStore.setState({ cameraState: 'show', widgetState: 'hide' })
+    useCameraStore.getState().resetCameraLifecycle()
+    useCameraStore.setState({ widgetState: 'hide' })
+    useCameraStore.getState().setShow()
+    useCameraStore.getState().setCameraRuntime({
+      runtime: 'ready',
+      streamUrl: 'http://127.0.0.1:49152/video?token=test-token',
+      errorCode: null,
+    })
     mockUsePostureEngine.mockReset()
     stopTrack.mockReset()
     mockUsePostureEngine.mockReturnValue({
@@ -109,7 +116,12 @@ describe('WebcamView', () => {
   })
 
   it('카메라 상태 무시 옵션이 있으면 exit 상태에서도 sidecar 스트림을 표시한다', () => {
-    useCameraStore.setState({ cameraState: 'exit', widgetState: 'hide' })
+    useCameraStore.getState().setExit()
+    useCameraStore.getState().setCameraRuntime({
+      runtime: 'ready',
+      streamUrl: 'http://127.0.0.1:49152/video?token=test-token',
+      errorCode: null,
+    })
     const CalibrationWebcamView = WebcamView as React.ComponentType<{
       mode: 'foreground'
       ignoreCameraState: boolean
@@ -122,6 +134,7 @@ describe('WebcamView', () => {
       'src',
       'http://127.0.0.1:49152/video?token=test-token',
     )
+    expect(useCameraStore.getState().cameraLifecycle.intent).toBe('exit')
   })
 
   it.each([
@@ -160,5 +173,35 @@ describe('WebcamView', () => {
       isOpen: true,
     })
     expect(retryStart).toHaveBeenCalledTimes(1)
+  })
+
+  it('lifecycle error 상태에서는 streamUrl이 있어도 active preview를 렌더링하지 않는다', () => {
+    useCameraStore.getState().setShow()
+    useCameraStore.getState().setCameraRuntime({
+      runtime: 'error',
+      streamUrl: null,
+      errorCode: 'camera_busy',
+    })
+    mockUsePostureEngine.mockReturnValue({
+      overlayLandmarks: [],
+      latestResult: null,
+      streamUrl: 'http://127.0.0.1:49152/video?token=stale-token',
+      retryStart: vi.fn(),
+      engineState: {
+        engineStatus: 'error',
+        mode: 'foreground',
+        cameraOwner: 'none',
+        updatedAt: new Date().toISOString(),
+        message: 'camera_busy',
+        recoverable: true,
+      },
+      runtimeAvailable: true,
+    })
+
+    render(<WebcamView mode="foreground" />)
+
+    expect(
+      screen.queryByAltText('자세 측정 카메라 스트림'),
+    ).not.toBeInTheDocument()
   })
 })

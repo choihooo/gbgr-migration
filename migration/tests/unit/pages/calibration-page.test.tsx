@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { usePostureEngineStore } from '@/entities/posture'
+import { useCameraStore } from '@/features/main-panels/model/use-camera-store'
 import CalibrationPage from '@/pages/calibration-page'
 import { installMockStorage } from '../../setup/auth-test-storage'
 
@@ -9,7 +10,8 @@ const mockNavigate = vi.fn()
 const mockCalibrateStart = vi.fn()
 const mockCalibrateFrame = vi.fn()
 const mockCalibrateFinish = vi.fn()
-const webcamViewProps: Array<{ mode?: string }> = []
+const webcamViewProps: Array<{ mode?: string; ignoreCameraState?: boolean }> =
+  []
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -40,15 +42,17 @@ vi.mock('@/assets/common/images/calibration_guide.svg?react', () => ({
 vi.mock('@/pages/calibration-page/components/WebcamView', () => ({
   default: ({
     mode,
+    ignoreCameraState,
     remainingTime,
     onResultChange,
   }: {
     mode?: string
+    ignoreCameraState?: boolean
     remainingTime?: number
     onResultChange?: (result: unknown) => void
   }) => {
     const didNotifyWebcamReadyRef = React.useRef(false)
-    webcamViewProps.push({ mode })
+    webcamViewProps.push({ mode, ignoreCameraState })
 
     React.useEffect(() => {
       if (didNotifyWebcamReadyRef.current) return
@@ -81,6 +85,7 @@ describe('CalibrationPage', () => {
     mockCalibrateFrame.mockReset()
     mockCalibrateFinish.mockReset()
     webcamViewProps.length = 0
+    useCameraStore.getState().resetCameraLifecycle()
     usePostureEngineStore.getState().reset()
     usePostureEngineStore.getState().setEngineState({
       engineStatus: 'ready',
@@ -147,5 +152,17 @@ describe('CalibrationPage', () => {
     render(<CalibrationPage />)
 
     expect(webcamViewProps[webcamViewProps.length - 1]?.mode).toBe('foreground')
+  })
+
+  it('캘리브레이션 진입은 메인 화면 카메라 숨김 의도를 덮어쓰지 않는다', () => {
+    useCameraStore.getState().setHide()
+
+    render(<CalibrationPage />)
+
+    expect(webcamViewProps[webcamViewProps.length - 1]).toMatchObject({
+      mode: 'foreground',
+      ignoreCameraState: true,
+    })
+    expect(useCameraStore.getState().cameraLifecycle.intent).toBe('hide')
   })
 })

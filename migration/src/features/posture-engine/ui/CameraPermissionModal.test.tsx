@@ -31,4 +31,23 @@ describe('CameraPermissionModal', () => {
 
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  it('다시 시도는 닫기 액션과 분리되어 실행된다', () => {
+    const onRetry = vi.fn()
+    const onClose = vi.fn()
+
+    render(
+      <CameraPermissionModal
+        isOpen={true}
+        message="카메라 사용 중"
+        onClose={onClose}
+        onRetry={onRetry}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('다시 시도'))
+
+    expect(onRetry).toHaveBeenCalledTimes(1)
+    expect(onClose).not.toHaveBeenCalled()
+  })
 })

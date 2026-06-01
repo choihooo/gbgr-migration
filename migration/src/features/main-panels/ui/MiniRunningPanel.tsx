@@ -19,6 +19,7 @@ import { usePostureEngineStore } from '@/entities/posture'
 import { useSessionReportQuery } from '@/entities/session'
 import { cn } from '@/shared/lib/cn'
 import { getScoreLevel } from '@/shared/lib/get-score-level'
+import { isCameraLifecycleLive } from '../model/types'
 import { useCameraStore } from '../model/use-camera-store'
 
 function ExitPanel() {
@@ -215,8 +216,8 @@ function RunningPanel() {
   const { t } = useTranslation()
   const latestResult = usePostureEngineStore(state => state.latestResult)
   const restoredResult = usePostureEngineStore(state => state.restoredResult)
-  const cameraState = useCameraStore(state => state.cameraState)
-  const isCameraShow = cameraState === 'show'
+  const cameraLifecycle = useCameraStore(state => state.cameraLifecycle)
+  const isCameraLive = isCameraLifecycleLive(cameraLifecycle)
   const backgroundVideoRef = useRef<HTMLVideoElement>(null)
   const characterVideoRef = useRef<HTMLVideoElement>(null)
 
@@ -299,7 +300,7 @@ function RunningPanel() {
     const video = backgroundVideoRef.current
     if (!video) return
 
-    if (isCameraShow) {
+    if (isCameraLive) {
       void video.play().catch(error => {
         console.warn('배경 영상 재생 실패:', error)
       })
@@ -307,7 +308,7 @@ function RunningPanel() {
     }
 
     video.pause()
-  }, [isCameraShow])
+  }, [isCameraLive])
 
   return (
     <div>
@@ -319,7 +320,7 @@ function RunningPanel() {
         <video
           ref={backgroundVideoRef}
           src={BackgroundVideo}
-          autoPlay
+          autoPlay={isCameraLive}
           loop
           muted
           playsInline
@@ -348,11 +349,11 @@ function RunningPanel() {
             'relative z-10 mt-12 flex items-center justify-center px-4',
           )}
         >
-          {isCameraShow ? (
+          {isCameraLive ? (
             <video
               ref={characterVideoRef}
               src={levelVideo}
-              autoPlay
+              autoPlay={isCameraLive}
               loop
               muted
               playsInline

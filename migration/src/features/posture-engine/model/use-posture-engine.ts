@@ -10,6 +10,7 @@ import type {
   StartPostureEngineResponse,
 } from '@/entities/posture'
 import { usePostureEngineStore } from '@/entities/posture'
+import { useCameraStore } from '@/features/main-panels/model/use-camera-store'
 import {
   getLatestPostureState,
   isTauriRuntimeAvailable,
@@ -130,6 +131,7 @@ export const usePostureEngine = ({
     appendCameraDiagnostic,
     markHydratedFromCache,
   } = usePostureEngineStore()
+  const setCameraRuntime = useCameraStore(state => state.setCameraRuntime)
   const startedRef = useRef(false)
   const engineStatusRef = useRef(engineState.engineStatus)
   const [streamUrl, setStreamUrl] = useState<string | null>(null)
@@ -140,6 +142,11 @@ export const usePostureEngine = ({
   }, [engineState.engineStatus])
 
   const stopStartedEngine = useCallback(() => {
+    setCameraRuntime({
+      runtime: 'idle',
+      streamUrl: null,
+      errorCode: null,
+    })
     if (!startedRef.current) return
 
     void stopPostureEngine()
@@ -152,11 +159,16 @@ export const usePostureEngine = ({
         durationMs: null,
       }),
     )
-  }, [appendCameraDiagnostic])
+  }, [appendCameraDiagnostic, setCameraRuntime])
 
   const retryStart = useCallback(() => {
     startedRef.current = false
     setStreamUrl(null)
+    setCameraRuntime({
+      runtime: 'starting',
+      streamUrl: null,
+      errorCode: null,
+    })
     appendCameraDiagnostic(
       buildCameraDiagnostic({
         errorCode: null,
@@ -165,7 +177,7 @@ export const usePostureEngine = ({
       }),
     )
     setRestartToken(value => value + 1)
-  }, [appendCameraDiagnostic])
+  }, [appendCameraDiagnostic, setCameraRuntime])
 
   useEffect(() => {
     if (!runtimeAvailable) {
@@ -181,6 +193,11 @@ export const usePostureEngine = ({
       setRestoredResult(null)
       setSession(null)
       setStreamUrl(null)
+      setCameraRuntime({
+        runtime: 'idle',
+        streamUrl: null,
+        errorCode: null,
+      })
       markHydratedFromCache()
       return
     }
@@ -231,6 +248,7 @@ export const usePostureEngine = ({
     setRestoredResult,
     setSession,
     setWarning,
+    setCameraRuntime,
   ])
 
   useEffect(() => {
@@ -265,6 +283,11 @@ export const usePostureEngine = ({
     void (async () => {
       let response: StartPostureEngineResponse
       const startedAt = Date.now()
+      setCameraRuntime({
+        runtime: 'starting',
+        streamUrl: null,
+        errorCode: null,
+      })
       appendCameraDiagnostic(
         buildCameraDiagnostic({
           errorCode: null,
@@ -296,9 +319,19 @@ export const usePostureEngine = ({
           recoverable: true,
         })
         setStreamUrl(null)
+        setCameraRuntime({
+          runtime: 'error',
+          streamUrl: null,
+          errorCode,
+        })
         return
       }
       if (cancelled) {
+        setCameraRuntime({
+          runtime: 'idle',
+          streamUrl: null,
+          errorCode: null,
+        })
         void stopPostureEngine()
         return
       }
@@ -320,6 +353,11 @@ export const usePostureEngine = ({
         recoverable: true,
       })
       setStreamUrl(response.streamUrl)
+      setCameraRuntime({
+        runtime: 'ready',
+        streamUrl: response.streamUrl,
+        errorCode: null,
+      })
 
       if (response.sessionId) {
         setSession(buildFallbackSession(response.sessionId, response.mode))
@@ -350,6 +388,7 @@ export const usePostureEngine = ({
     runtimeAvailable,
     setEngineState,
     setSession,
+    setCameraRuntime,
     stopStartedEngine,
   ])
 
