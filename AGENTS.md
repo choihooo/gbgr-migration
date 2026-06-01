@@ -50,5 +50,5 @@ Do not commit updater signing keys, Apple credentials, API secrets, generated bu
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read
-`specs/016-camera-stream-permission/plan.md`.
+`specs/017-camera-lifecycle-state/plan.md`.
 <!-- SPECKIT END -->

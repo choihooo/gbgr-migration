@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLevelQuery } from '@/entities/dashboard/model/use-dashboard-queries'
 import {
@@ -13,14 +14,19 @@ import WebcamView from '@/pages/calibration-page/components/WebcamView'
 import { useWidget } from '@/shared/hooks/use-widget'
 import { Button } from '@/shared/ui/button'
 import { HideIcon, ShowIcon, WidgetIcon } from '@/shared/ui/icons/ui-icons'
+import { isCameraLifecycleLive } from '../model/types'
 import { useCameraStore } from '../model/use-camera-store'
 
 export function WebcamPanel() {
   const { t } = useTranslation()
-  const { cameraState, setCameraState } = useCameraStore()
+  const { cameraState, cameraLifecycle, setCameraState } = useCameraStore()
+  const [pendingResumeSessionId, setPendingResumeSessionId] = useState<
+    string | null
+  >(null)
   const { toggleWidget } = useWidget()
   const isWebcamOn = cameraState === 'show'
   const isExit = cameraState === 'exit'
+  const isCameraLive = isCameraLifecycleLive(cameraLifecycle)
   const currentSessionId =
     typeof window !== 'undefined' ? localStorage.getItem('sessionId') : null
 
@@ -33,6 +39,15 @@ export function WebcamPanel() {
   const { flushMetrics } = useMetricsCollector()
   useAutoMetricsSender(flushMetrics)
   useSessionCleanup(flushMetrics)
+
+  useEffect(() => {
+    if (!pendingResumeSessionId || !isCameraLive) return
+
+    resumeSession.mutate(pendingResumeSessionId, {
+      onSettled: () => setPendingResumeSessionId(null),
+      onError: () => setCameraState('show'),
+    })
+  }, [isCameraLive, pendingResumeSessionId, resumeSession, setCameraState])
 
   const handleStartStop = () => {
     if (isExit) {
@@ -77,9 +92,7 @@ export function WebcamPanel() {
 
     if (!isWebcamOn && currentSessionId) {
       setCameraState('show')
-      resumeSession.mutate(currentSessionId, {
-        onError: () => setCameraState('show'),
-      })
+      setPendingResumeSessionId(currentSessionId)
       return
     }
 

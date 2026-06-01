@@ -2,6 +2,7 @@ import { type RefObject, useEffect, useRef, useState } from 'react'
 import type Webcam from 'react-webcam'
 import SleepIcon from '@/assets/common/icons/sleep.svg'
 import { PoseOverlayCanvas, type PostureEngineResult } from '@/entities/posture'
+import { isCameraLifecycleLive } from '@/features/main-panels/model/types'
 import { useCameraStore } from '@/features/main-panels/model/use-camera-store'
 import {
   CameraPermissionModal,
@@ -49,7 +50,7 @@ const WebcamView = ({
     mode,
     disableFramePush,
   })
-  const { cameraState } = useCameraStore()
+  const { cameraState, cameraLifecycle } = useCameraStore()
 
   useEffect(() => {
     if (onVideoRefReady) {
@@ -90,8 +91,16 @@ const WebcamView = ({
     }
   }, [])
 
-  const isCameraVisible = ignoreCameraState || cameraState === 'show'
-  const shouldRenderSidecarStream = isCameraVisible && Boolean(streamUrl)
+  const isCameraVisible = ignoreCameraState || cameraLifecycle.intent === 'show'
+  const isRuntimeReady =
+    cameraLifecycle.runtime === 'ready' &&
+    Boolean(cameraLifecycle.streamUrl ?? streamUrl)
+  const shouldRenderSidecarStream =
+    isCameraVisible &&
+    (ignoreCameraState
+      ? isRuntimeReady
+      : isCameraLifecycleLive(cameraLifecycle))
+  const visibleStreamUrl = cameraLifecycle.streamUrl ?? streamUrl
   const cameraErrorMessage = getSidecarCameraErrorMessage(engineState.message)
   const [dismissedCameraErrorMessage, setDismissedCameraErrorMessage] =
     useState<string | null>(null)
@@ -152,7 +161,7 @@ const WebcamView = ({
       {shouldRenderSidecarStream ? (
         <div className="relative h-full w-full">
           <img
-            src={streamUrl ?? undefined}
+            src={visibleStreamUrl ?? undefined}
             alt="자세 측정 카메라 스트림"
             className="media-display pointer-events-none h-full w-full scale-x-[-1] rounded-[24px] object-fill select-none"
             draggable={false}
