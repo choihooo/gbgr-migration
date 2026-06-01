@@ -1,6 +1,6 @@
 [package]
 name = "gbgr-app"
-version = "0.1.19"
+version = "0.1.20"
 description = "거부기린 데스크톱 앱"
 authors = ["GBGR"]
 edition = "2021"
